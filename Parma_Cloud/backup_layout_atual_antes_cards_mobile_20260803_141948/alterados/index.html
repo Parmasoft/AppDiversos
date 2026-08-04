@@ -1,0 +1,134 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Consulta de Produtos</title>
+
+    <link rel="stylesheet" href="/static/portal/portal.css?v=20260803_ultima_compra">
+</head>
+<body>
+    <main class="pagina">
+        <section class="login" id="painelLogin">
+            <div class="login-cabecalho">
+                <h2>Acesso ao portal</h2>
+
+                <p>
+                    Informe seu usuário e senha para consultar os produtos.
+                </p>
+            </div>
+
+            <form id="formLogin">
+                <div class="campos-login">
+                    <div class="campo">
+                        <label for="usuario">Usuário</label>
+
+                        <input
+                            type="text"
+                            id="usuario"
+                            autocomplete="username"
+                            maxlength="60"
+                            required
+                        >
+                    </div>
+
+                    <div class="campo">
+                        <label for="senha">Senha</label>
+
+                        <input
+                            type="password"
+                            id="senha"
+                            autocomplete="current-password"
+                            maxlength="120"
+                            required
+                        >
+                    </div>
+                </div>
+
+                <button type="submit" id="btnEntrar">
+                    Entrar
+                </button>
+            </form>
+
+            <p class="mensagem-login" id="mensagemLogin"></p>
+        </section>
+
+        <section class="consulta oculto" id="painelConsulta">
+            <div class="consulta-cabecalho">
+                <div class="consulta-identidade">
+                    <span class="marca">ParmaSoft</span>
+                    <span class="separador-marca" aria-hidden="true">—</span>
+                    <h1 id="nomeCliente">Consulta de Produtos</h1>
+                </div>
+
+                <div class="consulta-status">
+                    <span class="situacao" id="situacao">
+                        Identificando cliente
+                    </span>
+
+                    <div class="usuario-logado">
+                        <span>Usuário conectado</span>
+                        <div class="usuario-linha">
+                            <strong id="nomeUsuario">—</strong>
+
+                            <button type="button" id="btnSair">
+                                Sair
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <label for="busca">
+                Código, descrição ou código de barras
+            </label>
+
+            <div class="linha-busca">
+                <input
+                    type="search"
+                    id="busca"
+                    placeholder="Digite o produto que deseja localizar"
+                    autocomplete="off"
+                >
+
+                <button type="button" id="btnPesquisar">
+                    Pesquisar
+                </button>
+            </div>
+        </section>
+
+        <section class="resultado oculto" id="painelResultado">
+            <div class="resultado-cabecalho">
+                <h2>Produtos</h2>
+                <span id="quantidade">0 produtos</span>
+            </div>
+
+            <div class="tabela-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="codigo">Código</th>
+                            <th>Descrição</th>
+                            <th class="unidade">Unidade</th>
+                            <th class="numero">Estoque</th>
+                            <th class="numero custo">Custo</th>
+                            <th class="numero">Preço</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="listaProdutos">
+                        <tr>
+                            <td colspan="6" class="mensagem">
+                                Digite um produto para iniciar a consulta.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script src="/static/portal/portal.js?v=20260803_ultima_compra"></script>
+</body>
+</html>

@@ -1,0 +1,1315 @@
+main_window      14/04     1658
+
+
+import re
+from pathlib import Path
+import tkinter as tk
+from tkinter import ttk, messagebox, filedialog
+
+try:
+    import fdb
+except ImportError:
+    fdb = None
+
+try:
+    from firebird.driver import connect as fb_driver_connect
+    from firebird.driver import driver_config
+except ImportError:
+    fb_driver_connect = None
+    driver_config = None
+
+
+class MainWindow(tk.Tk):
+    def __init__(self):
+        super().__init__()
+
+        self.title("ImportaDados - Importador com Validação Assistida")
+        self.geometry("1420x860")
+        self.minsize(1240, 760)
+        self.configure(bg="#f5f6f8")
+
+        self.edt_origem_servidor = None
+        self.edt_origem_porta = None
+        self.edt_origem_banco = None
+        self.edt_origem_usuario = None
+        self.edt_origem_senha = None
+        self.edt_origem_charset = None
+        self.cmb_origem_tabela = None
+
+        self.edt_destino_servidor = None
+        self.edt_destino_porta = None
+        self.edt_destino_banco = None
+        self.edt_destino_usuario = None
+        self.edt_destino_senha = None
+        self.edt_destino_charset = None
+        self.cmb_destino_tabela = None
+
+        self.lbl_status_conexao = None
+        self.lbl_status_mapeamento = None
+
+        self.tree_campos_origem = None
+        self.tree_campos_destino = None
+        self.tree_mapeamento = None
+
+        self.edt_pesquisa_origem = None
+        self.edt_pesquisa_destino = None
+
+        self.lbl_origem_selecionado = None
+        self.lbl_destino_selecionado = None
+        self.lbl_status_vinculo = None
+
+        self.ambiente_firebird = self._detectar_ambiente_firebird()
+
+        self.campos_origem = []
+        self.campos_destino = []
+        self.mapeamento_linhas = []
+
+        self.campo_origem_selecionado = None
+        self.campo_destino_selecionado = None
+        self.indice_mapeamento_selecionado = None
+
+        self._configurar_estilos()
+        self._criar_layout()
+
+    def _configurar_estilos(self):
+        style = ttk.Style()
+
+        try:
+            style.theme_use("clam")
+        except Exception:
+            pass
+
+        style.configure(
+            "Card.TLabelframe",
+            background="#ffffff",
+            borderwidth=1,
+            relief="solid",
+        )
+
+        style.configure(
+            "Card.TLabelframe.Label",
+            font=("Segoe UI", 10, "bold"),
+            foreground="#222222",
+            background="#ffffff",
+        )
+
+        style.configure(
+            "Campo.TLabel",
+            font=("Segoe UI", 9, "bold"),
+            foreground="#333333",
+            background="#ffffff",
+        )
+
+        style.configure(
+            "Texto.TLabel",
+            font=("Segoe UI", 10),
+            foreground="#444444",
+            background="#ffffff",
+        )
+
+        style.configure(
+            "Info.TLabel",
+            font=("Segoe UI", 9),
+            foreground="#355c7d",
+            background="#f5f6f8",
+        )
+
+        style.configure(
+            "Secao.TButton",
+            font=("Segoe UI", 9, "bold"),
+            padding=(8, 4),
+        )
+
+        style.configure(
+            "Arquivo.TButton",
+            font=("Segoe UI", 9, "bold"),
+            padding=(6, 2),
+        )
+
+    def _criar_layout(self):
+        container = tk.Frame(self, bg="#f5f6f8")
+        container.pack(fill="both", expand=True, padx=12, pady=12)
+
+        self.lbl_status_conexao = ttk.Label(
+            container,
+            text=self._montar_texto_ambiente(),
+            style="Info.TLabel",
+            justify="left",
+        )
+        self.lbl_status_conexao.pack(anchor="w", pady=(0, 8))
+
+        notebook = ttk.Notebook(container)
+        notebook.pack(fill="both", expand=True)
+
+        aba_conexoes = tk.Frame(notebook, bg="#f5f6f8")
+        aba_mapeamento = tk.Frame(notebook, bg="#f5f6f8")
+
+        notebook.add(aba_conexoes, text="Conexões")
+        notebook.add(aba_mapeamento, text="Mapeamento de Campos")
+
+        self._criar_aba_conexoes(aba_conexoes)
+        self._criar_aba_mapeamento(aba_mapeamento)
+
+    def _criar_aba_conexoes(self, parent):
+        parent.grid_columnconfigure(0, weight=1)
+        parent.grid_columnconfigure(1, weight=1)
+        parent.grid_rowconfigure(0, weight=0)
+        parent.grid_rowconfigure(1, weight=0)
+
+        bloco_origem = self._criar_bloco_conexao(parent, "Conexão Origem", "origem")
+        bloco_origem.grid(row=0, column=0, sticky="nsew", padx=(0, 6), pady=(0, 8))
+
+        bloco_destino = self._criar_bloco_conexao(parent, "Conexão Destino", "destino")
+        bloco_destino.grid(row=0, column=1, sticky="nsew", padx=(6, 0), pady=(0, 8))
+
+        barra = ttk.LabelFrame(parent, text="Ações", style="Card.TLabelframe")
+        barra.grid(row=1, column=0, columnspan=2, sticky="ew")
+
+        interno = tk.Frame(barra, bg="#ffffff")
+        interno.pack(fill="x", expand=True, padx=10, pady=10)
+
+        ttk.Button(
+            interno,
+            text="Validar mapeamento",
+            style="Secao.TButton",
+            command=self._validar_ambiente,
+        ).pack(side="left", padx=(0, 8))
+
+        ttk.Label(
+            interno,
+            text="Primeiro teste as conexões, depois leia as tabelas e escolha as duas tabelas que serão comparadas.",
+            style="Texto.TLabel",
+        ).pack(side="left")
+
+    def _criar_aba_mapeamento(self, parent):
+        parent.grid_columnconfigure(0, weight=1)
+        parent.grid_rowconfigure(0, weight=1)
+        parent.grid_rowconfigure(1, weight=2)
+
+        topo = tk.Frame(parent, bg="#f5f6f8")
+        topo.grid(row=0, column=0, sticky="nsew", pady=(0, 8))
+        topo.grid_columnconfigure(0, weight=1)
+        topo.grid_columnconfigure(1, weight=1)
+
+        bloco_origem = self._criar_bloco_campos(topo, "Campos da Tabela Origem", "origem")
+        bloco_origem.grid(row=0, column=0, sticky="nsew", padx=(0, 6))
+
+        bloco_destino = self._criar_bloco_campos(topo, "Campos da Tabela Destino", "destino")
+        bloco_destino.grid(row=0, column=1, sticky="nsew", padx=(6, 0))
+
+        bloco_mapeamento = ttk.LabelFrame(parent, text="Mapeamento", style="Card.TLabelframe")
+        bloco_mapeamento.grid(row=1, column=0, sticky="nsew")
+
+        interno = tk.Frame(bloco_mapeamento, bg="#ffffff")
+        interno.pack(fill="both", expand=True, padx=10, pady=10)
+
+        self.lbl_status_mapeamento = ttk.Label(
+            interno,
+            text="Selecione um campo na origem e um campo no destino para vincular. Ou use a validação para montar o automático.",
+            style="Texto.TLabel",
+            justify="left",
+        )
+        self.lbl_status_mapeamento.pack(anchor="w", pady=(0, 8))
+
+        barra_vinculo = tk.Frame(interno, bg="#ffffff")
+        barra_vinculo.pack(fill="x", pady=(0, 8))
+
+        ttk.Label(barra_vinculo, text="Origem:", style="Campo.TLabel").pack(side="left")
+        self.lbl_origem_selecionado = ttk.Label(
+            barra_vinculo, text="(nenhum)", style="Texto.TLabel"
+        )
+        self.lbl_origem_selecionado.pack(side="left", padx=(6, 16))
+
+        ttk.Label(barra_vinculo, text="Destino:", style="Campo.TLabel").pack(side="left")
+        self.lbl_destino_selecionado = ttk.Label(
+            barra_vinculo, text="(nenhum)", style="Texto.TLabel"
+        )
+        self.lbl_destino_selecionado.pack(side="left", padx=(6, 16))
+
+        ttk.Button(
+            barra_vinculo,
+            text="Vincular selecionados",
+            style="Secao.TButton",
+            command=self._vincular_campos_selecionados,
+        ).pack(side="left", padx=(0, 8))
+
+        ttk.Button(
+            barra_vinculo,
+            text="Limpar linha",
+            style="Secao.TButton",
+            command=self._limpar_mapeamento_manual,
+        ).pack(side="left", padx=(0, 8))
+
+        ttk.Button(
+            barra_vinculo,
+            text="Remontar automático",
+            style="Secao.TButton",
+            command=self._remontar_mapeamento_automatico,
+        ).pack(side="left")
+
+        self.lbl_status_vinculo = ttk.Label(
+            interno, text="", style="Texto.TLabel"
+        )
+        self.lbl_status_vinculo.pack(anchor="w", pady=(0, 8))
+
+        area_tree = tk.Frame(interno, bg="#ffffff")
+        area_tree.pack(fill="both", expand=True)
+
+        colunas = ("origem", "tipo_origem", "destino", "tipo_destino", "status")
+        self.tree_mapeamento = ttk.Treeview(
+            area_tree,
+            columns=colunas,
+            show="headings",
+            selectmode="browse",
+        )
+
+        self.tree_mapeamento.heading("origem", text="Campo Origem")
+        self.tree_mapeamento.heading("tipo_origem", text="Tipo Origem")
+        self.tree_mapeamento.heading("destino", text="Campo Destino")
+        self.tree_mapeamento.heading("tipo_destino", text="Tipo Destino")
+        self.tree_mapeamento.heading("status", text="Situação")
+
+        self.tree_mapeamento.column("origem", width=260, anchor="w")
+        self.tree_mapeamento.column("tipo_origem", width=170, anchor="w")
+        self.tree_mapeamento.column("destino", width=260, anchor="w")
+        self.tree_mapeamento.column("tipo_destino", width=170, anchor="w")
+        self.tree_mapeamento.column("status", width=180, anchor="w")
+
+        self.tree_mapeamento.bind("<<TreeviewSelect>>", self._ao_selecionar_linha_mapeamento)
+
+        scroll_y = ttk.Scrollbar(area_tree, orient="vertical", command=self.tree_mapeamento.yview)
+        scroll_x = ttk.Scrollbar(area_tree, orient="horizontal", command=self.tree_mapeamento.xview)
+
+        self.tree_mapeamento.configure(
+            yscrollcommand=scroll_y.set,
+            xscrollcommand=scroll_x.set,
+        )
+
+        area_tree.grid_rowconfigure(0, weight=1)
+        area_tree.grid_columnconfigure(0, weight=1)
+
+        self.tree_mapeamento.grid(row=0, column=0, sticky="nsew")
+        scroll_y.grid(row=0, column=1, sticky="ns")
+        scroll_x.grid(row=1, column=0, sticky="ew")
+
+    def _criar_bloco_conexao(self, parent, titulo, lado):
+        frame = ttk.LabelFrame(parent, text=titulo, style="Card.TLabelframe")
+
+        interno = tk.Frame(frame, bg="#ffffff")
+        interno.pack(fill="both", expand=True, padx=8, pady=8)
+
+        for i in range(10):
+            interno.grid_columnconfigure(i, weight=0)
+
+        edt_servidor = self._adicionar_campo_inline(
+            interno, "Servidor / IP", 0, "127.0.0.1", largura=12
+        )
+        edt_porta = self._adicionar_campo_inline(
+            interno, "Porta", 2, self._porta_padrao_detectada(), largura=7
+        )
+        edt_usuario = self._adicionar_campo_inline(
+            interno, "Usuário", 4, "SYSDBA", largura=10
+        )
+        edt_senha = self._adicionar_campo_inline(
+            interno, "Senha", 6, "", largura=10, show="*"
+        )
+        edt_charset = self._adicionar_campo_inline(
+            interno, "Charset", 8, "WIN1252", largura=8
+        )
+
+        linha_banco = tk.Frame(interno, bg="#ffffff")
+        linha_banco.grid(row=1, column=0, columnspan=10, sticky="ew", pady=(8, 6))
+        linha_banco.grid_columnconfigure(1, weight=1)
+
+        ttk.Label(linha_banco, text="Caminho do banco", style="Campo.TLabel").grid(
+            row=0, column=0, sticky="w", padx=(0, 8)
+        )
+
+        edt_banco = ttk.Entry(linha_banco)
+        edt_banco.grid(row=0, column=1, sticky="ew", padx=(0, 8), ipady=2)
+
+        ttk.Button(
+            linha_banco,
+            text="...",
+            width=4,
+            style="Arquivo.TButton",
+            command=lambda l=lado: self._selecionar_arquivo_banco(l),
+        ).grid(row=0, column=2, sticky="w")
+
+        linha_tabela = tk.Frame(interno, bg="#ffffff")
+        linha_tabela.grid(row=2, column=0, columnspan=10, sticky="ew", pady=(0, 2))
+
+        ttk.Label(linha_tabela, text="Tabela", style="Campo.TLabel").pack(side="left", padx=(0, 8))
+
+        cmb_tabela = ttk.Combobox(linha_tabela, state="normal", values=[], width=22)
+        cmb_tabela.pack(side="left", padx=(0, 10))
+
+        ttk.Button(
+            linha_tabela,
+            text="Testar conexão",
+            style="Secao.TButton",
+            command=lambda l=lado: self._testar_conexao(l),
+        ).pack(side="left", padx=(0, 8))
+
+        ttk.Button(
+            linha_tabela,
+            text="Ler tabelas",
+            style="Secao.TButton",
+            command=lambda l=lado: self._ler_tabelas(l),
+        ).pack(side="left")
+
+        if lado == "origem":
+            self.edt_origem_servidor = edt_servidor
+            self.edt_origem_porta = edt_porta
+            self.edt_origem_banco = edt_banco
+            self.edt_origem_usuario = edt_usuario
+            self.edt_origem_senha = edt_senha
+            self.edt_origem_charset = edt_charset
+            self.cmb_origem_tabela = cmb_tabela
+        else:
+            self.edt_destino_servidor = edt_servidor
+            self.edt_destino_porta = edt_porta
+            self.edt_destino_banco = edt_banco
+            self.edt_destino_usuario = edt_usuario
+            self.edt_destino_senha = edt_senha
+            self.edt_destino_charset = edt_charset
+            self.cmb_destino_tabela = cmb_tabela
+
+        return frame
+
+    def _criar_bloco_campos(self, parent, titulo, lado):
+        frame = ttk.LabelFrame(parent, text=titulo, style="Card.TLabelframe")
+
+        interno = tk.Frame(frame, bg="#ffffff")
+        interno.pack(fill="both", expand=True, padx=8, pady=8)
+
+        info = tk.Frame(interno, bg="#ffffff")
+        info.pack(fill="x", pady=(0, 6))
+
+        if lado == "origem":
+            texto = "Mostra os campos da tabela escolhida na origem."
+        else:
+            texto = "Mostra os campos da tabela escolhida no destino."
+
+        ttk.Label(info, text=texto, style="Texto.TLabel").pack(anchor="w")
+
+        barra_pesquisa = tk.Frame(interno, bg="#ffffff")
+        barra_pesquisa.pack(fill="x", pady=(0, 6))
+
+        ttk.Label(
+            barra_pesquisa,
+            text="Pesquisar:",
+            style="Campo.TLabel",
+        ).pack(side="left", padx=(0, 6))
+
+        edt_pesquisa = ttk.Entry(barra_pesquisa, width=28)
+        edt_pesquisa.pack(side="left", padx=(0, 8), ipady=2)
+
+        ttk.Button(
+            barra_pesquisa,
+            text="Limpar",
+            style="Secao.TButton",
+            command=lambda l=lado: self._limpar_pesquisa_campos(l),
+        ).pack(side="left")
+
+        area_tree = tk.Frame(interno, bg="#ffffff")
+        area_tree.pack(fill="both", expand=True)
+
+        colunas = ("campo", "tipo")
+
+        tree = ttk.Treeview(
+            area_tree,
+            columns=colunas,
+            show="headings",
+            selectmode="browse",
+        )
+        tree.heading("campo", text="Campo")
+        tree.heading("tipo", text="Tipo")
+        tree.column("campo", width=250, anchor="w")
+        tree.column("tipo", width=180, anchor="w")
+
+        if lado == "origem":
+            self.tree_campos_origem = tree
+            self.edt_pesquisa_origem = edt_pesquisa
+            tree.bind("<<TreeviewSelect>>", self._ao_selecionar_campo_origem)
+            edt_pesquisa.bind("<KeyRelease>", lambda event: self._filtrar_campos("origem"))
+        else:
+            self.tree_campos_destino = tree
+            self.edt_pesquisa_destino = edt_pesquisa
+            tree.bind("<<TreeviewSelect>>", self._ao_selecionar_campo_destino)
+            edt_pesquisa.bind("<KeyRelease>", lambda event: self._filtrar_campos("destino"))
+
+        scroll_y = ttk.Scrollbar(area_tree, orient="vertical", command=tree.yview)
+        scroll_x = ttk.Scrollbar(area_tree, orient="horizontal", command=tree.xview)
+
+        tree.configure(
+            yscrollcommand=scroll_y.set,
+            xscrollcommand=scroll_x.set,
+        )
+
+        area_tree.grid_rowconfigure(0, weight=1)
+        area_tree.grid_columnconfigure(0, weight=1)
+
+        tree.grid(row=0, column=0, sticky="nsew")
+        scroll_y.grid(row=0, column=1, sticky="ns")
+        scroll_x.grid(row=1, column=0, sticky="ew")
+
+        return frame
+
+    def _adicionar_campo_inline(self, parent, titulo, column_start, valor="", largura=12, show=None):
+        ttk.Label(parent, text=titulo, style="Campo.TLabel").grid(
+            row=0, column=column_start, sticky="w", padx=(0, 6)
+        )
+
+        widget = ttk.Entry(parent, width=largura)
+        if show:
+            widget.configure(show=show)
+
+        if valor:
+            widget.insert(0, valor)
+
+        widget.grid(row=0, column=column_start + 1, sticky="w", padx=(0, 14), ipady=2)
+        return widget
+
+    def _selecionar_arquivo_banco(self, lado):
+        caminho = filedialog.askopenfilename(
+            title="Selecionar banco Firebird",
+            filetypes=[
+                ("Banco Firebird", "*.fdb *.gdb"),
+                ("Banco Firebird", "*.FDB *.GDB"),
+                ("Todos os arquivos", "*.*"),
+            ],
+        )
+
+        if not caminho:
+            return
+
+        if lado == "origem":
+            self.edt_origem_banco.delete(0, tk.END)
+            self.edt_origem_banco.insert(0, caminho)
+        else:
+            self.edt_destino_banco.delete(0, tk.END)
+            self.edt_destino_banco.insert(0, caminho)
+
+    def _obter_widgets_lado(self, lado):
+        if lado == "origem":
+            return {
+                "servidor": self.edt_origem_servidor,
+                "porta": self.edt_origem_porta,
+                "banco": self.edt_origem_banco,
+                "usuario": self.edt_origem_usuario,
+                "senha": self.edt_origem_senha,
+                "charset": self.edt_origem_charset,
+                "tabela": self.cmb_origem_tabela,
+            }
+
+        return {
+            "servidor": self.edt_destino_servidor,
+            "porta": self.edt_destino_porta,
+            "banco": self.edt_destino_banco,
+            "usuario": self.edt_destino_usuario,
+            "senha": self.edt_destino_senha,
+            "charset": self.edt_destino_charset,
+            "tabela": self.cmb_destino_tabela,
+        }
+
+    def _obter_dados_conexao(self, lado):
+        widgets = self._obter_widgets_lado(lado)
+
+        porta_txt = (widgets["porta"].get() or "").strip()
+        porta = 3050
+        if porta_txt:
+            try:
+                porta = int(porta_txt)
+            except ValueError:
+                raise ValueError(f"A porta da conexão {lado} está inválida.")
+
+        return {
+            "servidor": (widgets["servidor"].get() or "").strip() or "127.0.0.1",
+            "porta": porta,
+            "banco": (widgets["banco"].get() or "").strip(),
+            "usuario": (widgets["usuario"].get() or "").strip() or "SYSDBA",
+            "senha": widgets["senha"].get() or "",
+            "charset": (widgets["charset"].get() or "").strip() or "WIN1252",
+            "tabela": (widgets["tabela"].get() or "").strip(),
+        }
+
+    def _detectar_ambiente_firebird(self):
+        candidatos = []
+        vistos = set()
+
+        bases = [
+            Path(r"C:\Program Files\Firebird"),
+            Path(r"C:\Program Files (x86)\Firebird"),
+            Path(r"C:\Firebird"),
+        ]
+
+        for base in bases:
+            if not base.exists():
+                continue
+
+            for pasta in base.rglob("*"):
+                if not pasta.is_dir():
+                    continue
+
+                nome = pasta.name.upper()
+                if "FIREBIRD" not in nome:
+                    continue
+
+                dll = pasta / "fbclient.dll"
+                if not dll.exists():
+                    dll = pasta / "bin" / "fbclient.dll"
+                    if not dll.exists():
+                        continue
+
+                versao = self._extrair_versao_firebird(str(pasta))
+                conf = dll.parent / "firebird.conf"
+                if not conf.exists():
+                    conf = dll.parent.parent / "firebird.conf"
+
+                porta = self._ler_porta_firebird_conf(conf)
+                item = {
+                    "versao": versao,
+                    "dll": str(dll),
+                    "porta": porta,
+                    "pasta": str(pasta),
+                    "familia": self._familia_firebird(versao),
+                }
+
+                chave = (item["versao"], item["dll"])
+                if chave not in vistos:
+                    vistos.add(chave)
+                    candidatos.append(item)
+
+        candidatos.sort(key=lambda x: (self._versao_para_numero(x["versao"]), x["dll"]))
+        return candidatos
+
+    def _extrair_versao_firebird(self, texto):
+        texto_upper = (texto or "").upper().replace("-", "_")
+
+        padroes = [
+            r"FIREBIRD[_\s]?(\d+)[._](\d+)",
+            r"FIREBIRD[_\s]?(\d+)",
+        ]
+
+        for padrao in padroes:
+            m = re.search(padrao, texto_upper)
+            if m:
+                if len(m.groups()) >= 2:
+                    return f"{m.group(1)}.{m.group(2)}"
+                return m.group(1)
+
+        return "desconhecida"
+
+    def _familia_firebird(self, versao):
+        try:
+            major = int(float(str(versao)))
+        except Exception:
+            return "desconhecida"
+
+        if major <= 2:
+            return "legacy"
+        return "moderno"
+
+    def _versao_para_numero(self, versao):
+        try:
+            return float(str(versao))
+        except Exception:
+            return 0.0
+
+    def _ler_porta_firebird_conf(self, caminho_conf):
+        try:
+            if not caminho_conf or not Path(caminho_conf).exists():
+                return None
+
+            linhas = Path(caminho_conf).read_text(
+                encoding="utf-8",
+                errors="ignore",
+            ).splitlines()
+
+            for linha in linhas:
+                linha_limpa = linha.strip()
+                if not linha_limpa or linha_limpa.startswith("#"):
+                    continue
+                if linha_limpa.upper().startswith("REMOTESERVICEPORT"):
+                    partes = linha_limpa.split("=")
+                    if len(partes) == 2:
+                        return partes[1].strip()
+        except Exception:
+            pass
+
+        return None
+
+    def _montar_texto_ambiente(self):
+        itens = []
+
+        if not self.ambiente_firebird:
+            itens.append("Nenhuma instalação local do Firebird foi detectada automaticamente.")
+        else:
+            partes = []
+            for item in self.ambiente_firebird:
+                porta = item["porta"] or "?"
+                partes.append(f"FB {item['versao']} (porta {porta})")
+            itens.append("Ambiente Firebird detectado: " + ", ".join(partes) + ".")
+
+        itens.append("fdb OK." if fdb is not None else "fdb não instalado.")
+        itens.append("firebird-driver OK." if fb_driver_connect is not None else "firebird-driver não instalado.")
+        return "  ".join(itens)
+
+    def _porta_padrao_detectada(self):
+        for item in reversed(self.ambiente_firebird):
+            if item["porta"]:
+                return item["porta"]
+        return "3050"
+
+    def _resolver_cliente_preferencial(self, porta):
+        porta_txt = str(porta).strip()
+
+        if self.ambiente_firebird:
+            ordenados = sorted(
+                self.ambiente_firebird,
+                key=lambda x: self._versao_para_numero(x["versao"]),
+                reverse=True,
+            )
+
+            for item in ordenados:
+                if item["porta"] and str(item["porta"]) == porta_txt:
+                    return item
+
+            for item in ordenados:
+                if porta_txt == "3050" and item["familia"] == "legacy":
+                    return item
+
+            for item in ordenados:
+                if item["familia"] == "moderno":
+                    return item
+
+            return self.ambiente_firebird[-1]
+
+        return None
+
+    def _conectar_automatico(self, dados):
+        if not dados["banco"]:
+            raise ValueError("Informe o caminho do banco.")
+
+        cliente = self._resolver_cliente_preferencial(dados["porta"])
+        erros = []
+        tentativas = []
+
+        if cliente:
+            if cliente["familia"] == "legacy":
+                tentativas.append(("fdb", cliente))
+                tentativas.append(("driver", None))
+            else:
+                tentativas.append(("driver", cliente))
+                tentativas.append(("fdb", None))
+        else:
+            tentativas.append(("driver", None))
+            tentativas.append(("fdb", None))
+
+        usados = set()
+        tentativas_filtradas = []
+
+        for modo, cli in tentativas:
+            chave = (modo, cli["dll"] if cli else None)
+            if chave not in usados:
+                usados.add(chave)
+                tentativas_filtradas.append((modo, cli))
+
+        for modo, cli in tentativas_filtradas:
+            try:
+                if modo == "driver":
+                    con = self._conectar_firebird_driver(dados, cli)
+                    return con, {"modo": "firebird-driver", "cliente": cli}
+
+                if modo == "fdb":
+                    con = self._conectar_fdb(dados, cli)
+                    return con, {"modo": "fdb", "cliente": cli}
+            except Exception as e:
+                detalhe = modo
+                if cli and cli.get("versao"):
+                    detalhe += f" / FB {cli['versao']}"
+                erros.append(f"{detalhe}: {e}")
+
+        raise RuntimeError(
+            "Nenhuma estratégia automática de conexão funcionou.\n\n"
+            + "\n\n".join(erros)
+        )
+
+    def _conectar_fdb(self, dados, cliente=None):
+        if fdb is None:
+            raise RuntimeError("Biblioteca Python 'fdb' não está instalada. Rode: pip install fdb")
+
+        kwargs = {
+            "dsn": f"{dados['servidor']}/{dados['porta']}:{dados['banco']}",
+            "user": dados["usuario"],
+            "password": dados["senha"],
+            "charset": dados["charset"],
+        }
+
+        if cliente and cliente.get("dll"):
+            kwargs["fb_library_name"] = cliente["dll"]
+
+        return fdb.connect(**kwargs)
+
+    def _conectar_firebird_driver(self, dados, cliente=None):
+        if fb_driver_connect is None:
+            raise RuntimeError(
+                "Biblioteca Python 'firebird-driver' não está instalada. Rode: pip install firebird-driver"
+            )
+
+        if driver_config is not None:
+            try:
+                driver_config.fb_client_library.value = (
+                    cliente["dll"] if cliente and cliente.get("dll") else None
+                )
+            except Exception:
+                pass
+
+        dsn = f"{dados['servidor']}/{dados['porta']}:{dados['banco']}"
+
+        try:
+            return fb_driver_connect(
+                dsn=dsn,
+                user=dados["usuario"],
+                password=dados["senha"],
+                charset=dados["charset"],
+            )
+        except TypeError:
+            return fb_driver_connect(
+                database=dsn,
+                user=dados["usuario"],
+                password=dados["senha"],
+                charset=dados["charset"],
+            )
+
+    def _testar_conexao(self, lado):
+        con = None
+        try:
+            dados = self._obter_dados_conexao(lado)
+            con, info = self._conectar_automatico(dados)
+
+            cur = con.cursor()
+            cur.execute("SELECT CURRENT_TIMESTAMP FROM RDB$DATABASE")
+            linha = cur.fetchone()
+
+            detalhe_cliente = "auto sem DLL fixa"
+            if info["cliente"] and info["cliente"].get("dll"):
+                detalhe_cliente = f"FB {info['cliente'].get('versao')} -> {info['cliente'].get('dll')}"
+
+            messagebox.showinfo(
+                "Conexão OK",
+                f"Conexão {lado} realizada com sucesso.\n\n"
+                f"Modo: {info['modo']}\n"
+                f"Cliente: {detalhe_cliente}\n"
+                f"Banco: {dados['banco']}\n"
+                f"Data/hora do servidor: {linha[0]}",
+            )
+        except Exception as e:
+            messagebox.showerror("Erro de conexão", f"Falha ao conectar na {lado}.\n\n{e}")
+        finally:
+            self._fechar_conexao(con)
+
+    def _ler_tabelas(self, lado):
+        con = None
+        try:
+            dados = self._obter_dados_conexao(lado)
+            con, _ = self._conectar_automatico(dados)
+            cur = con.cursor()
+
+            cur.execute(
+                """
+                SELECT TRIM(RDB$RELATION_NAME)
+                FROM RDB$RELATIONS
+                WHERE COALESCE(RDB$SYSTEM_FLAG, 0) = 0
+                  AND RDB$VIEW_BLR IS NULL
+                ORDER BY RDB$RELATION_NAME
+                """
+            )
+
+            tabelas = [linha[0].strip() for linha in cur.fetchall() if linha[0]]
+            combo = self.cmb_origem_tabela if lado == "origem" else self.cmb_destino_tabela
+            combo["values"] = tabelas
+
+            if tabelas and not combo.get().strip():
+                combo.set(tabelas[0])
+
+            messagebox.showinfo(
+                "Tabelas carregadas",
+                f"Foram encontradas {len(tabelas)} tabelas na {lado}.",
+            )
+        except Exception as e:
+            messagebox.showerror(
+                "Erro ao ler tabelas",
+                f"Não foi possível ler as tabelas da {lado}.\n\n{e}",
+            )
+        finally:
+            self._fechar_conexao(con)
+
+    def _obter_campos_tabela(self, con, nome_tabela):
+        nome_tabela = self._normalizar_nome_tabela(nome_tabela)
+        cur = con.cursor()
+
+        cur.execute(
+            """
+            SELECT
+                TRIM(rf.RDB$FIELD_NAME) AS CAMPO,
+                f.RDB$FIELD_TYPE,
+                f.RDB$FIELD_SUB_TYPE,
+                f.RDB$FIELD_LENGTH,
+                f.RDB$FIELD_PRECISION,
+                f.RDB$FIELD_SCALE,
+                rf.RDB$NULL_FLAG
+            FROM RDB$RELATION_FIELDS rf
+            JOIN RDB$FIELDS f
+              ON f.RDB$FIELD_NAME = rf.RDB$FIELD_SOURCE
+            WHERE TRIM(rf.RDB$RELATION_NAME) = ?
+            ORDER BY rf.RDB$FIELD_POSITION
+            """,
+            (nome_tabela,),
+        )
+
+        campos = []
+        for linha in cur.fetchall():
+            campo = (linha[0] or "").strip()
+            field_type = linha[1]
+            field_length = linha[3]
+            field_precision = linha[4]
+            field_scale = linha[5]
+            null_flag = linha[6]
+
+            tipo_texto = self._traduzir_tipo_firebird(
+                field_type,
+                field_length,
+                field_precision,
+                field_scale,
+            )
+
+            campos.append(
+                {
+                    "nome": campo,
+                    "tipo": tipo_texto,
+                    "obrigatorio": str(null_flag or "").strip() == "1",
+                }
+            )
+
+        return campos
+
+    def _traduzir_tipo_firebird(self, field_type, field_length, field_precision, field_scale):
+        mapa = {
+            7: "SMALLINT",
+            8: "INTEGER",
+            10: "FLOAT",
+            12: "DATE",
+            13: "TIME",
+            14: "CHAR",
+            16: "BIGINT/NUMERIC",
+            27: "DOUBLE",
+            35: "TIMESTAMP",
+            37: "VARCHAR",
+            261: "BLOB",
+        }
+
+        base = mapa.get(field_type, f"TIPO_{field_type}")
+
+        if field_type in (14, 37):
+            return f"{base}({field_length})"
+
+        if field_type == 16:
+            if field_scale and int(field_scale) < 0:
+                escala = abs(int(field_scale))
+                if field_precision:
+                    return f"NUMERIC({field_precision},{escala})"
+                return f"NUMERIC(*,{escala})"
+            return "BIGINT"
+
+        return base
+
+    def _normalizar_nome_campo(self, nome):
+        return re.sub(r"[^A-Z0-9]", "", (nome or "").upper())
+
+    def _status_mapeamento(self, campo_origem, campo_destino):
+        if not campo_destino:
+            return "Sem destino"
+
+        tipo_origem = campo_origem["tipo"]
+        tipo_destino = campo_destino["tipo"]
+
+        if tipo_origem == tipo_destino:
+            return "Compatível"
+
+        base_origem = tipo_origem.split("(")[0]
+        base_destino = tipo_destino.split("(")[0]
+
+        if base_origem == base_destino:
+            return "Compatível parcial"
+
+        return "Tipo diferente"
+
+    def _montar_mapeamento_automatico(self, campos_origem, campos_destino):
+        indice_destino = {
+            self._normalizar_nome_campo(campo["nome"]): campo
+            for campo in campos_destino
+        }
+
+        linhas = []
+        for campo_origem in campos_origem:
+            chave = self._normalizar_nome_campo(campo_origem["nome"])
+            campo_destino = indice_destino.get(chave)
+
+            linhas.append(
+                {
+                    "origem": campo_origem["nome"],
+                    "tipo_origem": campo_origem["tipo"],
+                    "destino": campo_destino["nome"] if campo_destino else "",
+                    "tipo_destino": campo_destino["tipo"] if campo_destino else "",
+                    "status": self._status_mapeamento(campo_origem, campo_destino),
+                }
+            )
+
+        return linhas
+    
+    def _obter_nomes_destino_usados(self):
+        return {
+            (linha.get("destino") or "").strip()
+            for linha in self.mapeamento_linhas
+            if (linha.get("destino") or "").strip()
+        }  
+
+    def _obter_texto_pesquisa_campos(self, lado):
+        if lado == "origem":
+            if self.edt_pesquisa_origem is None:
+                return ""
+            return (self.edt_pesquisa_origem.get() or "").strip().upper()
+
+        if self.edt_pesquisa_destino is None:
+            return ""
+        return (self.edt_pesquisa_destino.get() or "").strip().upper()
+
+    def _filtrar_campos(self, lado):
+        if lado == "origem":
+            self._preencher_tree_campos("origem", self.campos_origem)
+        else:
+            self._preencher_tree_campos("destino", self.campos_destino)
+
+    def _limpar_pesquisa_campos(self, lado):
+        if lado == "origem":
+            if self.edt_pesquisa_origem is not None:
+                self.edt_pesquisa_origem.delete(0, tk.END)
+            self._preencher_tree_campos("origem", self.campos_origem)
+        else:
+            if self.edt_pesquisa_destino is not None:
+                self.edt_pesquisa_destino.delete(0, tk.END)
+            self._preencher_tree_campos("destino", self.campos_destino)    
+
+
+    def _preencher_tree_campos(self, lado, campos):
+        tree = self.tree_campos_origem if lado == "origem" else self.tree_campos_destino
+
+        for item in tree.get_children():
+            tree.delete(item)
+
+        destinos_usados = self._obter_nomes_destino_usados()
+        filtro = self._obter_texto_pesquisa_campos(lado)
+
+        indice_visual = 0
+
+        for campo in campos:
+            nome_campo = (campo["nome"] or "").upper()
+            tipo_campo = (campo["tipo"] or "").upper()
+
+            if filtro:
+                if filtro not in nome_campo and filtro not in tipo_campo:
+                    continue
+            tags = ()
+
+            if lado == "origem":
+                linha_mapeada = next(
+                    (
+                        linha
+                        for linha in self.mapeamento_linhas
+                        if (linha.get("origem") or "").strip() == (campo["nome"] or "").strip()
+                    ),
+                    None,
+                )
+
+                if linha_mapeada and (linha_mapeada.get("status") or "").strip() == "Sem destino":
+                    tags = ("pendente",)
+            else:
+                if (campo["nome"] or "").strip() not in destinos_usados:
+                    tags = ("pendente",)
+
+            tree.insert(
+                "",
+                "end",
+                iid=str(indice_visual),
+                values=(campo["nome"], campo["tipo"]),
+                tags=tags,
+            )
+
+            indice_visual += 1
+
+        tree.tag_configure("pendente", background="#ffd6d6")
+
+    def _preencher_tree_mapeamento(self):
+        for item in self.tree_mapeamento.get_children():
+            self.tree_mapeamento.delete(item)
+
+        for i, linha in enumerate(self.mapeamento_linhas):
+            self.tree_mapeamento.insert(
+                "",
+                "end",
+                iid=str(i),
+                values=(
+                    linha["origem"],
+                    linha["tipo_origem"],
+                    linha["destino"],
+                    linha["tipo_destino"],
+                    linha["status"],
+                ),
+            )
+
+    def _atualizar_status_resumo_mapeamento(self):
+        compat = sum(1 for x in self.mapeamento_linhas if x["status"] == "Compatível")
+        parcial = sum(1 for x in self.mapeamento_linhas if x["status"] == "Compatível parcial")
+        dif = sum(1 for x in self.mapeamento_linhas if x["status"] == "Tipo diferente")
+        sem_destino = sum(1 for x in self.mapeamento_linhas if x["status"] == "Sem destino")
+
+        self.lbl_status_mapeamento.configure(
+            text=(
+                f"Mapeamento gerado: {len(self.mapeamento_linhas)} campo(s) origem | "
+                f"Compatíveis: {compat} | "
+                f"Compatíveis parciais: {parcial} | "
+                f"Tipo diferente: {dif} | "
+                f"Sem destino: {sem_destino}"
+            )
+        )
+
+        if self.campos_origem:
+            self._preencher_tree_campos("origem", self.campos_origem)
+
+        if self.campos_destino:
+            self._preencher_tree_campos("destino", self.campos_destino)        
+
+    def _ao_selecionar_campo_origem(self, event=None):
+        selecionados = self.tree_campos_origem.selection()
+        if not selecionados:
+            self.campo_origem_selecionado = None
+            self.lbl_origem_selecionado.configure(text="(nenhum)")
+            return
+
+        valores = self.tree_campos_origem.item(selecionados[0], "values")
+        nome_campo = valores[0] if valores else ""
+
+        self.campo_origem_selecionado = self._buscar_campo_origem_por_nome(nome_campo)
+        self.lbl_origem_selecionado.configure(
+            text=self.campo_origem_selecionado["nome"] if self.campo_origem_selecionado else "(nenhum)"
+        )
+
+    def _ao_selecionar_campo_destino(self, event=None):
+        selecionados = self.tree_campos_destino.selection()
+        if not selecionados:
+            self.campo_destino_selecionado = None
+            self.lbl_destino_selecionado.configure(text="(nenhum)")
+            return
+
+        valores = self.tree_campos_destino.item(selecionados[0], "values")
+        nome_campo = valores[0] if valores else ""
+
+        self.campo_destino_selecionado = self._buscar_campo_destino_por_nome(nome_campo)
+        self.lbl_destino_selecionado.configure(
+            text=self.campo_destino_selecionado["nome"] if self.campo_destino_selecionado else "(nenhum)"
+        )
+
+    def _ao_selecionar_linha_mapeamento(self, event=None):
+        selecionados = self.tree_mapeamento.selection()
+        if not selecionados:
+            self.indice_mapeamento_selecionado = None
+            return
+
+        self.indice_mapeamento_selecionado = int(selecionados[0])
+
+    def _buscar_campo_origem_por_nome(self, nome):
+        for campo in self.campos_origem:
+            if campo["nome"] == nome:
+                return campo
+        return None
+
+    def _buscar_campo_destino_por_nome(self, nome):
+        for campo in self.campos_destino:
+            if campo["nome"] == nome:
+                return campo
+        return None
+
+    def _vincular_campos_selecionados(self):
+        if not self.campo_origem_selecionado:
+            messagebox.showwarning("Mapeamento", "Selecione um campo da origem.")
+            return
+
+        if not self.campo_destino_selecionado:
+            messagebox.showwarning("Mapeamento", "Selecione um campo do destino.")
+            return
+
+        indice = None
+        for i, linha in enumerate(self.mapeamento_linhas):
+            if linha["origem"] == self.campo_origem_selecionado["nome"]:
+                indice = i
+                break
+
+        if indice is None:
+            messagebox.showwarning(
+                "Mapeamento",
+                "Não foi encontrada linha de mapeamento para o campo origem selecionado.",
+            )
+            return
+
+        self.mapeamento_linhas[indice]["destino"] = self.campo_destino_selecionado["nome"]
+        self.mapeamento_linhas[indice]["tipo_destino"] = self.campo_destino_selecionado["tipo"]
+        self.mapeamento_linhas[indice]["status"] = self._status_mapeamento(
+            self.campo_origem_selecionado,
+            self.campo_destino_selecionado,
+        )
+
+        self._preencher_tree_mapeamento()
+        self._atualizar_status_resumo_mapeamento()
+
+        self.tree_mapeamento.selection_set(str(indice))
+        self.tree_mapeamento.focus(str(indice))
+        self.indice_mapeamento_selecionado = indice
+
+        self.lbl_status_vinculo.configure(
+            text=f"Vinculado: {self.campo_origem_selecionado['nome']} -> {self.campo_destino_selecionado['nome']}"
+        )
+
+    def _limpar_mapeamento_manual(self):
+        if self.indice_mapeamento_selecionado is None:
+            messagebox.showwarning("Mapeamento", "Selecione uma linha no grid de mapeamento.")
+            return
+
+        linha = self.mapeamento_linhas[self.indice_mapeamento_selecionado]
+        linha["destino"] = ""
+        linha["tipo_destino"] = ""
+        linha["status"] = "Sem destino"
+
+        self._preencher_tree_mapeamento()
+        self._atualizar_status_resumo_mapeamento()
+
+        self.tree_mapeamento.selection_set(str(self.indice_mapeamento_selecionado))
+        self.tree_mapeamento.focus(str(self.indice_mapeamento_selecionado))
+
+        self.lbl_status_vinculo.configure(text="Vínculo removido da linha selecionada.")
+
+    def _remontar_mapeamento_automatico(self):
+        if not self.campos_origem or not self.campos_destino:
+            messagebox.showwarning(
+                "Mapeamento",
+                "Primeiro valide origem e destino para carregar os campos.",
+            )
+            return
+
+        self.mapeamento_linhas = self._montar_mapeamento_automatico(
+            self.campos_origem,
+            self.campos_destino,
+        )
+        self._preencher_tree_mapeamento()
+        self._atualizar_status_resumo_mapeamento()
+        self.lbl_status_vinculo.configure(text="Mapeamento automático remontado.")
+
+    def _validar_ambiente(self):
+        mensagens = []
+
+        if fdb is None:
+            mensagens.append("- fdb não está instalado.")
+        if fb_driver_connect is None:
+            mensagens.append("- firebird-driver não está instalado.")
+
+        try:
+            dados_origem = self._obter_dados_conexao("origem")
+            if not dados_origem["banco"]:
+                mensagens.append("- Informe o caminho do banco de origem.")
+            if not dados_origem["tabela"]:
+                mensagens.append("- Escolha uma tabela de origem.")
+        except Exception as e:
+            mensagens.append(f"- Origem: {e}")
+
+        try:
+            dados_destino = self._obter_dados_conexao("destino")
+            if not dados_destino["banco"]:
+                mensagens.append("- Informe o caminho do banco de destino.")
+            if not dados_destino["tabela"]:
+                mensagens.append("- Escolha uma tabela de destino.")
+        except Exception as e:
+            mensagens.append(f"- Destino: {e}")
+
+        if mensagens:
+            messagebox.showwarning(
+                "Validação",
+                "Ajuste os pontos abaixo antes de seguir:\n\n" + "\n".join(mensagens),
+            )
+            return
+
+        con_origem = None
+        con_destino = None
+
+        try:
+            con_origem, _ = self._conectar_automatico(dados_origem)
+            con_destino, _ = self._conectar_automatico(dados_destino)
+
+            self.campos_origem = self._obter_campos_tabela(con_origem, dados_origem["tabela"])
+            self.campos_destino = self._obter_campos_tabela(con_destino, dados_destino["tabela"])
+
+            self._preencher_tree_campos("origem", self.campos_origem)
+            self._preencher_tree_campos("destino", self.campos_destino)
+
+            self.mapeamento_linhas = self._montar_mapeamento_automatico(
+                self.campos_origem,
+                self.campos_destino,
+            )
+            self._preencher_tree_mapeamento()
+            self._atualizar_status_resumo_mapeamento()
+
+            self.campo_origem_selecionado = None
+            self.campo_destino_selecionado = None
+            self.indice_mapeamento_selecionado = None
+            self.lbl_origem_selecionado.configure(text="(nenhum)")
+            self.lbl_destino_selecionado.configure(text="(nenhum)")
+            self.lbl_status_vinculo.configure(text="Campos carregados. Agora compare os dois lados e faça os vínculos manuais quando precisar.")
+
+            messagebox.showinfo(
+                "Validação",
+                "Conexões e tabelas válidas.\n\nOs campos da origem e do destino foram carregados na aba de mapeamento.",
+            )
+        except Exception as e:
+            messagebox.showerror(
+                "Erro na validação",
+                f"Não foi possível validar e montar o mapeamento.\n\n{e}",
+            )
+        finally:
+            self._fechar_conexao(con_origem)
+            self._fechar_conexao(con_destino)
+
+    def _normalizar_nome_tabela(self, nome_tabela):
+        nome_tabela = (nome_tabela or "").strip().upper()
+
+        if not nome_tabela:
+            raise ValueError("Informe uma tabela.")
+
+        if not re.fullmatch(r"[A-Z0-9_$]+", nome_tabela):
+            raise ValueError(
+                "Nome de tabela inválido. Use uma tabela carregada pelo botão 'Ler tabelas'."
+            )
+
+        return nome_tabela
+
+    def _importar_dados(self):
+        messagebox.showinfo(
+            "Importação protegida",
+            "A importação ainda não foi liberada.\n\nPrimeiro vamos fechar bem o mapeamento assistido.",
+        )
+
+    def _fechar_conexao(self, con):
+        if con:
+            try:
+                con.close()
+            except Exception:
+                pass

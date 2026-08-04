@@ -1,0 +1,1328 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+
+class VincularCodigoPage extends StatefulWidget {
+  final String codigoBarras;
+  final String baseUrl;
+
+  const VincularCodigoPage({
+    super.key,
+    required this.codigoBarras,
+    required this.baseUrl,
+  });
+
+  @override
+  State<VincularCodigoPage> createState() => _VincularCodigoPageState();
+}
+
+class _VincularCodigoPageState extends State<VincularCodigoPage> {
+  final TextEditingController _buscaCtrl = TextEditingController();
+
+  bool _carregando = false;
+  bool _gravando = false;
+  bool _buscandoFoto = false;
+  String _mensagem = "";
+  String _textoFotoLido = "";
+  List<dynamic> _produtos = [];
+  Map<String, dynamic>? _selecionado;
+  Timer? _debounceBusca;
+
+  @override
+  void dispose() {
+    _debounceBusca?.cancel();
+    _buscaCtrl.dispose();
+    super.dispose();
+  }
+
+  String _limparTextoFoto(String texto) {
+    var t = texto.toUpperCase();
+
+    const acentos = {
+      'Á': 'A',
+      'À': 'A',
+      'Â': 'A',
+      'Ã': 'A',
+      'É': 'E',
+      'Ê': 'E',
+      'Í': 'I',
+      'Ó': 'O',
+      'Ô': 'O',
+      'Õ': 'O',
+      'Ú': 'U',
+      'Ü': 'U',
+      'Ç': 'C',
+    };
+
+    acentos.forEach((de, para) {
+      t = t.replaceAll(de, para);
+    });
+
+    for (final ch in ['.', ',', '-', '_', '/', '\\', '(', ')', '%', ':', ';']) {
+      t = t.replaceAll(ch, ' ');
+    }
+
+    final ignorar = <String>{
+      'DE',
+      'DA',
+      'DO',
+      'DAS',
+      'DOS',
+      'COM',
+      'PARA',
+      'POR',
+      'EM',
+      'PRODUTO',
+      'USO',
+      'ANTES',
+      'LEIA',
+      'INSTRUCOES',
+      'ROTULO',
+      'ATENCAO',
+      'PERIGO',
+      'MANTENHA',
+      'FORA',
+      'ALCANCE',
+      'CRIANCA',
+      'CRIANÇAS',
+      'INTEGRAL',
+      'ORIGINAL',
+      'REGISTRO',
+      'VALIDADE',
+      'LOTE',
+      'FABRICACAO',
+      'FABRICAÇÃO',
+    };
+
+    final palavras = t
+        .split(RegExp(r'\s+'))
+        .map((p) => p.trim())
+        .where((p) => p.length >= 2)
+        .where((p) => !ignorar.contains(p))
+        .toList();
+
+    final unicas = <String>[];
+
+    for (final p in palavras) {
+      if (!unicas.contains(p)) {
+        unicas.add(p);
+      }
+    }
+
+    return unicas.take(10).join(' ');
+  }
+
+  void _aoDigitarBusca(String valor) {
+    _debounceBusca?.cancel();
+
+    final termo = valor.trim();
+
+    if (termo.length < 3) {
+      setState(() {
+        _mensagem = "Digite pelo menos 3 caracteres para buscar.";
+        _produtos = [];
+        _selecionado = null;
+      });
+      return;
+    }
+
+    _debounceBusca = Timer(const Duration(milliseconds: 600), () {
+      _buscar();
+    });
+  }
+
+  String _formatarPreco(dynamic valor) {
+    final numero = double.tryParse(valor.toString()) ?? 0.0;
+    final formatter = NumberFormat.currency(
+      locale: 'pt_BR',
+      symbol: 'R\$',
+      decimalDigits: 2,
+    );
+    return formatter.format(numero);
+  }
+
+  Future<void> _buscarPorFoto() async {
+    FocusScope.of(context).unfocus();
+
+    setState(() {
+      _buscandoFoto = true;
+      _mensagem = "";
+      _textoFotoLido = "";
+      _produtos = [];
+      _selecionado = null;
+    });
+
+    try {
+      final picker = ImagePicker();
+
+      final foto = await picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 85,
+        maxWidth: 1400,
+      );
+
+      if (foto == null) {
+        if (!mounted) return;
+        setState(() {
+          _buscandoFoto = false;
+        });
+        return;
+      }
+
+      final inputImage = InputImage.fromFilePath(foto.path);
+      final textRecognizer = TextRecognizer(
+        script: TextRecognitionScript.latin,
+      );
+
+      final recognizedText = await textRecognizer.processImage(inputImage);
+      await textRecognizer.close();
+
+      final textoLido = recognizedText.text.trim();
+      final termoBusca = _limparTextoFoto(textoLido);
+
+      if (!mounted) return;
+
+      if (termoBusca.length < 3) {
+        setState(() {
+          _buscandoFoto = false;
+          _textoFotoLido = textoLido;
+          _mensagem = "Não consegui identificar texto suficiente na foto.";
+        });
+        return;
+      }
+
+      setState(() {
+        _buscandoFoto = false;
+        _textoFotoLido = textoLido;
+        _buscaCtrl.text = termoBusca;
+      });
+
+      await _buscar();
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _buscandoFoto = false;
+        _mensagem = "Erro ao ler a foto do produto.";
+      });
+    }
+  }
+
+  Future<void> _buscar() async {
+    final termo = _buscaCtrl.text.trim();
+
+    if (termo.length < 3) {
+      setState(() {
+        _mensagem = "Digite pelo menos 3 caracteres para buscar.";
+        _produtos = [];
+        _selecionado = null;
+      });
+      return;
+    }
+
+    setState(() {
+      _carregando = true;
+      _mensagem = "";
+      _produtos = [];
+      _selecionado = null;
+    });
+
+    try {
+      final url = Uri.parse(
+        "${widget.baseUrl}/produto/buscar-descricao?empresa=1&termo=${Uri.encodeComponent(termo)}",
+      );
+
+      final resp = await http.get(url).timeout(const Duration(seconds: 8));
+
+      if (!mounted) return;
+
+      if (resp.statusCode != 200) {
+        setState(() {
+          _mensagem = "Erro ao buscar produtos.";
+        });
+        return;
+      }
+
+      final json = jsonDecode(resp.body);
+      final produtos = json["produtos"] ?? [];
+
+      setState(() {
+        _produtos = produtos;
+        _mensagem = produtos.isEmpty
+            ? "Nenhum produto encontrado com essa busca."
+            : "";
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _mensagem = "Erro de conexão com o servidor.";
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _carregando = false);
+      }
+    }
+  }
+
+  Future<void> _confirmarVinculo() async {
+    if (_selecionado == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Selecione um produto primeiro."),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final produtoId = _selecionado!["produto_id"];
+    final descricao = _selecionado!["descricao"] ?? "";
+
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Confirmar vínculo"),
+        content: Text(
+          "Deseja vincular o código:\n\n"
+          "${widget.codigoBarras}\n\n"
+          "ao produto:\n\n"
+          "$produtoId - $descricao ?",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Não"),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Sim, vincular"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmar != true) return;
+
+    setState(() => _gravando = true);
+
+    try {
+      final resp = await http
+          .post(
+            Uri.parse("${widget.baseUrl}/produto/vincular-codigo"),
+            headers: {"Content-Type": "application/json"},
+            body: jsonEncode({
+              "empresa": 1,
+              "produto_id": produtoId,
+              "codigo_barras": widget.codigoBarras,
+            }),
+          )
+          .timeout(const Duration(seconds: 8));
+
+      final json = jsonDecode(resp.body);
+
+      if (!mounted) return;
+
+      if (resp.statusCode == 200 && json["status"] == "ok") {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(json["mensagem"] ?? "Código vinculado com sucesso."),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        Navigator.pop(context, true);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(json["mensagem"] ?? "Erro ao vincular código."),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Erro de conexão ao vincular código."),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _gravando = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+
+      appBar: AppBar(
+        title: const Text("Vincular Código"),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0.5,
+      ),
+
+      bottomNavigationBar: Container(
+        height: 68,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(top: BorderSide(color: Colors.black12)),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: InkWell(
+                onTap: _gravando ? null : _confirmarVinculo,
+                child: Container(
+                  color: _selecionado == null
+                      ? Colors.grey.shade300
+                      : Colors.green.shade600,
+                  child: Center(
+                    child: _gravando
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text(
+                            "Vincular código ao produto selecionado",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+
+      body: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFFFFF9E3), Color(0xFFF7EFC7)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
+            child: Column(
+              children: [
+                const Text(
+                  "Código de barras não encontrado",
+                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                SelectableText(
+                  widget.codigoBarras,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          Container(
+            padding: const EdgeInsets.all(12),
+            color: Colors.grey.shade100,
+            child: Column(
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton.icon(
+                    onPressed: _buscandoFoto ? null : _buscarPorFoto,
+                    icon: _buscandoFoto
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(Icons.camera_alt),
+                    label: Text(
+                      _buscandoFoto ? "Lendo foto..." : "Buscar por Foto",
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+
+                const Text(
+                  "ou digite parte do nome abaixo",
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.black54,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+
+                TextField(
+                  controller: _buscaCtrl,
+                  textInputAction: TextInputAction.search,
+                  onChanged: _aoDigitarBusca,
+                  onSubmitted: (_) => _buscar(),
+                  decoration: InputDecoration(
+                    labelText: "Buscar produto",
+                    hintText: "Ex: agua coco campo largo 900",
+                    filled: true,
+                    fillColor: Colors.white,
+                    suffixIcon: _carregando
+                        ? const Padding(
+                            padding: EdgeInsets.all(14),
+                            child: SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : const Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+
+                if (_textoFotoLido.trim().isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.black12),
+                    ),
+
+                    child: Text(
+                      "Texto lido da foto:\n$_textoFotoLido",
+                      maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Colors.black87,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+
+          if (_mensagem.isNotEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              color: Colors.orange.shade100,
+              child: Text(
+                _mensagem,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+
+          Expanded(
+            child: _produtos.isEmpty
+                ? const Center(
+                    child: Text(
+                      "Busque pelo nome, marca, medida ou referência do produto.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 16, color: Colors.black54),
+                    ),
+                  )
+                : ListView.separated(
+                    itemCount: _produtos.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (_, index) {
+                      final p = _produtos[index];
+                      final selecionado =
+                          _selecionado?["produto_id"] == p["produto_id"];
+
+                      return InkWell(
+                        onTap: () {
+                          FocusScope.of(context).unfocus();
+                          setState(() => _selecionado = p);
+                        },
+                        child: Container(
+                          color: selecionado
+                              ? Colors.green.shade100
+                              : Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                width: 54,
+                                child: Text(
+                                  "${p["score"] ?? 0}%",
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blueGrey,
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      "${p["produto_id"]} - ${p["descricao"] ?? ""}",
+                                      style: const TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      "UN: ${p["unidade"] ?? ""}   ${_formatarPreco(p["preco"])}",
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (selecionado)
+                                const Icon(
+                                  Icons.check_circle,
+                                  color: Colors.green,
+                                ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+main 12/03   13:32 hs
+
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'pages/scanner_page.dart';
+import 'pages/produto_encontrado_page.dart';
+import 'pages/config_page.dart';
+
+void main() {
+  runApp(const BuscaEANApp());
+}
+
+class BuscaEANApp extends StatelessWidget {
+  const BuscaEANApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: TelaUnica(),
+    );
+  }
+}
+
+// ============================================================================
+// LOGO GIRANDO (TELA INICIAL)
+// ============================================================================
+class LogoGira extends StatefulWidget {
+  const LogoGira({super.key});
+
+  @override
+  State<LogoGira> createState() => _LogoGiraState();
+}
+
+class _LogoGiraState extends State<LogoGira>
+    with SingleTickerProviderStateMixin {
+  late AnimationController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 10),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (_, child) {
+        final angle = controller.value * 6.28318;
+        return Transform(
+          alignment: Alignment.center,
+          transform: Matrix4.identity()
+            ..setEntry(3, 2, 0.001)
+            ..rotateY(-angle),
+          child: child,
+        );
+      },
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(35),
+        child: Image.asset(
+          'assets/images/logo.jpeg',
+          width: 180,
+          fit: BoxFit.contain,
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// BOTÃO PADRÃO DE RODAPÉ
+// ============================================================================
+Widget botaoRodape({
+  required IconData icon,
+  required String texto,
+  required VoidCallback onTap,
+}) {
+  return Expanded(
+    child: InkWell(
+      onTap: onTap,
+      child: Container(
+        color: Colors.white,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: Colors.black, size: 26),
+            const SizedBox(height: 4),
+            Text(
+              texto,
+              style: const TextStyle(color: Colors.black, fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+// ============================================================================
+// TELA PRINCIPAL (HOME REAL)
+// ============================================================================
+class TelaUnica extends StatefulWidget {
+  const TelaUnica({super.key});
+
+  @override
+  State<TelaUnica> createState() => _TelaUnicaState();
+}
+
+class _TelaUnicaState extends State<TelaUnica> {
+  // Default (caso não exista config salva)
+  String baseUrl = "http://192.168.0.250:5001";
+  //String baseUrl = "http://192.168.1.238:5001";
+
+  @override
+  void initState() {
+    super.initState();
+    _carregarBaseUrl();
+  }
+
+  Future<void> _carregarBaseUrl() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString("api_base_url");
+    if (saved != null && saved.trim().isNotEmpty) {
+      setState(() => baseUrl = saved.trim());
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // ABRIR CONFIG
+  // --------------------------------------------------------------------------
+  Future<void> abrirConfig() async {
+    final novo = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (_) => ConfigPage(baseUrlAtual: baseUrl)),
+    );
+
+    if (novo != null && novo.trim().isNotEmpty) {
+      setState(() => baseUrl = novo.trim());
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Configuração salva: $baseUrl"),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // ABRIR SCANNER
+  // --------------------------------------------------------------------------
+  Future<void> abrirScanner() async {
+    final String? codigo = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (_) => const ScannerPage()),
+    );
+
+    if (codigo == null || codigo.trim().isEmpty) return;
+
+    final resultado = await buscar(codigo.trim());
+
+    if (!mounted) return;
+
+    switch (resultado["status"]) {
+      case "ok":
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ProdutoEncontradoPage(
+              dados: resultado["dados"],
+              baseUrl: baseUrl, // 👈 A CONFIGURAÇÃO ATUAL
+              onBuscar: () {
+                Navigator.pop(context);
+                abrirScanner();
+              },
+            ),
+          ),
+        );
+        break;
+
+      case "nao_encontrado":
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Produto não encontrado"),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        break;
+
+      case "erro_conexao":
+      default:
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Erro de conexão com o servidor"),
+            backgroundColor: Colors.red,
+          ),
+        );
+        break;
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // BUSCAR PRODUTO NA API (COM STATUS)
+  // --------------------------------------------------------------------------
+  Future<Map<String, dynamic>> buscar(String cod) async {
+    try {
+      final url = Uri.parse("$baseUrl/produto?cod=$cod");
+      final resp = await http.get(url).timeout(const Duration(seconds: 5));
+
+      if (resp.statusCode != 200) {
+        return {"status": "erro_conexao"};
+      }
+
+      final dados = jsonDecode(resp.body);
+
+      if (dados["encontrado"] == true ||
+          dados["encontrado"] == 1 ||
+          dados["encontrado"] == "true") {
+        return {
+          "status": "ok",
+          "dados": {
+            "produto_id": dados["produto_id"],
+            "codigo": dados["codigo"] ?? cod,
+            "descricao": dados["descricao"] ?? "",
+            "unidade": dados["unidade"] ?? "",
+            "preco": dados["preco"]?.toString() ?? "0.00",
+          },
+        };
+      } else {
+        return {"status": "nao_encontrado"};
+      }
+    } catch (_) {
+      return {"status": "erro_conexao"};
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // UI
+  // --------------------------------------------------------------------------
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+
+      // RODAPÉ
+      bottomNavigationBar: SizedBox(
+        height: 70,
+        child: Row(
+          children: [
+            botaoRodape(
+              icon: Icons.camera_alt,
+              texto: "Buscar",
+              onTap: abrirScanner,
+            ),
+            botaoRodape(
+              icon: Icons.settings,
+              texto: "Configurar",
+              onTap: abrirConfig,
+            ),
+          ],
+        ),
+      ),
+
+      body: SafeArea(
+        child: Column(
+          children: [
+            Container(
+              height: MediaQuery.of(context).size.height * 0.35,
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFFFFF9E3), Color(0xFFF7EFC7)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+              child: const Center(child: LogoGira()),
+            ),
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFFEDEDED), Color(0xFFD9D9D9)],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        "Scanner ParmaSoft",
+                        style: TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black54,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        "API: $baseUrl",
+                        style: const TextStyle(color: Colors.black45),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 20),
+                      Image.asset('assets/images/scanner.png', width: 220),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+main completo   07/03   1401
+
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'pages/scanner_page.dart';
+import 'pages/produto_encontrado_page.dart';
+import 'pages/config_page.dart';
+
+void main() {
+  runApp(const BuscaEANApp());
+}
+
+class BuscaEANApp extends StatelessWidget {
+  const BuscaEANApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: TelaUnica(),
+    );
+  }
+}
+
+// ============================================================================
+// LOGO GIRANDO (TELA INICIAL)
+// ============================================================================
+class LogoGira extends StatefulWidget {
+  const LogoGira({super.key});
+
+  @override
+  State<LogoGira> createState() => _LogoGiraState();
+}
+
+class _LogoGiraState extends State<LogoGira>
+    with SingleTickerProviderStateMixin {
+  late AnimationController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 10),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (_, child) {
+        final angle = controller.value * 6.28318;
+        return Transform(
+          alignment: Alignment.center,
+          transform: Matrix4.identity()
+            ..setEntry(3, 2, 0.001)
+            ..rotateY(-angle),
+          child: child,
+        );
+      },
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(35),
+        child: Image.asset(
+          'assets/images/logo.jpeg',
+          width: 180,
+          fit: BoxFit.contain,
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// BOTÃO PADRÃO DE RODAPÉ
+// ============================================================================
+Widget botaoRodape({
+  required IconData icon,
+  required String texto,
+  required VoidCallback onTap,
+}) {
+  return Expanded(
+    child: InkWell(
+      onTap: onTap,
+      child: Container(
+        color: Colors.white,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: Colors.black, size: 26),
+            const SizedBox(height: 4),
+            Text(
+              texto,
+              style: const TextStyle(color: Colors.black, fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+// ============================================================================
+// TELA PRINCIPAL (HOME REAL)
+// ============================================================================
+class TelaUnica extends StatefulWidget {
+  const TelaUnica({super.key});
+
+  @override
+  State<TelaUnica> createState() => _TelaUnicaState();
+}
+
+class _TelaUnicaState extends State<TelaUnica> {
+  // Default (caso não exista config salva)
+  String baseUrl = "http://192.168.0.250:5001";
+  //String baseUrl = "http://192.168.1.238:5001";
+
+  @override
+  void initState() {
+    super.initState();
+    _carregarBaseUrl();
+  }
+
+  Future<void> _carregarBaseUrl() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString("api_base_url");
+    if (saved != null && saved.trim().isNotEmpty) {
+      setState(() => baseUrl = saved.trim());
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // ABRIR CONFIG
+  // --------------------------------------------------------------------------
+  Future<void> abrirConfig() async {
+    final novo = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (_) => ConfigPage(baseUrlAtual: baseUrl)),
+    );
+
+    if (novo != null && novo.trim().isNotEmpty) {
+      setState(() => baseUrl = novo.trim());
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Configuração salva: $baseUrl"),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // ABRIR SCANNER
+  // --------------------------------------------------------------------------
+  Future<void> abrirScanner() async {
+    final String? codigo = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (_) => const ScannerPage()),
+    );
+
+    if (codigo == null || codigo.trim().isEmpty) return;
+
+    final resultado = await buscar(codigo.trim());
+
+    if (!mounted) return;
+
+    switch (resultado["status"]) {
+      case "ok":
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ProdutoEncontradoPage(
+              dados: resultado["dados"],
+              baseUrl: baseUrl, // 👈 A CONFIGURAÇÃO ATUAL
+              onBuscar: () {
+                Navigator.pop(context);
+                abrirScanner();
+              },
+            ),
+          ),
+        );
+        break;
+
+      case "nao_encontrado":
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Produto não encontrado"),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        break;
+
+      case "erro_conexao":
+      default:
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Erro de conexão com o servidor"),
+            backgroundColor: Colors.red,
+          ),
+        );
+        break;
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // BUSCAR PRODUTO NA API (COM STATUS)
+  // --------------------------------------------------------------------------
+  Future<Map<String, dynamic>> buscar(String cod) async {
+    try {
+      final url = Uri.parse("$baseUrl/produto?cod=$cod");
+      final resp = await http.get(url).timeout(const Duration(seconds: 5));
+
+      if (resp.statusCode != 200) {
+        return {"status": "erro_conexao"};
+      }
+
+      final dados = jsonDecode(resp.body);
+
+      if (dados["encontrado"] == true ||
+          dados["encontrado"] == 1 ||
+          dados["encontrado"] == "true") {
+        return {
+          "status": "ok",
+          "dados": {
+            "produto_id": dados["produto_id"],
+            "codigo": dados["codigo"] ?? cod,
+            "descricao": dados["descricao"] ?? "",
+            "unidade": dados["unidade"] ?? "",
+            "preco": dados["preco"]?.toString() ?? "0.00",
+          },
+        };
+      } else {
+        return {"status": "nao_encontrado"};
+      }
+    } catch (_) {
+      return {"status": "erro_conexao"};
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // UI
+  // --------------------------------------------------------------------------
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+
+      // RODAPÉ
+      bottomNavigationBar: SizedBox(
+        height: 70,
+        child: Row(
+          children: [
+            botaoRodape(
+              icon: Icons.camera_alt,
+              texto: "Buscar",
+              onTap: abrirScanner,
+            ),
+            botaoRodape(
+              icon: Icons.settings,
+              texto: "Configurar",
+              onTap: abrirConfig,
+            ),
+          ],
+        ),
+      ),
+
+      body: Column(
+        children: [
+          Container(
+            height: MediaQuery.of(context).size.height * 0.35,
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFFFFF9E3), Color(0xFFF7EFC7)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
+            child: const Center(child: LogoGira()),
+          ),
+          Expanded(
+            child: Container(
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFFEDEDED), Color(0xFFD9D9D9)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      "Scanner ParmaSoft",
+                      style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black54,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      "API: $baseUrl",
+                      style: const TextStyle(color: Colors.black45),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 20),
+                    Image.asset('assets/images/scanner.png', width: 220),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

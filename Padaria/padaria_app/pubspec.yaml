@@ -1,0 +1,54 @@
+name: padaria_app
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.0
+
+dependencies:
+  flutter:
+    sdk: flutter   
+
+  flutter_image_compress: ^2.3.0
+
+  flutter_typeahead: ^5.2.0
+  
+  cupertino_icons: ^1.0.8  
+
+  # API / formato / máscaras
+  shared_preferences: ^2.2.3
+
+  http: ^1.2.0
+
+  image_picker: ^1.1.2  
+
+  intl: ^0.19.0
+  
+  mask_text_input_formatter: ^2.9.0
+
+  # SQLite
+  sqflite: ^2.3.0
+  sqflite_common_ffi: ^2.3.0   # para funcionar no windows (roça lembra?)
+    
+  path: ^1.9.0
+
+  # PDF / compartilhar
+  pdf: ^3.11.0
+  printing: ^5.13.0
+  share_plus: ^10.0.0
+  path_provider: ^2.1.4  
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/padaria.jpg
+    - assets/images/logo.jpeg

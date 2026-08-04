@@ -1,0 +1,22 @@
+{
+  "A_CONVERSAO_CARACTER__A_CONVERSAO_CARACTER": [
+    {
+      "origem": "CARACTER",
+      "tipo_origem": "CHAR(1)",
+      "destino": "CARACTER",
+      "tipo_destino": "CHAR(1)",
+      "regra": "Copiar",
+      "valor_fixo": "",
+      "status": "Compatível"
+    },
+    {
+      "origem": "CONVERTER",
+      "tipo_origem": "CHAR(1)",
+      "destino": "CONVERTER",
+      "tipo_destino": "CHAR(1)",
+      "regra": "Copiar",
+      "valor_fixo": "",
+      "status": "Compatível"
+    }
+  ]
+}

@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Parmasoft – Cotação</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    :root {
+      --cor-primaria: #2e7d32;
+      --cor-card: #ffffff;
+      --cor-texto: #222;
+      --cor-borda: #e0e0e0;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #fff9e6;
+      color: var(--cor-texto);
+    }
+
+    .container {
+      max-width: 480px;
+      margin: auto;
+      padding: 16px;
+    }
+
+    .header {
+      text-align: center;
+      padding: 20px 10px 10px;
+    }
+
+    .header img {
+      max-width: 240px;
+      width: 100%;
+      margin-bottom: 12px;
+    }
+
+    .empresa {
+      font-size: 20px;
+      font-weight: bold;
+      color: var(--cor-primaria);
+    }
+
+    .subtitulo {
+      font-size: 14px;
+      color: #666;
+    }
+
+    .info {
+      background: var(--cor-card);
+      border-radius: 10px;
+      padding: 14px;
+      margin: 16px 0;
+      border: 1px solid var(--cor-borda);
+    }
+
+    .produto {
+      background: var(--cor-card);
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 12px;
+      border: 1px solid var(--cor-borda);
+    }
+
+    .produto h3 {
+      font-size: 15px;
+      margin-bottom: 10px;
+    }
+
+    .input-preco {
+      position: relative;
+    }
+
+    .input-preco span {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #555;
+    }
+
+    .input-preco input {
+      width: 100%;
+      padding: 12px 12px 12px 42px;
+      font-size: 18px;
+      border-radius: 8px;
+      border: 1px solid var(--cor-borda);
+    }
+
+    .input-preco input.sem-preco {
+      background: #f5f5f5;
+      border: 1px dashed #999;
+    }
+
+    button {
+      width: 100%;
+      padding: 16px;
+      font-size: 17px;
+      font-weight: bold;
+      background: #000;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      margin-top: 20px;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 12px;
+      color: #777;
+      margin-top: 24px;
+    }
+
+    /* ===== MODAL ===== */
+    #modalConfirmacao {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+
+    #modalConfirmacao .box {
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 320px;
+      text-align: center;
+    }
+
+    #modalConfirmacao button {
+      width: 45%;
+      margin: 5px;
+    }
+  </style>
+</head>
+
+<body>
+<div class="container">
+
+  <div class="header">
+    <img src="/static/logo.jpeg">
+    <div class="empresa" id="empresaNome"></div>
+    <div class="subtitulo">Digite apenas os preços e clique em enviar</div>
+  </div>
+
+  <div class="info" id="info"></div>
+  <div id="produtos"></div>
+
+  <button onclick="enviar()">ENVIAR COTAÇÃO</button>
+  <footer>Parmasoft ©</footer>
+</div>
+
+<!-- MODAL -->
+<div id="modalConfirmacao">
+  <div class="box">
+    <p>
+      <strong>Produto com preço zerado!</strong><br><br>
+      Deseja continuar?
+    </p>
+    <button onclick="modalNao()">NÃO</button>
+    <button onclick="modalSim()">SIM</button>
+  </div>
+</div>
+
+<script>
+let inputAtual = null;
+
+// ================== TOKEN ==================
+const params = new URLSearchParams(window.location.search);
+const token = params.get("token");
+
+if (!token) {
+  alert("Token não informado.");
+} else {
+  carregarCotacao();
+}
+
+// ================== LOAD ==================
+function carregarCotacao() {
+  fetch(`/cotacoes/token/dados/${token}`)
+    .then(res => res.json())
+    .then(data => {
+      if (!data.ok) {
+        alert(data.erro || "Erro ao carregar cotação");
+        return;
+      }
+
+      document.getElementById("empresaNome").innerText = data.empresa_nome;
+
+      document.getElementById("info").innerHTML = `
+        <strong>Cotação nº:</strong> ${data.cotacao}<br>
+        <strong>Validade:</strong> ${data.validade}
+      `;
+
+      const div = document.getElementById("produtos");
+      div.innerHTML = "";
+
+      data.itens.forEach(item => {
+        div.innerHTML += `
+          <div class="produto">
+            <h3>${item.descricao}</h3>
+            <div class="input-preco">
+              <span>R$</span>
+              <input type="text"
+                     inputmode="numeric"
+                     placeholder="0,00"
+                     data-produto="${item.produto_id}"
+                     oninput="formatarPreco(this)"
+                     onblur="confirmarSemPreco(this)">
+            </div>
+          </div>
+        `;
+      });
+    })
+    .catch(() => alert("Erro de comunicação"));
+}
+
+// ================== PREÇO ==================
+function formatarPreco(input) {
+  let v = input.value.replace(/\D/g, "");
+  if (!v) { input.value = ""; return; }
+  v = (parseInt(v) / 100).toFixed(2);
+  input.value = v.replace(".", ",");
+}
+
+// ================== MODAL ==================
+function confirmarSemPreco(input) {
+  if (input.value.trim() !== "") return;
+  inputAtual = input;
+  document.getElementById("modalConfirmacao").style.display = "flex";
+}
+
+function modalSim() {
+  inputAtual.classList.add("sem-preco");
+  fecharModal();
+}
+
+function modalNao() {
+  fecharModal();
+  setTimeout(() => inputAtual.focus(), 50);
+}
+
+function fecharModal() {
+  document.getElementById("modalConfirmacao").style.display = "none";
+  inputAtual = null;
+}
+
+// ================== ENVIAR ==================
+function enviar() {
+  const inputs = document.querySelectorAll("input[data-produto]");
+  const itens = [];
+  let pendente = null;
+
+  inputs.forEach(i => {
+    if (!i.value && !i.classList.contains("sem-preco")) pendente = i;
+    if (i.value) {
+      itens.push({
+        produto_id: i.dataset.produto,
+        preco: parseFloat(i.value.replace(",", "."))
+      });
+    }
+  });
+
+  if (pendente) {
+    alert("Existem produtos sem preço.\nConfirme antes de enviar.");
+    pendente.scrollIntoView({ behavior: "smooth", block: "center" });
+    pendente.focus();
+    return;
+  }
+
+  if (!itens.length) {
+    alert("Informe pelo menos um preço.");
+    return;
+  }
+
+  fetch(`/cotacoes/token/responder/${token}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ itens })
+  }).then(() => {
+    document.body.innerHTML =
+      "<h2 style='text-align:center'>✅ Cotação enviada com sucesso</h2>";
+  });
+}
+</script>
+</body>
+</html>

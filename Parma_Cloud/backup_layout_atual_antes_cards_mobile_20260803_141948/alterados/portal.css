@@ -1,0 +1,475 @@
+﻿* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: #f3f4f6;
+    color: #1f2937;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.pagina {
+    width: min(1100px, calc(100% - 24px));
+    margin: 16px auto;
+}
+
+.login,
+.consulta,
+.resultado {
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.marca {
+    display: inline;
+    font-size: 12px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0;
+    color: #4b5563;
+}
+
+.separador-marca {
+    color: #9ca3af;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+h1,
+h2,
+p {
+    margin-top: 0;
+}
+
+h1,
+h2 {
+    margin-bottom: 0;
+}
+
+h1 {
+    display: inline;
+    font-size: 22px;
+}
+
+h2 {
+    font-size: 20px;
+}
+
+.situacao {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: #e5e7eb;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+.situacao-sucesso {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.situacao-erro {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.login {
+    width: min(520px, 100%);
+    padding: 24px;
+    margin: 16px auto;
+}
+
+.login-cabecalho {
+    margin-bottom: 20px;
+}
+
+.login-cabecalho p {
+    margin: 8px 0 0;
+    color: #6b7280;
+    line-height: 1.5;
+}
+
+.campos-login {
+    display: grid;
+    gap: 16px;
+}
+
+.campo label,
+.consulta > label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 15px;
+    font-weight: bold;
+}
+
+.campo input,
+.linha-busca input {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 100%;
+    height: 46px;
+    min-height: 46px;
+    padding: 0 14px;
+    border: 1px solid #9ca3af;
+    border-radius: 7px;
+    background: #ffffff;
+    font-size: 16px;
+}
+
+.campo input:focus,
+.linha-busca input:focus {
+    border-color: #111827;
+    outline: 2px solid rgba(17, 24, 39, 0.12);
+}
+
+.login button,
+.linha-busca button {
+    height: 46px;
+    border: 0;
+    border-radius: 7px;
+    background: #111827;
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.login button {
+    width: 100%;
+    margin-top: 20px;
+}
+
+.login button:disabled,
+.linha-busca button:disabled {
+    cursor: wait;
+    opacity: 0.6;
+}
+
+.mensagem-login {
+    min-height: 22px;
+    margin: 14px 0 0;
+    color: #b91c1c;
+    font-weight: bold;
+    text-align: center;
+}
+
+.consulta {
+    padding: 14px 16px 16px;
+    margin-bottom: 12px;
+}
+
+.consulta-cabecalho {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 12px;
+}
+
+.consulta-identidade {
+    min-width: 0;
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.consulta-status {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.usuario-logado {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.usuario-logado span {
+    color: #6b7280;
+    font-size: 12px;
+}
+
+.usuario-logado strong {
+    font-size: 14px;
+}
+
+.usuario-linha {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.usuario-linha button {
+    border: 1px solid #d1d5db;
+    background: #ffffff;
+    color: #374151;
+    font: inherit;
+    font-size: 12px;
+    font-weight: bold;
+    line-height: 1;
+    padding: 5px 8px;
+    cursor: pointer;
+}
+
+.usuario-linha button:hover {
+    background: #f9fafb;
+}
+
+.usuario-linha button:disabled {
+    cursor: wait;
+    opacity: 0.6;
+}
+
+.linha-busca {
+    display: flex;
+    gap: 10px;
+}
+
+.linha-busca input {
+    min-width: 0;
+    flex: 1;
+}
+
+.linha-busca button {
+    min-width: 130px;
+}
+
+.resultado {
+    overflow: hidden;
+}
+
+.resultado-cabecalho {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 20px;
+    border-bottom: 1px solid #d1d5db;
+}
+
+.resultado-cabecalho span {
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.tabela-container {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th,
+td {
+    padding: 13px 14px;
+    border-bottom: 1px solid #e5e7eb;
+    text-align: left;
+    vertical-align: middle;
+}
+
+th {
+    background: #f9fafb;
+    font-size: 14px;
+}
+
+td {
+    font-size: 15px;
+}
+
+.produto-descricao-principal {
+    font-weight: 600;
+}
+
+.produto-ultima-compra {
+    margin-top: 2px;
+    color: #64748b;
+    font-size: 13px;
+    line-height: 1.25;
+    white-space: normal;
+}
+
+.produto-ultima-compra-mobile {
+    display: none;
+}
+
+.produto-mobile-painel {
+    display: none;
+}
+
+tbody tr:nth-child(even) {
+    background: #fffbea;
+}
+
+.codigo {
+    width: 86px;
+}
+
+.unidade {
+    width: 76px;
+    text-align: center;
+}
+
+.numero {
+    width: 112px;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.custo {
+    width: 118px;
+}
+
+.mensagem {
+    padding: 32px;
+    color: #6b7280;
+    text-align: center;
+}
+
+.oculto {
+    display: none !important;
+}
+
+@media (max-width: 700px) {
+    .pagina {
+        width: min(100% - 16px, 1100px);
+        margin: 8px auto;
+    }
+
+    .consulta {
+        padding: 14px;
+    }
+
+    .consulta-cabecalho {
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+
+    .consulta-status {
+        width: 100%;
+        align-items: flex-start;
+        gap: 8px;
+        text-align: left;
+        flex-wrap: wrap;
+    }
+
+    .usuario-logado {
+        align-items: flex-start;
+    }
+
+    h1 {
+        font-size: 20px;
+    }
+
+    .login {
+        margin-top: 16px;
+    }
+
+    .linha-busca {
+        flex-direction: column;
+    }
+
+    .linha-busca button {
+        width: 100%;
+    }
+
+    .tabela-container {
+        overflow: visible;
+    }
+
+    table,
+    tbody,
+    tr,
+    td {
+        display: block;
+    }
+
+    thead {
+        display: none;
+    }
+
+    tbody {
+        display: block;
+        background: #ffffff;
+    }
+
+    tbody tr {
+        display: block;
+        padding: 12px;
+        border: 0;
+        border-radius: 8px;
+        background: #ffffff;
+        box-shadow: none;
+    }
+
+    tbody tr:nth-child(even) {
+        background: #fffbea;
+    }
+
+    td {
+        border-bottom: 0;
+        padding: 0;
+    }
+
+    tbody tr > td:not(.produto-mobile-painel):not(.mensagem) {
+        display: none;
+    }
+
+    .produto-mobile-painel {
+        display: block;
+        width: 100%;
+    }
+
+    .produto-mobile-linha {
+        display: block;
+        color: #111827;
+        font-size: 13px;
+        font-weight: bold;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .produto-mobile-linha + .produto-mobile-linha {
+        margin-top: 7px;
+    }
+
+    .produto-mobile-linha-principal {
+        font-size: 14px;
+    }
+
+    .produto-mobile-linha strong,
+    .produto-mobile-linha span {
+        margin-right: 10px;
+    }
+
+    .produto-mobile-descricao {
+        display: inline-block;
+        max-width: calc(100% - 140px);
+        margin-right: 10px;
+        vertical-align: top;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .produto-mobile-linha-compra {
+        color: #374151;
+        font-size: 12.5px;
+    }
+
+    .mensagem {
+        padding: 24px 12px;
+    }
+}

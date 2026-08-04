@@ -1,0 +1,731 @@
+1ª impressão da etiqueta na GramDecor:
+
+def gerar_zpl_rolo(produto_id, descricao, quantidade, unidade, codigo_barras):
+    qtd_txt = f"{float(quantidade):.2f}".replace(".", ",")
+    unidade = unidade or ""
+
+    linhas_desc = quebrar_texto(descricao, tamanho=34, max_linhas=2)
+    
+    logo_zpl = bloco_logo_zpl(
+        LOGO_ZEBRA_PATH,
+        x=None,
+        y=18,
+        largura=210,
+        altura_max=80,
+    )
+
+    zpl = f"""
+^XA
+^PW800
+^LL400
+^CI28
+{logo_zpl}
+
+^FO30,25^A0N,30,30^FDCOD: {produto_id}^FS
+
+^FO30,65^A0N,30,30^FD{linhas_desc[0]}^FS
+^FO30,103^A0N,30,30^FD{linhas_desc[1]}^FS
+
+^FO0,155^A0N,42,42^FB800,1,0,C,0^FDQTDE: {qtd_txt} {unidade}^FS
+
+^FO170,220^BY2,2,80
+^BCN,90,Y,N,N
+^FD{codigo_barras}^FS
+
+^XZ
+"""
+    return zpl.strip()
+
+
+
+
+
+
+
+
+
+
+
+
+
+main 12/03   13:32 hs
+
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'pages/scanner_page.dart';
+import 'pages/produto_encontrado_page.dart';
+import 'pages/config_page.dart';
+
+void main() {
+  runApp(const BuscaEANApp());
+}
+
+class BuscaEANApp extends StatelessWidget {
+  const BuscaEANApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: TelaUnica(),
+    );
+  }
+}
+
+// ============================================================================
+// LOGO GIRANDO (TELA INICIAL)
+// ============================================================================
+class LogoGira extends StatefulWidget {
+  const LogoGira({super.key});
+
+  @override
+  State<LogoGira> createState() => _LogoGiraState();
+}
+
+class _LogoGiraState extends State<LogoGira>
+    with SingleTickerProviderStateMixin {
+  late AnimationController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 10),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (_, child) {
+        final angle = controller.value * 6.28318;
+        return Transform(
+          alignment: Alignment.center,
+          transform: Matrix4.identity()
+            ..setEntry(3, 2, 0.001)
+            ..rotateY(-angle),
+          child: child,
+        );
+      },
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(35),
+        child: Image.asset(
+          'assets/images/logo.jpeg',
+          width: 180,
+          fit: BoxFit.contain,
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// BOTÃO PADRÃO DE RODAPÉ
+// ============================================================================
+Widget botaoRodape({
+  required IconData icon,
+  required String texto,
+  required VoidCallback onTap,
+}) {
+  return Expanded(
+    child: InkWell(
+      onTap: onTap,
+      child: Container(
+        color: Colors.white,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: Colors.black, size: 26),
+            const SizedBox(height: 4),
+            Text(
+              texto,
+              style: const TextStyle(color: Colors.black, fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+// ============================================================================
+// TELA PRINCIPAL (HOME REAL)
+// ============================================================================
+class TelaUnica extends StatefulWidget {
+  const TelaUnica({super.key});
+
+  @override
+  State<TelaUnica> createState() => _TelaUnicaState();
+}
+
+class _TelaUnicaState extends State<TelaUnica> {
+  // Default (caso não exista config salva)
+  String baseUrl = "http://192.168.0.250:5001";
+  //String baseUrl = "http://192.168.1.238:5001";
+
+  @override
+  void initState() {
+    super.initState();
+    _carregarBaseUrl();
+  }
+
+  Future<void> _carregarBaseUrl() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString("api_base_url");
+    if (saved != null && saved.trim().isNotEmpty) {
+      setState(() => baseUrl = saved.trim());
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // ABRIR CONFIG
+  // --------------------------------------------------------------------------
+  Future<void> abrirConfig() async {
+    final novo = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (_) => ConfigPage(baseUrlAtual: baseUrl)),
+    );
+
+    if (novo != null && novo.trim().isNotEmpty) {
+      setState(() => baseUrl = novo.trim());
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Configuração salva: $baseUrl"),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // ABRIR SCANNER
+  // --------------------------------------------------------------------------
+  Future<void> abrirScanner() async {
+    final String? codigo = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (_) => const ScannerPage()),
+    );
+
+    if (codigo == null || codigo.trim().isEmpty) return;
+
+    final resultado = await buscar(codigo.trim());
+
+    if (!mounted) return;
+
+    switch (resultado["status"]) {
+      case "ok":
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ProdutoEncontradoPage(
+              dados: resultado["dados"],
+              baseUrl: baseUrl, // 👈 A CONFIGURAÇÃO ATUAL
+              onBuscar: () {
+                Navigator.pop(context);
+                abrirScanner();
+              },
+            ),
+          ),
+        );
+        break;
+
+      case "nao_encontrado":
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Produto não encontrado"),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        break;
+
+      case "erro_conexao":
+      default:
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Erro de conexão com o servidor"),
+            backgroundColor: Colors.red,
+          ),
+        );
+        break;
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // BUSCAR PRODUTO NA API (COM STATUS)
+  // --------------------------------------------------------------------------
+  Future<Map<String, dynamic>> buscar(String cod) async {
+    try {
+      final url = Uri.parse("$baseUrl/produto?cod=$cod");
+      final resp = await http.get(url).timeout(const Duration(seconds: 5));
+
+      if (resp.statusCode != 200) {
+        return {"status": "erro_conexao"};
+      }
+
+      final dados = jsonDecode(resp.body);
+
+      if (dados["encontrado"] == true ||
+          dados["encontrado"] == 1 ||
+          dados["encontrado"] == "true") {
+        return {
+          "status": "ok",
+          "dados": {
+            "produto_id": dados["produto_id"],
+            "codigo": dados["codigo"] ?? cod,
+            "descricao": dados["descricao"] ?? "",
+            "unidade": dados["unidade"] ?? "",
+            "preco": dados["preco"]?.toString() ?? "0.00",
+          },
+        };
+      } else {
+        return {"status": "nao_encontrado"};
+      }
+    } catch (_) {
+      return {"status": "erro_conexao"};
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // UI
+  // --------------------------------------------------------------------------
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+
+      // RODAPÉ
+      bottomNavigationBar: SizedBox(
+        height: 70,
+        child: Row(
+          children: [
+            botaoRodape(
+              icon: Icons.camera_alt,
+              texto: "Buscar",
+              onTap: abrirScanner,
+            ),
+            botaoRodape(
+              icon: Icons.settings,
+              texto: "Configurar",
+              onTap: abrirConfig,
+            ),
+          ],
+        ),
+      ),
+
+      body: SafeArea(
+        child: Column(
+          children: [
+            Container(
+              height: MediaQuery.of(context).size.height * 0.35,
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFFFFF9E3), Color(0xFFF7EFC7)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+              child: const Center(child: LogoGira()),
+            ),
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFFEDEDED), Color(0xFFD9D9D9)],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        "Scanner ParmaSoft",
+                        style: TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black54,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        "API: $baseUrl",
+                        style: const TextStyle(color: Colors.black45),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 20),
+                      Image.asset('assets/images/scanner.png', width: 220),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+main completo   07/03   1401
+
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'pages/scanner_page.dart';
+import 'pages/produto_encontrado_page.dart';
+import 'pages/config_page.dart';
+
+void main() {
+  runApp(const BuscaEANApp());
+}
+
+class BuscaEANApp extends StatelessWidget {
+  const BuscaEANApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: TelaUnica(),
+    );
+  }
+}
+
+// ============================================================================
+// LOGO GIRANDO (TELA INICIAL)
+// ============================================================================
+class LogoGira extends StatefulWidget {
+  const LogoGira({super.key});
+
+  @override
+  State<LogoGira> createState() => _LogoGiraState();
+}
+
+class _LogoGiraState extends State<LogoGira>
+    with SingleTickerProviderStateMixin {
+  late AnimationController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 10),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (_, child) {
+        final angle = controller.value * 6.28318;
+        return Transform(
+          alignment: Alignment.center,
+          transform: Matrix4.identity()
+            ..setEntry(3, 2, 0.001)
+            ..rotateY(-angle),
+          child: child,
+        );
+      },
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(35),
+        child: Image.asset(
+          'assets/images/logo.jpeg',
+          width: 180,
+          fit: BoxFit.contain,
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// BOTÃO PADRÃO DE RODAPÉ
+// ============================================================================
+Widget botaoRodape({
+  required IconData icon,
+  required String texto,
+  required VoidCallback onTap,
+}) {
+  return Expanded(
+    child: InkWell(
+      onTap: onTap,
+      child: Container(
+        color: Colors.white,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: Colors.black, size: 26),
+            const SizedBox(height: 4),
+            Text(
+              texto,
+              style: const TextStyle(color: Colors.black, fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+// ============================================================================
+// TELA PRINCIPAL (HOME REAL)
+// ============================================================================
+class TelaUnica extends StatefulWidget {
+  const TelaUnica({super.key});
+
+  @override
+  State<TelaUnica> createState() => _TelaUnicaState();
+}
+
+class _TelaUnicaState extends State<TelaUnica> {
+  // Default (caso não exista config salva)
+  String baseUrl = "http://192.168.0.250:5001";
+  //String baseUrl = "http://192.168.1.238:5001";
+
+  @override
+  void initState() {
+    super.initState();
+    _carregarBaseUrl();
+  }
+
+  Future<void> _carregarBaseUrl() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString("api_base_url");
+    if (saved != null && saved.trim().isNotEmpty) {
+      setState(() => baseUrl = saved.trim());
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // ABRIR CONFIG
+  // --------------------------------------------------------------------------
+  Future<void> abrirConfig() async {
+    final novo = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (_) => ConfigPage(baseUrlAtual: baseUrl)),
+    );
+
+    if (novo != null && novo.trim().isNotEmpty) {
+      setState(() => baseUrl = novo.trim());
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Configuração salva: $baseUrl"),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // ABRIR SCANNER
+  // --------------------------------------------------------------------------
+  Future<void> abrirScanner() async {
+    final String? codigo = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (_) => const ScannerPage()),
+    );
+
+    if (codigo == null || codigo.trim().isEmpty) return;
+
+    final resultado = await buscar(codigo.trim());
+
+    if (!mounted) return;
+
+    switch (resultado["status"]) {
+      case "ok":
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ProdutoEncontradoPage(
+              dados: resultado["dados"],
+              baseUrl: baseUrl, // 👈 A CONFIGURAÇÃO ATUAL
+              onBuscar: () {
+                Navigator.pop(context);
+                abrirScanner();
+              },
+            ),
+          ),
+        );
+        break;
+
+      case "nao_encontrado":
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Produto não encontrado"),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        break;
+
+      case "erro_conexao":
+      default:
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Erro de conexão com o servidor"),
+            backgroundColor: Colors.red,
+          ),
+        );
+        break;
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // BUSCAR PRODUTO NA API (COM STATUS)
+  // --------------------------------------------------------------------------
+  Future<Map<String, dynamic>> buscar(String cod) async {
+    try {
+      final url = Uri.parse("$baseUrl/produto?cod=$cod");
+      final resp = await http.get(url).timeout(const Duration(seconds: 5));
+
+      if (resp.statusCode != 200) {
+        return {"status": "erro_conexao"};
+      }
+
+      final dados = jsonDecode(resp.body);
+
+      if (dados["encontrado"] == true ||
+          dados["encontrado"] == 1 ||
+          dados["encontrado"] == "true") {
+        return {
+          "status": "ok",
+          "dados": {
+            "produto_id": dados["produto_id"],
+            "codigo": dados["codigo"] ?? cod,
+            "descricao": dados["descricao"] ?? "",
+            "unidade": dados["unidade"] ?? "",
+            "preco": dados["preco"]?.toString() ?? "0.00",
+          },
+        };
+      } else {
+        return {"status": "nao_encontrado"};
+      }
+    } catch (_) {
+      return {"status": "erro_conexao"};
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // UI
+  // --------------------------------------------------------------------------
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+
+      // RODAPÉ
+      bottomNavigationBar: SizedBox(
+        height: 70,
+        child: Row(
+          children: [
+            botaoRodape(
+              icon: Icons.camera_alt,
+              texto: "Buscar",
+              onTap: abrirScanner,
+            ),
+            botaoRodape(
+              icon: Icons.settings,
+              texto: "Configurar",
+              onTap: abrirConfig,
+            ),
+          ],
+        ),
+      ),
+
+      body: Column(
+        children: [
+          Container(
+            height: MediaQuery.of(context).size.height * 0.35,
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFFFFF9E3), Color(0xFFF7EFC7)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
+            child: const Center(child: LogoGira()),
+          ),
+          Expanded(
+            child: Container(
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFFEDEDED), Color(0xFFD9D9D9)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      "Scanner ParmaSoft",
+                      style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black54,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      "API: $baseUrl",
+                      style: const TextStyle(color: Colors.black45),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 20),
+                    Image.asset('assets/images/scanner.png', width: 220),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

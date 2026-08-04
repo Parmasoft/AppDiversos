@@ -1,0 +1,16 @@
+
+Levar um requirimento pronto:  requirements.txt
+
+        Com esse arquivo agora rode:   python -m venv venv
+                                       venv\Scripts\activate
+                                       pip install -r requirements.txt
+
+
+
+01 - python -m venv venv
+     venv\Scripts\activate
+
+02 - pip install flask fdb pywin32
+
+03 - pip install -r requirements.txt
+

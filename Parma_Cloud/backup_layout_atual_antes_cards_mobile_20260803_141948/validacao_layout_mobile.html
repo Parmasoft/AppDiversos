@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Validação Local - Portal</title>
+    <link rel="stylesheet" href="alterados/portal.css">
+</head>
+<body>
+    <main class="pagina">
+        <section class="login oculto" id="painelLogin">
+            <form id="formLogin">
+                <input id="usuario">
+                <input id="senha">
+                <button id="btnEntrar">Entrar</button>
+            </form>
+            <p id="mensagemLogin"></p>
+        </section>
+
+        <section class="consulta" id="painelConsulta">
+            <div class="consulta-cabecalho">
+                <div class="consulta-identidade">
+                    <span class="marca">ParmaSoft</span>
+                    <span class="separador-marca" aria-hidden="true">—</span>
+                    <h1 id="nomeCliente">Fabri Tecidos</h1>
+                </div>
+                <div class="consulta-status">
+                    <span class="situacao situacao-sucesso" id="situacao">Conectado</span>
+                    <div class="usuario-logado">
+                        <span>Usuário conectado</span>
+                        <div class="usuario-linha">
+                            <strong id="nomeUsuario">Validação</strong>
+                            <button type="button" id="btnSair">Sair</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <label for="busca">Código, descrição ou código de barras</label>
+            <div class="linha-busca">
+                <input type="search" id="busca" value="toalha">
+                <button type="button" id="btnPesquisar">Pesquisar</button>
+            </div>
+        </section>
+
+        <section class="resultado" id="painelResultado">
+            <div class="resultado-cabecalho">
+                <h2>Produtos</h2>
+                <span id="quantidade">0 produtos</span>
+            </div>
+            <div class="tabela-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="codigo">Código</th>
+                            <th>Descrição</th>
+                            <th class="unidade">Unidade</th>
+                            <th class="numero">Estoque</th>
+                            <th class="numero custo">Custo</th>
+                            <th class="numero">Preço</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listaProdutos"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        window.fetch = async () => ({
+            status: 401,
+            ok: false,
+            json: async () => ({ ok: false })
+        });
+    </script>
+    <script src="alterados/portal.js"></script>
+    <script>
+        setTimeout(() => {
+            painelLogin.classList.add("oculto");
+            painelConsulta.classList.remove("oculto");
+            painelResultado.classList.remove("oculto");
+            nomeCliente.textContent = "Fabri Tecidos";
+            nomeUsuario.textContent = "Validação";
+            definirSituacao("Consulta concluída", "sucesso");
+            exibirProdutos([
+                {
+                    produto: 32,
+                    descricao: "TULI BORDADO",
+                    unidade: "MT",
+                    estoque: 0,
+                    custo: 0,
+                    preco: 19.98,
+                    data_ultima_compra: null,
+                    nota_ultima_compra: null,
+                    serie_ultima_compra: null
+                },
+                {
+                    produto: 806,
+                    descricao: "TOALHA KILO ATLANTICA",
+                    unidade: "UN",
+                    estoque: 5.7,
+                    custo: 19.64,
+                    preco: 39.98,
+                    data_ultima_compra: "2026-04-11T10:21:28",
+                    nota_ultima_compra: "352591",
+                    serie_ultima_compra: "1"
+                },
+                {
+                    produto: 3029,
+                    descricao: "PISO ATLANTICA SOFISTICATA COM DESCRIÇÃO LONGA PARA QUEBRA DE LINHA",
+                    unidade: "UN",
+                    estoque: 12,
+                    custo: 7.7,
+                    preco: 29.9,
+                    data_ultima_compra: "2026-04-11T10:21:28",
+                    nota_ultima_compra: "352591",
+                    serie_ultima_compra: ""
+                }
+            ]);
+        }, 100);
+    </script>
+</body>
+</html>
