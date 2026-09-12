@@ -1,3 +1,57 @@
+# Temporários locais
 /.tmp.driveupload
+
+# Dart / Flutter
+.dart_tool/
+.pub/
+.pub-cache/
+build/
+.packages
+
+# Android
+android/.gradle/
+android/local.properties
+android/key.properties
+*.jks
+*.keystore
+
+# Flutter gerado
+**/flutter/ephemeral/
+**/Generated.xcconfig
+**/flutter_export_environment.sh
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Sistema / temporários
+Thumbs.db
+.DS_Store
+*.log
+*.tmp
+*.bak
+
+# Segredos / ambiente
+.env
+.env.*
+*.pem
+*.p12
+*.key
+
+# Arquivos compactados e executáveis
 *.rar
 *.zip
+*.exe
+
+# Python / ambientes virtuais
+.venv/
+.venv-*/
+venv/
+venv-*/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/

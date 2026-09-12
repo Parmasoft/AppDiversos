@@ -4,7 +4,9 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import '../models/leitura_etiqueta_separacao.dart';
 
 class ScannerPage extends StatefulWidget {
-  const ScannerPage({super.key});
+  final bool aceitarQualquerCodigo;
+
+  const ScannerPage({super.key, this.aceitarQualquerCodigo = false});
 
   @override
   State<ScannerPage> createState() => _ScannerPageState();
@@ -38,6 +40,10 @@ class _ScannerPageState extends State<ScannerPage> {
   //}
 
   bool _isValidCode(String code) {
+    if (widget.aceitarQualquerCodigo) {
+      return code.trim().isNotEmpty;
+    }
+
     return LeituraEtiquetaSeparacao.identificar(code) != null;
   }
 

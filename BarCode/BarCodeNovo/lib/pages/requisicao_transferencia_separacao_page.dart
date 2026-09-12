@@ -5,6 +5,7 @@ import '../models/requisicao_transferencia.dart';
 import '../models/requisicao_transferencia_item.dart';
 import '../models/requisicao_transferencia_leitura.dart';
 import '../services/requisicao_transferencia_service.dart';
+import '../utils/requisicao_transferencia_separacao_ordenacao.dart';
 import '../widgets/separacao_produto_widgets.dart';
 import 'scanner_page.dart';
 
@@ -113,7 +114,7 @@ class _RequisicaoTransferenciaSeparacaoPageState
       if (!mounted) return;
       setState(() {
         _requisicao = detalhe.requisicao;
-        _itens = itens;
+        _itens = ordenarItensSeparacaoTransferencia(itens);
         _leiturasPorItem
           ..clear()
           ..addAll(leituras);
@@ -323,13 +324,13 @@ class _RequisicaoTransferenciaSeparacaoPageState
 
       if (!mounted) return;
       setState(() {
-        _itens = _itens
-            .map(
-              (atual) => atual.sequencia == resultado.item.sequencia
-                  ? resultado.item
-                  : atual,
-            )
-            .toList(growable: false);
+        _itens = ordenarItensSeparacaoTransferencia(
+          _itens.map(
+            (atual) => atual.sequencia == resultado.item.sequencia
+                ? resultado.item
+                : atual,
+          ),
+        );
         _leiturasPorItem[resultado.item.sequencia] = resultado.leituras;
         _leiturasPendentes.clear();
         _itemAtual = null;
@@ -1292,7 +1293,7 @@ class _RequisicaoTransferenciaSeparacaoPageState
   }
 
   bool _itemConcluido(RequisicaoTransferenciaItem item) =>
-      item.atendimentoTotal;
+      itemSeparacaoTransferenciaConcluido(item);
 
   double _diferencaItem(RequisicaoTransferenciaItem item) {
     if (item.atendimentoExcedente) return item.quantidadeExcedente;

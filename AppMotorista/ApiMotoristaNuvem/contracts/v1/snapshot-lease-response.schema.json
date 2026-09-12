@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://motorista.parmasoft.local/contracts/v1/snapshot-lease-response.schema.json",
+  "title": "Estado do lease para publicacao de snapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["resultado", "tenant_key", "manifesto_guid", "agent_instance_guid", "fencing_token", "current_revision", "current_semantic_hash", "current_snapshot_id", "expires_at"],
+  "properties": {
+    "resultado": {"enum": ["LEASE_CONCEDIDO", "LEASE_RENOVADO"]},
+    "tenant_key": {"type": "string"},
+    "manifesto_guid": {"type": "string"},
+    "agent_instance_guid": {"type": "string", "format": "uuid"},
+    "fencing_token": {"type": "integer", "minimum": 1},
+    "current_revision": {"type": "integer", "minimum": 0},
+    "current_semantic_hash": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+    "current_snapshot_id": {"type": ["string", "null"], "format": "uuid"},
+    "expires_at": {"type": "string", "format": "date-time"}
+  }
+}

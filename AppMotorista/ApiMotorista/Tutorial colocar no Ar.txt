@@ -1,0 +1,16 @@
+
+Quando precisar deletar a pasta build:
+
+	Remove-Item -Recurse -Force .\build
+
+flutter clean
+flutter pub get
+adb reverse tcp:5055 tcp:5055
+flutter run --dart-define=API_BASE_URL=http://127.0.0.1:5055
+
+
+
+
+
+Para abrir QrCode:
+set -a; source /etc/api-motorista-nuvem.env; set +a; sudo -E -u api-motorista env PYTHONPATH=/opt/api-motorista-nuvem /opt/api-motorista-nuvem/.venv/bin/python scripts/provision_mobile_bootstrap_qr.py --tenant-external-id GRAMDECOR --manifest-guid 127E3820-2A92-407A-8107-E30D08338092 --expires-at "$(date -u -d '+1 hour' +%Y-%m-%dT%H:%M:%SZ)"

@@ -1,0 +1,32 @@
+﻿MONITOR LOCAL DE LIMITE DO CODEX - PARMASOFT
+
+Objetivo
+--------
+Mostrar o limite do Codex na bandeja do Windows e avisar quando o restante
+chegar a 50%, 25%, 10% e 5%.
+
+Privacidade
+-----------
+- Nao le auth.json.
+- Nao pede API key.
+- Nao le os fontes dos projetos.
+- Nao envia telemetria para servidor de terceiros.
+- Consulta o proprio "codex app-server" local, que usa a autenticacao ja
+  gerenciada pelo Codex.
+
+Como usar
+---------
+1. Extraia/guarde os tres arquivos na mesma pasta.
+2. Deixe o VS Code/Codex instalado e autenticado.
+3. Dê duplo clique em "IniciarMonitorCodex.bat".
+4. Procure o icone na bandeja do Windows, perto do relogio (talvez dentro de ^).
+5. Clique com o botao direito para ver o percentual ou "Atualizar agora".
+6. Duplo clique no icone tambem atualiza a leitura.
+
+Observacao
+----------
+O monitor procura primeiro um comando "codex" no PATH. Se nao encontrar,
+procura automaticamente "codex.exe" nas extensoes do VS Code do usuario.
+
+Ele nao e um produto oficial da OpenAI; e apenas um pequeno cliente local feito
+para consultar a interface local oficial do Codex (app-server).

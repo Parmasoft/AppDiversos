@@ -8,6 +8,7 @@ import 'pages/produto_encontrado_page.dart';
 import 'pages/config_page.dart';
 import 'pages/buscar_produto_page.dart';
 import 'pages/requisicoes_transferencia_page.dart';
+import 'pages/regularizacao_rolos_filial_page.dart';
 import 'pages/separacao_rolos_page.dart';
 
 void main() {
@@ -161,6 +162,9 @@ class _TelaUnicaState extends State<TelaUnica> {
   String baseUrl = "http://192.168.0.250:5001";
   //String baseUrl = "http://192.168.1.238:5001";
   int empresaId = 1;
+  String? empresaNome;
+  String? empresaTipo;
+  bool empresaEhFilial = false;
 
   @override
   void initState() {
@@ -172,13 +176,60 @@ class _TelaUnicaState extends State<TelaUnica> {
     final prefs = await SharedPreferences.getInstance();
     final saved = prefs.getString("api_base_url");
     final empresa = prefs.getInt("empresa_id") ?? 1;
+    final base = saved != null && saved.trim().isNotEmpty
+        ? saved.trim()
+        : baseUrl;
 
     setState(() {
-      if (saved != null && saved.trim().isNotEmpty) {
-        baseUrl = saved.trim();
-      }
+      baseUrl = base;
       empresaId = empresa;
+      empresaNome = null;
+      empresaTipo = null;
+      empresaEhFilial = false;
     });
+
+    await _consultarEmpresaAtual(base, empresa);
+  }
+
+  Future<void> _consultarEmpresaAtual(String base, int empresa) async {
+    try {
+      final raiz = base.endsWith('/')
+          ? base.substring(0, base.length - 1)
+          : base;
+      final url = Uri.parse(
+        '$raiz/empresas/atual',
+      ).replace(queryParameters: {'empresa': empresa.toString()});
+
+      final resp = await http.get(url).timeout(const Duration(seconds: 5));
+
+      if (!mounted || baseUrl != base || empresaId != empresa) return;
+
+      if (resp.statusCode != 200) {
+        setState(() {
+          empresaNome = null;
+          empresaTipo = null;
+          empresaEhFilial = false;
+        });
+        return;
+      }
+
+      final dados = jsonDecode(utf8.decode(resp.bodyBytes));
+      final tipo = (dados["tipo"] ?? "").toString().trim().toUpperCase();
+
+      setState(() {
+        empresaNome = (dados["nome"] ?? "").toString().trim();
+        empresaTipo = tipo;
+        empresaEhFilial = dados["eh_filial"] == true && tipo == "F";
+      });
+    } catch (_) {
+      if (!mounted || baseUrl != base || empresaId != empresa) return;
+
+      setState(() {
+        empresaNome = null;
+        empresaTipo = null;
+        empresaEhFilial = false;
+      });
+    }
   }
 
   // --------------------------------------------------------------------------
@@ -193,11 +244,17 @@ class _TelaUnicaState extends State<TelaUnica> {
     if (novo != null && novo.trim().isNotEmpty) {
       final prefs = await SharedPreferences.getInstance();
       final empresa = prefs.getInt("empresa_id") ?? 1;
+      final base = novo.trim();
 
       setState(() {
-        baseUrl = novo.trim();
+        baseUrl = base;
         empresaId = empresa;
+        empresaNome = null;
+        empresaTipo = null;
+        empresaEhFilial = false;
       });
+
+      await _consultarEmpresaAtual(base, empresa);
 
       if (!mounted) return;
 
@@ -227,6 +284,19 @@ class _TelaUnicaState extends State<TelaUnica> {
     await Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const SeparacaoRolosPage()),
+    );
+  }
+
+  Future<void> abrirRegularizacaoRolosFilial() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RegularizacaoRolosFilialPage(
+          baseUrl: baseUrl,
+          empresaId: empresaId,
+          empresaNome: empresaNome,
+        ),
+      ),
     );
   }
 
@@ -640,6 +710,42 @@ class _TelaUnicaState extends State<TelaUnica> {
                                         ),
                                       ),
                                     ),
+                                    if (empresaEhFilial) ...[
+                                      const SizedBox(height: 12),
+                                      SizedBox(
+                                        width: 285,
+                                        height: 52,
+                                        child: ElevatedButton.icon(
+                                          onPressed:
+                                              abrirRegularizacaoRolosFilial,
+                                          icon: const Icon(
+                                            Icons.fact_check_outlined,
+                                            size: 22,
+                                          ),
+                                          label: const Text(
+                                            "Regularizar rolos da filial",
+                                            textAlign: TextAlign.center,
+                                            maxLines: 2,
+                                            style: TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.white,
+                                            foregroundColor: Colors.black,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(14),
+                                              side: const BorderSide(
+                                                color: Colors.black12,
+                                              ),
+                                            ),
+                                            elevation: 3,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ],
                                 ),
                               ),
@@ -720,9 +826,7 @@ class _TelaUnicaState extends State<TelaUnica> {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 160),
             decoration: BoxDecoration(
-              color: selecionado
-                  ? const Color(0xFFFFFBE6)
-                  : Colors.transparent,
+              color: selecionado ? const Color(0xFFFFFBE6) : Colors.transparent,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: selecionado ? Colors.black26 : Colors.transparent,

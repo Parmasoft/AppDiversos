@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://motorista.parmasoft.local/contracts/v1/snapshot-lease-acquire.schema.json",
+  "title": "Aquisicao de lease para publicacao de snapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["agent_instance_guid"],
+  "properties": {
+    "agent_instance_guid": {"type": "string", "format": "uuid"}
+  }
+}

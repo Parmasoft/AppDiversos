@@ -5,13 +5,18 @@ from PIL import Image
 import json
 import socket
 import traceback
+import re
 from decimal import Decimal, ROUND_HALF_UP
+from threading import Lock
 
 app = Flask(__name__)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 LOGO_ZEBRA_PATH = os.path.join(BASE_DIR, "logo_cliente.png")
 CONFIG_IMPRESSAO_PATH = os.path.join(BASE_DIR, "config_impressao.json")
+REGULARIZACAO_ROLO_RE = re.compile(r"^R\d{17}$")
+regularizacao_lock = Lock()
+regularizacao_em_andamento = set()
 
 def inteiro_seguro(valor, padrao=0):
     try:
@@ -37,6 +42,29 @@ def get_connection():
         password="masterkey",
         charset="ISO8859_1"
     )
+
+
+def consultar_empresa_atual(cur, empresa):
+    cur.execute("""
+        SELECT
+            EMP_ID,
+            COALESCE(EMP_FANTASIA, EMP_RAZAO_SOCIAL, ''),
+            COALESCE(EMP_TIPO, '')
+        FROM TB_EMPRESA
+        WHERE EMP_ID = ?
+    """, (empresa,))
+
+    row = cur.fetchone()
+    if not row:
+        return None
+
+    tipo = (row[2] or "").strip().upper()
+    return {
+        "empresa": int(row[0]),
+        "nome": (row[1] or "").strip(),
+        "tipo": tipo,
+        "eh_filial": tipo == "F"
+    }
 
 # ==============================================================
 # ROTA: CONSULTAR PRODUTO
@@ -79,7 +107,7 @@ def produto():
                 PRD_PRECO_VENDA
             FROM TB_PRODUTO
             WHERE PRD_ID = ?
-              AND PRD_STATUS = 'A'
+              AND COALESCE(PRD_STATUS, 'A') <> 'I'
         """
         cur.execute(sql_prod, (produto_id,))
         prod = cur.fetchone()
@@ -112,6 +140,60 @@ def ping():
 
 
 # ==============================================================
+# ROTA: CONSULTAR EMPRESA ATUAL
+# ==============================================================
+@app.route("/empresas/atual", methods=["GET"])
+def empresa_atual():
+    con = None
+
+    try:
+        empresa_param = request.args.get("empresa")
+
+        if not empresa_param:
+            return jsonify({
+                "status": "erro",
+                "mensagem": "Empresa nÃ£o informada."
+            }), 400
+
+        empresa = int(empresa_param)
+        if empresa <= 0:
+            raise ValueError
+
+        con = get_connection()
+        cur = con.cursor()
+        dados_empresa = consultar_empresa_atual(cur, empresa)
+
+        if dados_empresa is None:
+            return jsonify({
+                "status": "nao_encontrado",
+                "mensagem": f"Empresa {empresa} nÃ£o encontrada."
+            }), 404
+
+        return jsonify({
+            "status": "ok",
+            **dados_empresa
+        })
+
+    except (TypeError, ValueError):
+        return jsonify({
+            "status": "erro",
+            "mensagem": "Empresa invÃ¡lida."
+        }), 400
+    except Exception as e:
+        print("\n========== ERRO NA ROTA /empresas/atual ==========")
+        print(e)
+        traceback.print_exc()
+        print("==================================================\n")
+        return jsonify({"status": "erro", "mensagem": str(e)}), 500
+    finally:
+        try:
+            if con:
+                con.close()
+        except:
+            pass
+
+
+# ==============================================================
 # FUNÇÃO: FORMATAR CÓDIGO DO ROLO
 # Regra: R + produto 6 dígitos + quantidade 6 dígitos
 # Exemplo: produto 1549 / 67,30 => R001549006730
@@ -132,6 +214,58 @@ def montar_codigo_rolo(pror_id, produto_id, quantidade):
     quantidade_fmt = str(quantidade_dec).zfill(4)
 
     return f"R{pror_fmt}{produto_fmt}{quantidade_fmt}"
+
+
+def resolver_codigo_rolo(cur, empresa, codigo_lido):
+    codigo_lido = (codigo_lido or "").strip().upper()
+    cur.execute("""
+        SELECT
+            RETORNO,
+            MENSAGEM,
+            CODIGO_LIDO,
+            CODIGO_CANONICO,
+            PROR_ID_ANTIGO,
+            PROR_ID_ATUAL,
+            PRODUTO,
+            QUANTIDADE,
+            ORIGEM
+        FROM SP_RESOLVE_CODIGO_ROLO(?, ?)
+    """, (empresa, codigo_lido))
+
+    row = cur.fetchone()
+    if not row:
+        raise ValueError("O resolvedor de rolos nao retornou resultado.")
+
+    retorno = (row[0] or "").strip().upper()
+    if retorno != "OK":
+        raise ValueError((row[1] or "Codigo de rolo rejeitado.").strip())
+
+    return {
+        "mensagem": (row[1] or "").strip(),
+        "codigo_lido": (row[2] or codigo_lido).strip().upper(),
+        "codigo_canonico": (row[3] or "").strip().upper(),
+        "pror_id_antigo": inteiro_seguro(row[4], 0),
+        "pror_id_atual": inteiro_seguro(row[5], 0),
+        "produto": inteiro_seguro(row[6], 0),
+        "quantidade": decimal_seguro(row[7]),
+        "origem": (row[8] or "").strip().upper(),
+    }
+
+
+def auditar_uso_alias_rolo(cur, empresa, resolucao, usuario, origem, chave):
+    if resolucao.get("origem") != "ALIAS":
+        return
+
+    cur.execute("""
+        EXECUTE PROCEDURE SP_AUD_USO_ALIAS_ROLO(?, ?, ?, ?, ?, ?)
+    """, (
+        empresa,
+        resolucao["codigo_lido"],
+        resolucao["codigo_canonico"],
+        usuario,
+        origem,
+        chave,
+    ))
     
 # ==============================================================
 # FUNÇÃO: QUEBRAR TEXTO EM LINHAS PARA ETIQUETA
@@ -906,7 +1040,7 @@ def buscar_produtos_descricao():
                 PRD_PRECO_VENDA
             FROM TB_PRODUTO
             WHERE PRD_EMPRESA = ?
-              AND PRD_STATUS = 'A'
+              AND COALESCE(PRD_STATUS, 'A') <> 'I'
               AND UPPER(PRD_DESCRICAO) LIKE ?              
             ORDER BY PRD_DESCRICAO
         """
@@ -976,6 +1110,20 @@ def salvar_rolos():
         cur = con.cursor()
 
         cur.execute("""
+            SELECT COUNT(*)
+            FROM TB_PRODUTO
+            WHERE PRD_EMPRESA = ?
+              AND PRD_ID = ?
+              AND COALESCE(PRD_STATUS, 'A') <> 'I'
+        """, (empresa, produto_id))
+
+        if inteiro_seguro(cur.fetchone()[0], 0) == 0:
+            return jsonify({
+                "status": "erro",
+                "mensagem": "Produto não encontrado ou inativo."
+            }), 400
+
+        cur.execute("""
             SELECT COALESCE(MAX(PROR_LOTE), 0) + 1
             FROM TB_PRODUTO_ROLO
             WHERE PROR_EMPRESA = ?
@@ -990,12 +1138,23 @@ def salvar_rolos():
             if qtd <= 0:
                 continue
 
-            cur.execute("""
-                SELECT COALESCE(MAX(PROR_ID), 0) + 1
-                FROM TB_PRODUTO_ROLO
-                WHERE PROR_EMPRESA = ?
-            """, (empresa,))
-            novo_id = cur.fetchone()[0]
+            try:
+                cur.execute("""
+                    SELECT GEN_ID(GEN_PRODUTO_ROLO_ID, 1)
+                    FROM RDB$DATABASE
+                """)
+                novo_id = int(cur.fetchone()[0])
+            except Exception as erro_generator:
+                raise RuntimeError(
+                    "GEN_PRODUTO_ROLO_ID nao encontrado ou indisponivel. "
+                    "Execute a atualizacao de banco 1.1.0.67z antes de salvar rolos."
+                ) from erro_generator
+
+            if novo_id < 1 or novo_id > 999999:
+                raise ValueError(
+                    "PROR_ID fora do limite suportado pela etiqueta R "
+                    f"(1 a 999999): {novo_id}. Nenhum rolo do lote foi salvo."
+                )
 
             codigo_rolo = montar_codigo_rolo(novo_id, produto_id, qtd)
 
@@ -1111,6 +1270,7 @@ def rolos_pendentes():
               ON ULT.PROR_LOTE = R.PROR_LOTE
             WHERE R.PROR_EMPRESA = ?
               AND R.PROR_STATUS = 'A'
+              AND COALESCE(P.PRD_STATUS, 'A') <> 'I'
             ORDER BY
                 ULT.ULTIMA_DATA DESC,
                 ULT.ULTIMO_ID DESC,
@@ -1225,6 +1385,7 @@ def imprimir_lote_rolos_i9():
             WHERE R.PROR_EMPRESA = ?
               AND R.PROR_LOTE = ?
               AND R.PROR_STATUS = 'A'
+              AND COALESCE(P.PRD_STATUS, 'A') <> 'I'
             ORDER BY R.PROR_ID
         """
 
@@ -1340,6 +1501,7 @@ def imprimir_lote_rolos_i9_qr():
             WHERE R.PROR_EMPRESA = ?
               AND R.PROR_LOTE = ?
               AND R.PROR_STATUS = 'A'
+              AND COALESCE(P.PRD_STATUS, 'A') <> 'I'
             ORDER BY R.PROR_ID
         """
 
@@ -1460,6 +1622,7 @@ def imprimir_lote_rolos():
             WHERE R.PROR_EMPRESA = ?
               AND R.PROR_LOTE = ?
               AND R.PROR_STATUS = 'A'
+              AND COALESCE(P.PRD_STATUS, 'A') <> 'I'
             ORDER BY R.PROR_ID
         """
 
@@ -1589,6 +1752,7 @@ def imprimir_rolos_produto():
               AND R.PROR_PRODUTO = ?
               AND R.PROR_STATUS = 'A'
               AND R.PROR_IMPRESSO = 'N'
+              AND COALESCE(P.PRD_STATUS, 'A') <> 'I'
             ORDER BY R.PROR_ID
         """
 
@@ -1705,6 +1869,7 @@ def rolos_zpl_preview():
              AND P.PRD_ID = R.PROR_PRODUTO
             WHERE R.PROR_EMPRESA = ?
               AND R.PROR_ID = ?
+              AND COALESCE(P.PRD_STATUS, 'A') <> 'I'
         """
 
         cur.execute(sql, (empresa, pror_id))
@@ -1771,14 +1936,24 @@ def consultar_codigo_rolo():
                 "mensagem": "Código de rolo inválido."
             }), 400
 
-        pror_id = int(codigo[1:7])
-        produto_id_codigo = int(codigo[7:14])
-        quantidade_dec = int(codigo[14:18])
-        quantidade_codigo = quantidade_dec / 10.0
-        
-
         con = get_connection()
         cur = con.cursor()
+
+        try:
+            resolucao = resolver_codigo_rolo(cur, empresa, codigo)
+        except ValueError as erro_resolucao:
+            mensagem = str(erro_resolucao)
+            status_http = 404 if "nao encontrado" in mensagem.lower() else 409
+            return jsonify({
+                "status": "nao_encontrado" if status_http == 404 else "erro",
+                "mensagem": mensagem,
+                "codigo_lido": codigo,
+            }), status_http
+
+        pror_id = resolucao["pror_id_atual"]
+        produto_id_codigo = resolucao["produto"]
+        quantidade_codigo = float(resolucao["quantidade"])
+        codigo_canonico = resolucao["codigo_canonico"]
 
         sql = """
             SELECT
@@ -1797,10 +1972,12 @@ def consultar_codigo_rolo():
              AND P.PRD_ID = R.PROR_PRODUTO
             WHERE R.PROR_EMPRESA = ?
               AND R.PROR_ID = ?
+              AND R.PROR_CODIGO_BARRAS = ?
               AND R.PROR_STATUS = 'A'
+              AND COALESCE(P.PRD_STATUS, 'A') <> 'I'
         """
 
-        cur.execute(sql, (empresa, pror_id))
+        cur.execute(sql, (empresa, pror_id, codigo_canonico))
         row = cur.fetchone()
 
         if not row:
@@ -1846,7 +2023,11 @@ def consultar_codigo_rolo():
         return jsonify({
             "status": "ok",
             "codigo_lido": codigo,
+            "codigo_canonico": codigo_canonico,
             "pror_id": pror_id_db,
+            "pror_id_antigo": resolucao["pror_id_antigo"],
+            "origem": resolucao["origem"],
+            "etiqueta_historica": resolucao["origem"] == "ALIAS",
             "produto_id": produto_id,
             "codigo_barras": cod_barras,
             "descricao": descricao or "",
@@ -1873,6 +2054,406 @@ def consultar_codigo_rolo():
                 con.close()
         except:
             pass   
+
+# ==============================================================
+# FUNCOES: REGULARIZACAO DE ROLOS ANTIGOS DAS FILIAIS
+# ==============================================================
+def interpretar_etiqueta_rolo_regularizacao(codigo):
+    codigo = (codigo or "").strip().upper()
+
+    if not REGULARIZACAO_ROLO_RE.match(codigo):
+        raise ValueError("Etiqueta invalida.")
+
+    return {
+        "codigo": codigo,
+        "pror_id": int(codigo[1:7]),
+        "produto": int(codigo[7:14]),
+        "quantidade": Decimal(codigo[14:18]) / Decimal("10")
+    }
+
+
+def quantidades_conferem(qtd_a, qtd_b):
+    return abs(decimal_seguro(qtd_a) - decimal_seguro(qtd_b)) <= Decimal("0.0001")
+
+
+def erro_regularizacao(mensagem, codigo=None, http_status=409):
+    corpo = {
+        "status": "erro",
+        "mensagem": mensagem
+    }
+
+    if codigo:
+        corpo["codigo"] = codigo
+
+    return jsonify(corpo), http_status
+
+
+def obter_empresa_filial_e_matriz(cur, empresa_filial):
+    cur.execute("""
+        SELECT
+            F.EMP_ID,
+            COALESCE(F.EMP_TIPO, ''),
+            F.EMP_EMPRESA_MATRIZ,
+            M.EMP_ID
+        FROM TB_EMPRESA F
+        LEFT JOIN TB_EMPRESA M
+          ON M.EMP_ID = F.EMP_EMPRESA_MATRIZ
+        WHERE F.EMP_ID = ?
+    """, (empresa_filial,))
+
+    row = cur.fetchone()
+    if not row:
+        return None, "Empresa destino nao encontrada."
+
+    tipo_filial = (row[1] or "").strip().upper()
+    if tipo_filial != "F":
+        return None, "Esta operação é permitida somente para empresas filiais."
+
+    empresa_matriz = inteiro_seguro(row[3], 0)
+    if empresa_matriz <= 0:
+        return None, "Empresa matriz da filial nao encontrada."
+
+    return {
+        "empresa_filial": int(row[0]),
+        "empresa_matriz": empresa_matriz
+    }, None
+
+
+def validar_rolo_regularizacao(cur, empresa_filial, empresa_matriz, item):
+    etiqueta = interpretar_etiqueta_rolo_regularizacao(item.get("codigo"))
+    codigo_lido = etiqueta["codigo"]
+    pror_id_lido = etiqueta["pror_id"]
+    produto_lido = etiqueta["produto"]
+    quantidade_lida = etiqueta["quantidade"]
+
+    pror_payload = inteiro_seguro(item.get("pror_id", item.get("prorId")), pror_id_lido)
+    produto_payload = inteiro_seguro(item.get("produto", item.get("produto_id")), produto_lido)
+    quantidade_payload = decimal_seguro(item.get("quantidade"), quantidade_lida)
+
+    if pror_payload != pror_id_lido:
+        raise ValueError("PROR_ID da coleta diverge da etiqueta.")
+
+    if produto_payload != produto_lido:
+        raise ValueError("Produto da coleta diverge da etiqueta.")
+
+    if not quantidades_conferem(quantidade_payload, quantidade_lida):
+        raise ValueError("Quantidade da coleta diverge da etiqueta.")
+
+    resolucao = resolver_codigo_rolo(cur, empresa_matriz, codigo_lido)
+    codigo = resolucao["codigo_canonico"]
+    pror_id = resolucao["pror_id_atual"]
+    produto = resolucao["produto"]
+    quantidade = resolucao["quantidade"]
+
+    cur.execute("""
+        SELECT
+            PROR_PRODUTO,
+            PROR_QUANTIDADE,
+            PROR_UN,
+            PROR_CODIGO_BARRAS,
+            PROR_STATUS,
+            PROR_IMPRESSO,
+            PROR_DT_IMPRESSAO,
+            PROR_USUARIO_IMP,
+            PROR_LOTE
+        FROM TB_PRODUTO_ROLO
+        WHERE PROR_EMPRESA = ?
+          AND PROR_ID = ?
+    """, (empresa_matriz, pror_id))
+
+    origem = cur.fetchone()
+    if not origem:
+        raise ValueError("Rolo original nao encontrado na matriz.")
+
+    (
+        produto_origem,
+        quantidade_origem,
+        unidade_origem,
+        codigo_origem,
+        status_origem,
+        impresso_origem,
+        dt_impressao_origem,
+        usuario_imp_origem,
+        lote_origem
+    ) = origem
+
+    codigo_origem = (codigo_origem or "").strip().upper()
+    status_origem = (status_origem or "").strip().upper()
+
+    if status_origem not in ("A", "T"):
+        raise ValueError("Status do rolo original invalido para regularizacao. Apenas A ou T sao aceitos.")
+
+    if int(produto_origem) != produto:
+        raise ValueError("Produto do rolo original diverge da etiqueta.")
+
+    if not quantidades_conferem(quantidade_origem, quantidade):
+        raise ValueError("Quantidade do rolo original diverge da etiqueta.")
+
+    if codigo_origem != codigo:
+        raise ValueError("Codigo de barras do rolo original diverge da etiqueta.")
+
+    cur.execute("""
+        SELECT COUNT(*)
+        FROM TB_PRODUTO
+        WHERE PRD_EMPRESA = ?
+          AND PRD_ID = ?
+          AND COALESCE(PRD_STATUS, 'A') <> 'I'
+    """, (empresa_filial, produto))
+
+    if inteiro_seguro(cur.fetchone()[0], 0) == 0:
+        raise ValueError("Produto do rolo nao encontrado ou inativo na filial.")
+
+    cur.execute("""
+        SELECT FIRST 1 PROR_ID, PROR_CODIGO_BARRAS
+        FROM TB_PRODUTO_ROLO
+        WHERE PROR_EMPRESA = ?
+          AND (PROR_ID = ? OR PROR_CODIGO_BARRAS = ?)
+    """, (empresa_filial, pror_id, codigo))
+
+    filial = cur.fetchone()
+    if filial:
+        if int(filial[0]) == pror_id:
+            raise ValueError("Este rolo ja esta cadastrado nesta filial.")
+        raise ValueError("Codigo de barras ja cadastrado nesta filial com outro rolo.")
+
+    cur.execute("""
+        SELECT FIRST 1 PROR_EMPRESA, PROR_ID
+        FROM TB_PRODUTO_ROLO
+        WHERE PROR_EMPRESA <> ?
+          AND PROR_EMPRESA <> ?
+          AND (PROR_ID = ? OR PROR_CODIGO_BARRAS = ?)
+    """, (empresa_matriz, empresa_filial, pror_id, codigo))
+
+    outra_filial = cur.fetchone()
+    if outra_filial:
+        raise ValueError(
+            f"Este rolo ja esta cadastrado em outra filial: empresa {int(outra_filial[0])}."
+        )
+
+    cur.execute("""
+        SELECT FIRST 1 PROR_EMPRESA, PROR_ID
+        FROM TB_PRODUTO_ROLO
+        WHERE PROR_CODIGO_BARRAS = ?
+          AND PROR_ID <> ?
+    """, (codigo, pror_id))
+
+    codigo_outro_id = cur.fetchone()
+    if codigo_outro_id:
+        raise ValueError("Codigo de barras associado a outro PROR_ID.")
+
+    cur.execute("""
+        SELECT FIRST 1 PROR_EMPRESA
+        FROM TB_PRODUTO_ROLO
+        WHERE PROR_ID = ?
+          AND (
+            PROR_PRODUTO <> ?
+            OR ABS(COALESCE(PROR_QUANTIDADE, 0) - ?) > 0.0001
+            OR COALESCE(PROR_CODIGO_BARRAS, '') <> ?
+          )
+    """, (pror_id, produto, quantidade, codigo))
+
+    pror_incompativel = cur.fetchone()
+    if pror_incompativel:
+        raise ValueError("Mesmo PROR_ID encontrado com produto, quantidade ou codigo incompativel.")
+
+    return {
+        "codigo": codigo_lido,
+        "codigo_canonico": codigo,
+        "pror_id": pror_id,
+        "produto": produto,
+        "quantidade": quantidade_origem,
+        "unidade": unidade_origem,
+        "codigo_barras": codigo_origem,
+        "dt_impressao": dt_impressao_origem,
+        "usuario_imp": usuario_imp_origem,
+        "lote": lote_origem,
+        "impresso_origem": impresso_origem,
+        "status_origem": status_origem,
+        "resolucao": resolucao,
+    }
+
+
+# ==============================================================
+# ROTA: CONFIRMAR REGULARIZACAO DE ROLOS ANTIGOS DA FILIAL
+# ==============================================================
+@app.route("/rolos/regularizacao/confirmar", methods=["POST"])
+def confirmar_regularizacao_rolos():
+    con = None
+    chave_envio = None
+
+    try:
+        dados = request.get_json() or {}
+        empresa = inteiro_seguro(dados.get("empresa"), 0)
+        usuario = inteiro_seguro(dados.get("usuario"), 1)
+        rolos = dados.get("rolos") or []
+
+        if empresa <= 0:
+            return erro_regularizacao("Empresa destino nao informada.", http_status=400)
+
+        if usuario <= 0:
+            return erro_regularizacao("Usuario nao informado.", http_status=400)
+
+        if not isinstance(rolos, list) or len(rolos) == 0:
+            return erro_regularizacao("Nenhum rolo informado.", http_status=400)
+
+        codigos_envio = []
+        for item in rolos:
+            if not isinstance(item, dict):
+                return erro_regularizacao("Item de rolo invalido.", http_status=400)
+            codigos_envio.append((item.get("codigo") or "").strip().upper())
+
+        chave_envio = (empresa, tuple(sorted(codigos_envio)))
+        with regularizacao_lock:
+            if chave_envio in regularizacao_em_andamento:
+                return erro_regularizacao("Regularizacao ja esta em andamento para esta coleta.", http_status=409)
+            regularizacao_em_andamento.add(chave_envio)
+
+        con = get_connection()
+        cur = con.cursor()
+
+        empresas, erro_empresa = obter_empresa_filial_e_matriz(cur, empresa)
+        if erro_empresa:
+            con.rollback()
+            http_status = 403 if "somente para empresas filiais" in erro_empresa else 400
+            return erro_regularizacao(erro_empresa, http_status=http_status)
+
+        empresa_filial = empresas["empresa_filial"]
+        empresa_matriz = empresas["empresa_matriz"]
+
+        codigos_lidos = set()
+        pror_ids_lidos = set()
+        validados = []
+
+        for item in rolos:
+            codigo_item = (item.get("codigo") or "").strip().upper()
+
+            try:
+                etiqueta_previa = interpretar_etiqueta_rolo_regularizacao(codigo_item)
+
+                if etiqueta_previa["codigo"] in codigos_lidos:
+                    raise ValueError("Esta etiqueta ja foi enviada mais de uma vez na coleta.")
+
+                codigos_lidos.add(etiqueta_previa["codigo"])
+
+                validado = validar_rolo_regularizacao(
+                    cur,
+                    empresa_filial,
+                    empresa_matriz,
+                    item
+                )
+                if validado["pror_id"] in pror_ids_lidos:
+                    raise ValueError("Este rolo canonico ja foi enviado mais de uma vez na coleta.")
+
+                pror_ids_lidos.add(validado["pror_id"])
+                validados.append(validado)
+            except ValueError as erro_item:
+                con.rollback()
+                return erro_regularizacao(str(erro_item), codigo=codigo_item)
+
+        for rolo in validados:
+            if rolo["status_origem"] == "A":
+                cur.execute("""
+                    UPDATE TB_PRODUTO_ROLO
+                    SET PROR_STATUS = 'T'
+                    WHERE PROR_EMPRESA = ?
+                      AND PROR_ID = ?
+                      AND PROR_STATUS = 'A'
+                """, (
+                    empresa_matriz,
+                    rolo["pror_id"]
+                ))
+
+            cur.execute("""
+                INSERT INTO TB_PRODUTO_ROLO (
+                    PROR_EMPRESA,
+                    PROR_ID,
+                    PROR_PRODUTO,
+                    PROR_QUANTIDADE,
+                    PROR_UN,
+                    PROR_CODIGO_BARRAS,
+                    PROR_STATUS,
+                    PROR_IMPRESSO,
+                    PROR_DT_CADASTRO,
+                    PROR_USUARIO_CAD,
+                    PROR_PRATELEIRA,
+                    PROR_DT_IMPRESSAO,
+                    PROR_USUARIO_IMP,
+                    PROR_OBSERVACAO,
+                    PROR_LOTE
+                )
+                VALUES (?, ?, ?, ?, ?, ?, 'A', 'S', CURRENT_TIMESTAMP, ?, NULL, ?, ?, NULL, ?)
+            """, (
+                empresa_filial,
+                rolo["pror_id"],
+                rolo["produto"],
+                rolo["quantidade"],
+                rolo["unidade"],
+                rolo["codigo_barras"],
+                usuario,
+                rolo["dt_impressao"],
+                rolo["usuario_imp"],
+                rolo["lote"]
+            ))
+
+            auditar_uso_alias_rolo(
+                cur,
+                empresa_matriz,
+                rolo["resolucao"],
+                usuario,
+                "TB_PRODUTO_ROLO",
+                f"EMPRESA_DESTINO={empresa_filial};PROR_ID={rolo['pror_id']}",
+            )
+
+        con.commit()
+
+        total = len(validados)
+        mensagem = (
+            "Rolo regularizado com sucesso."
+            if total == 1
+            else f"{total} rolos regularizados com sucesso."
+        )
+
+        return jsonify({
+            "status": "ok",
+            "mensagem": mensagem,
+            "total": total,
+            "rolos": [
+                {
+                    "codigo": item["codigo"],
+                    "pror_id": item["pror_id"],
+                    "produto": item["produto"]
+                }
+                for item in validados
+            ]
+        })
+
+    except Exception as e:
+        try:
+            if con:
+                con.rollback()
+        except:
+            pass
+
+        print("\n========== ERRO NA ROTA /rolos/regularizacao/confirmar ==========")
+        print(e)
+        traceback.print_exc()
+        print("=================================================================\n")
+
+        return erro_regularizacao(str(e), http_status=500)
+
+    finally:
+        if chave_envio is not None:
+            try:
+                with regularizacao_lock:
+                    regularizacao_em_andamento.discard(chave_envio)
+            except:
+                pass
+
+        try:
+            if con:
+                con.close()
+        except:
+            pass
 
 # ==============================================================
 # ROTA: BUSCAR PEDIDO PARA SEPARAÇÃO DE ROLOS
@@ -2146,7 +2727,250 @@ def decimal_seguro(valor, padrao="0"):
 
 def arredondar_moeda(valor):
     return decimal_seguro(valor).quantize(Decimal("0.001"), rounding=ROUND_HALF_UP)
-    
+
+
+def texto_tipo_comercial(valor):
+    return (valor or "").strip().upper()
+
+
+def usa_valor_unitario_tablet(origem_desconto_item, versao_tablet):
+    return (
+        texto_tipo_comercial(origem_desconto_item) == "M"
+        and texto_tipo_comercial(versao_tablet) != "N"
+    )
+
+
+def calcular_valor_desconto_item(
+    tipo_desconto,
+    desconto_informado,
+    quantidade,
+    valor_unitario,
+    sub_total,
+    origem_desconto_item,
+    versao_tablet
+):
+    tipo = texto_tipo_comercial(tipo_desconto)
+    desconto = decimal_seguro(desconto_informado)
+
+    if desconto <= 0:
+        return Decimal("0")
+
+    if tipo == "V":
+        if usa_valor_unitario_tablet(origem_desconto_item, versao_tablet):
+            return arredondar_moeda(quantidade * (valor_unitario - desconto))
+        return arredondar_moeda(desconto * quantidade)
+
+    if tipo == "P":
+        return arredondar_moeda(sub_total * desconto / Decimal("100"))
+
+    if tipo == "T":
+        return arredondar_moeda(sub_total - desconto)
+
+    return Decimal("0")
+
+
+def calcular_valor_acrescimo_item(
+    tipo_acrescimo,
+    acrescimo_informado,
+    quantidade,
+    valor_unitario,
+    sub_total,
+    origem_desconto_item,
+    versao_tablet
+):
+    tipo = texto_tipo_comercial(tipo_acrescimo)
+    acrescimo = decimal_seguro(acrescimo_informado)
+
+    if acrescimo <= 0:
+        return Decimal("0")
+
+    if tipo == "V":
+        if usa_valor_unitario_tablet(origem_desconto_item, versao_tablet):
+            return arredondar_moeda(quantidade * (acrescimo - valor_unitario))
+        return arredondar_moeda(acrescimo * quantidade)
+
+    if tipo == "P":
+        return arredondar_moeda(sub_total * acrescimo / Decimal("100"))
+
+    if tipo == "T":
+        return arredondar_moeda(acrescimo - sub_total)
+
+    return Decimal("0")
+
+
+def arredondar_decimal(valor, casas):
+    mascara = Decimal("1").scaleb(-casas)
+    return decimal_seguro(valor).quantize(mascara, rounding=ROUND_HALF_UP)
+
+
+def recalcular_rateios_capa_pedido(
+    itens,
+    tipo_desconto,
+    desconto_informado,
+    tipo_acrescimo,
+    acrescimo_informado,
+    percentual_maximo_desconto=None
+):
+    """Reaplica somente os ajustes da capa sobre a fotografia final dos itens."""
+    resultado = []
+    campos_decimais = (
+        "sub_total",
+        "valor_desconto",
+        "valor_acrescimo",
+        "valor_total",
+        "desc_rateado",
+        "acresc_rateado"
+    )
+
+    for item in itens:
+        item_calculado = dict(item)
+        for campo in campos_decimais:
+            item_calculado[campo] = decimal_seguro(item_calculado.get(campo))
+        item_calculado["aplica_desconto"] = texto_tipo_comercial(
+            item_calculado.get("aplica_desconto")
+        )
+        resultado.append(item_calculado)
+
+    tipo_desc = texto_tipo_comercial(tipo_desconto)
+    valor_desc = decimal_seguro(desconto_informado)
+
+    if valor_desc > 0 and tipo_desc in ("P", "V", "T"):
+        for item in resultado:
+            item["valor_total"] += item["desc_rateado"]
+            item["desc_rateado"] = Decimal("0")
+
+        itens_aplicaveis = [
+            item for item in resultado
+            if item["aplica_desconto"] != "N"
+        ]
+        valor_aplicavel = sum(
+            (
+                item["valor_total"]
+                for item in resultado
+                if item["aplica_desconto"] not in ("", "N")
+            ),
+            Decimal("0")
+        )
+
+        if tipo_desc == "V":
+            valor_desconto_capa = valor_desc
+            if valor_desconto_capa > valor_aplicavel or valor_aplicavel == 0:
+                raise ValueError("Valor do DESCONTO inválido.")
+            percentual = arredondar_decimal(
+                valor_desconto_capa * Decimal("100") / valor_aplicavel,
+                4
+            )
+        elif tipo_desc == "P":
+            if valor_desc > 100:
+                raise ValueError("Valor do DESCONTO inválido.")
+            percentual = arredondar_decimal(valor_desc, 4)
+            valor_desconto_capa = None
+        else:
+            total_sem_desconto_capa = arredondar_decimal(
+                sum((item["valor_total"] for item in resultado), Decimal("0")),
+                2
+            )
+            valor_desconto_capa = total_sem_desconto_capa - valor_desc
+            if valor_desconto_capa > valor_aplicavel or valor_aplicavel == 0:
+                raise ValueError("Valor do DESCONTO inválido.")
+            percentual = arredondar_decimal(
+                valor_desconto_capa * Decimal("100") / valor_aplicavel,
+                4
+            )
+
+        fator = arredondar_decimal(percentual / Decimal("100"), 4)
+
+        if (
+            percentual_maximo_desconto is not None
+            and percentual > decimal_seguro(percentual_maximo_desconto)
+        ):
+            raise ValueError(
+                "Valor de desconto extrapola % máxima da Tabela de Preço. Verifique!"
+            )
+
+        for item in itens_aplicaveis:
+            base_rateio = (
+                item["sub_total"]
+                - item["valor_desconto"]
+                + item["valor_acrescimo"]
+            )
+            item["desc_rateado"] = arredondar_decimal(base_rateio * fator, 2)
+            item["valor_total"] -= item["desc_rateado"]
+
+        if valor_desconto_capa is not None:
+            diferenca = arredondar_decimal(
+                valor_desconto_capa
+                - sum(
+                    (item["desc_rateado"] for item in resultado),
+                    Decimal("0")
+                ),
+                2
+            )
+            if diferenca != 0 and itens_aplicaveis:
+                maior_item = max(
+                    itens_aplicaveis,
+                    key=lambda item: item["sub_total"]
+                )
+                maior_item["desc_rateado"] += diferenca
+                maior_item["valor_total"] -= diferenca
+
+    tipo_acres = texto_tipo_comercial(tipo_acrescimo)
+    valor_acres = decimal_seguro(acrescimo_informado)
+
+    if valor_acres > 0 and tipo_acres in ("P", "V"):
+        for item in resultado:
+            item["valor_total"] -= item["acresc_rateado"]
+            item["acresc_rateado"] = Decimal("0")
+
+        if tipo_acres == "V":
+            sub_total_pedido = arredondar_decimal(
+                sum((item["sub_total"] for item in resultado), Decimal("0")),
+                2
+            )
+            if sub_total_pedido == 0:
+                raise ValueError("Valor do ACRÉSCIMO inválido.")
+            percentual = arredondar_decimal(
+                valor_acres * Decimal("100") / sub_total_pedido,
+                4
+            )
+        else:
+            if valor_acres > 100:
+                raise ValueError(
+                    "Valor do ACRÉSCIMO inválido - Acréscimo não pode ser maior que 100%."
+                )
+            percentual = arredondar_decimal(valor_acres, 4)
+
+        fator = arredondar_decimal(percentual / Decimal("100"), 4)
+
+        for item in resultado:
+            base_rateio = (
+                item["sub_total"]
+                - item["valor_desconto"]
+                - item["desc_rateado"]
+                + item["valor_acrescimo"]
+            )
+            item["acresc_rateado"] = arredondar_decimal(base_rateio * fator, 4)
+            item["valor_total"] += item["acresc_rateado"]
+
+        if tipo_acres == "V":
+            diferenca = arredondar_decimal(
+                valor_acres
+                - sum(
+                    (item["acresc_rateado"] for item in resultado),
+                    Decimal("0")
+                ),
+                4
+            )
+            if diferenca != 0 and resultado:
+                maior_item = max(
+                    resultado,
+                    key=lambda item: item["sub_total"]
+                )
+                maior_item["acresc_rateado"] += diferenca
+                maior_item["valor_total"] += diferenca
+
+    return resultado
+     
 def inteiro_firebird(valor, padrao=0):
     try:
         if valor is None:
@@ -2347,7 +3171,7 @@ def salvar_separacao_pedido():
                             "mensagem": "Existe rolo sem PROR_ID válido."
                         }), 400
 
-                    chave = (empresa, "R", pror_id)
+                    chave = (empresa, "R", codigo)
 
                     if chave in rolos_payload:
                         return jsonify({
@@ -2356,6 +3180,8 @@ def salvar_separacao_pedido():
                         }), 409
 
                     rolos_payload.add(chave)
+
+        rolos_canonicos = set()
 
         # ------------------------------------------------------
         # 3) Valida cada rolo no banco e bloqueia rolo já usado
@@ -2385,6 +3211,33 @@ def salvar_separacao_pedido():
                 if codigo.startswith("C"):
                     continue
 
+                try:
+                    resolucao = resolver_codigo_rolo(cur, empresa, codigo)
+                except ValueError as erro_resolucao:
+                    return jsonify({
+                        "status": "erro",
+                        "mensagem": str(erro_resolucao),
+                        "codigo_lido": codigo,
+                    }), 409
+
+                pror_id = resolucao["pror_id_atual"]
+                codigo = resolucao["codigo_canonico"]
+
+                chave_canonica = (empresa, pror_id)
+                if chave_canonica in rolos_canonicos:
+                    return jsonify({
+                        "status": "erro",
+                        "mensagem": f"O rolo canonico {str(pror_id).zfill(6)} veio duplicado na separacao."
+                    }), 409
+                rolos_canonicos.add(chave_canonica)
+
+                rolo["_resolucao_alias"] = resolucao
+                rolo["id"] = pror_id
+                rolo["pror_id"] = pror_id
+                rolo["codigo"] = codigo
+                rolo["codigo_barras"] = codigo
+                rolo["quantidade"] = float(resolucao["quantidade"])
+
                 # Rolo existe e pertence ao produto?
                 cur.execute("""
                     SELECT
@@ -2394,7 +3247,8 @@ def salvar_separacao_pedido():
                     FROM TB_PRODUTO_ROLO
                     WHERE PROR_EMPRESA = ?
                       AND PROR_ID = ?
-                """, (empresa, pror_id))
+                      AND PROR_CODIGO_BARRAS = ?
+                """, (empresa, pror_id, codigo))
 
                 row_rolo = cur.fetchone()
 
@@ -2608,6 +3462,16 @@ def salvar_separacao_pedido():
                     observacao_rolo
                 ))
 
+                if codigo.startswith("R"):
+                    auditar_uso_alias_rolo(
+                        cur,
+                        empresa,
+                        rolo.get("_resolucao_alias") or {},
+                        usuario,
+                        "TB_PEDIDO_VENDA_SEPARACAO_ROLO",
+                        f"SEP={separacao_id};ITEM={seq_item};SEQ={seq_rolo}",
+                    )
+
                 # Impressão posterior: somente R gera nova etiqueta com dados do pedido.
                 # C fica gravado para histórico/conferência, mas não imprime aqui.
                 if codigo.startswith("R"):
@@ -2769,7 +3633,14 @@ def aplicar_separacao_no_pedido():
         # 2) Confere se o pedido existe e está aberto
         # ------------------------------------------------------
         cur.execute("""
-            SELECT COALESCE(PEV_STATUS, '')
+            SELECT
+                COALESCE(PEV_STATUS, ''),
+                COALESCE(PEV_TIPO_DESCONTO, ''),
+                COALESCE(PEV_DESCONTO, 0),
+                COALESCE(PEV_TIPO_ACRESCIMO, ''),
+                COALESCE(PEV_ACRESCIMO, 0),
+                COALESCE(PEV_VALOR_ACRESCIMO, 0),
+                COALESCE(PEV_TABELA_PRECO, 0)
             FROM TB_PEDIDO_VENDA
             WHERE PEV_EMPRESA = ?
               AND PEV_ID = ?
@@ -2783,13 +3654,50 @@ def aplicar_separacao_no_pedido():
                 "mensagem": f"Pedido {pedido} não encontrado."
             }), 404
 
-        status_pedido = (row_pedido[0] or "").strip().upper()
+        (
+            status_pedido,
+            tipo_desconto_capa,
+            desconto_capa,
+            tipo_acrescimo_capa,
+            acrescimo_capa,
+            valor_acrescimo_anterior,
+            tabela_preco_pedido
+        ) = row_pedido
+
+        status_pedido = (status_pedido or "").strip().upper()
 
         if status_pedido != "A":
             return jsonify({
                 "status": "erro",
                 "mensagem": "Somente pedido com status A pode ser alterado pela separação."
             }), 409
+
+        percentual_maximo_desconto = None
+        if inteiro_seguro(tabela_preco_pedido, 0) > 0:
+            cur.execute("""
+                SELECT COALESCE(TBP_VALOR_EXCEDENTE, 0)
+                FROM TB_TABELA_PRECO
+                WHERE TBP_EMPRESA = ?
+                  AND TBP_ID = ?
+            """, (empresa, tabela_preco_pedido))
+            row_tabela_preco = cur.fetchone()
+            percentual_maximo_desconto = (
+                row_tabela_preco[0] if row_tabela_preco else Decimal("0")
+            )
+
+        cur.execute("""
+            SELECT
+                COALESCE(PVC_OPCAO_DESCONTO_ITEM, ''),
+                COALESCE(PVC_VERSAO_TABLET, '')
+            FROM TB_PEDIDO_VENDA_CONFIG
+            WHERE PVC_EMPRESA = ?
+        """, (empresa,))
+
+        row_config = cur.fetchone()
+        if row_config:
+            origem_desconto_item, versao_tablet = row_config
+        else:
+            origem_desconto_item, versao_tablet = "", "N"
 
         # ------------------------------------------------------
         # 3) Busca produtos separados
@@ -2857,12 +3765,16 @@ def aplicar_separacao_no_pedido():
                 SELECT
                     PEVI_SEQUENCIA,
                     COALESCE(PEVI_VALOR_UNITARIO, 0),
+                    COALESCE(PEVI_TIPO_DESCONTO, ''),
                     COALESCE(PEVI_DESCONTO, 0),
+                    COALESCE(PEVI_TIPO_ACRESCIMO, ''),
                     COALESCE(PEVI_ACRESCIMO, 0),
                     COALESCE(PEVI_VALOR_FRETE, 0),
                     COALESCE(PEVI_COMISSAO, 0),
                     COALESCE(PEVI_COMISSAO_SUPERVISOR, 0),
-                    COALESCE(PEVI_OBSERVACAO, '')
+                    COALESCE(PEVI_OBSERVACAO, ''),
+                    COALESCE(PEVI_DESC_RATEADO, 0),
+                    COALESCE(PEVI_ACRESC_RATEADO, 0)
                 FROM TB_PEDIDO_VENDA_ITEM
                 WHERE PEVI_EMPRESA = ?
                   AND PEVI_PEDIDO_VENDA = ?
@@ -2880,35 +3792,58 @@ def aplicar_separacao_no_pedido():
             (
                 sequencia,
                 valor_unitario,
-                percentual_desconto,
-                percentual_acrescimo,
+                tipo_desconto,
+                desconto_informado,
+                tipo_acrescimo,
+                acrescimo_informado,
                 valor_frete,
                 percentual_comissao,
                 percentual_comissao_supervisor,
-                observacao_atual
+                observacao_atual,
+                desc_rateado_capa,
+                acresc_rateado_capa
             ) = row_item
 
             sequencia = inteiro_seguro(sequencia, 0)
 
             valor_unitario = decimal_seguro(valor_unitario)
-            percentual_desconto = decimal_seguro(percentual_desconto)
-            percentual_acrescimo = decimal_seguro(percentual_acrescimo)
+            desconto_informado = decimal_seguro(desconto_informado)
+            acrescimo_informado = decimal_seguro(acrescimo_informado)
             valor_frete = decimal_seguro(valor_frete)
             percentual_comissao = decimal_seguro(percentual_comissao)
             percentual_comissao_supervisor = decimal_seguro(percentual_comissao_supervisor)
+            desc_rateado_capa = decimal_seguro(desc_rateado_capa)
+            acresc_rateado_capa = decimal_seguro(acresc_rateado_capa)
 
             sub_total = arredondar_moeda(nova_quantidade * valor_unitario)
 
-            valor_desconto = arredondar_moeda(
-                sub_total * percentual_desconto / Decimal("100")
+            valor_desconto = calcular_valor_desconto_item(
+                tipo_desconto,
+                desconto_informado,
+                nova_quantidade,
+                valor_unitario,
+                sub_total,
+                origem_desconto_item,
+                versao_tablet
             )
 
-            valor_acrescimo = arredondar_moeda(
-                sub_total * percentual_acrescimo / Decimal("100")
+            valor_acrescimo = calcular_valor_acrescimo_item(
+                tipo_acrescimo,
+                acrescimo_informado,
+                nova_quantidade,
+                valor_unitario,
+                sub_total,
+                origem_desconto_item,
+                versao_tablet
             )
 
             valor_total = arredondar_moeda(
-                sub_total - valor_desconto + valor_acrescimo + valor_frete
+                sub_total
+                - valor_desconto
+                - desc_rateado_capa
+                + valor_acrescimo
+                + acresc_rateado_capa
+                + valor_frete
             )
 
             valor_comissao = arredondar_moeda(
@@ -2968,6 +3903,64 @@ def aplicar_separacao_no_pedido():
 
             itens_atualizados += 1
 
+        # Reaplica somente os ajustes da capa sobre a fotografia final.
+        cur.execute("""
+            SELECT
+                PEVI_SEQUENCIA,
+                COALESCE(PEVI_SUB_TOTAL, 0),
+                COALESCE(PEVI_VALOR_DESCONTO, 0),
+                COALESCE(PEVI_VALOR_ACRESCIMO, 0),
+                COALESCE(PEVI_VALOR_TOTAL, 0),
+                COALESCE(PEVI_DESC_RATEADO, 0),
+                COALESCE(PEVI_ACRESC_RATEADO, 0),
+                COALESCE(PEVI_APLICA_DESCONTO, '')
+            FROM TB_PEDIDO_VENDA_ITEM
+            WHERE PEVI_EMPRESA = ?
+              AND PEVI_PEDIDO_VENDA = ?
+              AND COALESCE(PEVI_STATUS, 'A') <> 'C'
+            ORDER BY PEVI_SEQUENCIA
+        """, (empresa, pedido))
+
+        itens_capa = []
+        for row_capa in cur.fetchall():
+            itens_capa.append({
+                "sequencia": inteiro_seguro(row_capa[0], 0),
+                "sub_total": row_capa[1],
+                "valor_desconto": row_capa[2],
+                "valor_acrescimo": row_capa[3],
+                "valor_total": row_capa[4],
+                "desc_rateado": row_capa[5],
+                "acresc_rateado": row_capa[6],
+                "aplica_desconto": row_capa[7]
+            })
+
+        itens_capa = recalcular_rateios_capa_pedido(
+            itens_capa,
+            tipo_desconto_capa,
+            desconto_capa,
+            tipo_acrescimo_capa,
+            acrescimo_capa,
+            percentual_maximo_desconto
+        )
+
+        for item_capa in itens_capa:
+            cur.execute("""
+                UPDATE TB_PEDIDO_VENDA_ITEM
+                   SET PEVI_DESC_RATEADO = ?,
+                       PEVI_ACRESC_RATEADO = ?,
+                       PEVI_VALOR_TOTAL = ?
+                 WHERE PEVI_EMPRESA = ?
+                   AND PEVI_PEDIDO_VENDA = ?
+                   AND PEVI_SEQUENCIA = ?
+            """, (
+                item_capa["desc_rateado"],
+                item_capa["acresc_rateado"],
+                item_capa["valor_total"],
+                empresa,
+                pedido,
+                item_capa["sequencia"]
+            ))
+
         # ------------------------------------------------------
         # 5) Recalcula cabeçalho do pedido somando itens ativos
         # ------------------------------------------------------
@@ -2975,7 +3968,14 @@ def aplicar_separacao_no_pedido():
             SELECT
                 COALESCE(SUM(COALESCE(PEVI_SUB_TOTAL, 0)), 0),
                 COALESCE(SUM(COALESCE(PEVI_VALOR_TOTAL, 0)), 0),
-                COALESCE(SUM(COALESCE(PEVI_VALOR_DESCONTO, 0)), 0),
+                COALESCE(SUM(
+                    COALESCE(PEVI_VALOR_DESCONTO, 0)
+                    + COALESCE(PEVI_DESC_RATEADO, 0)
+                ), 0),
+                COALESCE(SUM(
+                    COALESCE(PEVI_VALOR_ACRESCIMO, 0)
+                    + COALESCE(PEVI_ACRESC_RATEADO, 0)
+                ), 0),
                 COALESCE(SUM(COALESCE(PEVI_VALOR_COMISSAO, 0)), 0),
                 COALESCE(SUM(COALESCE(PEVI_VOLUME_ITEM, 0)), 0),
                 COALESCE(SUM(COALESCE(PEVI_VALOR_COMISSAO_SUPERVISOR, 0)), 0)
@@ -2989,16 +3989,26 @@ def aplicar_separacao_no_pedido():
             soma_sub_total,
             soma_valor_total,
             soma_valor_desconto,
+            soma_valor_acrescimo_itens,
             soma_valor_comissao,
             soma_volume,
             soma_comissao_supervisor
         ) = cur.fetchone()
+
+        if (
+            decimal_seguro(acrescimo_capa) > 0
+            and texto_tipo_comercial(tipo_acrescimo_capa) in ("P", "V")
+        ):
+            valor_acrescimo_cabecalho = soma_valor_acrescimo_itens
+        else:
+            valor_acrescimo_cabecalho = valor_acrescimo_anterior
 
         cur.execute("""
             UPDATE TB_PEDIDO_VENDA
                SET PEV_SUB_TOTAL = ?,
                    PEV_VALOR_TOTAL = ?,
                    PEV_VALOR_DESCONTO = ?,
+                   PEV_VALOR_ACRESCIMO = ?,
                    PEV_VALOR_COMISSAO = ?,
                    PEV_VOLUME = ?,
                    PEV_VALOR_COMISSAO_SUPERVISOR = ?
@@ -3008,6 +4018,7 @@ def aplicar_separacao_no_pedido():
             soma_sub_total,
             soma_valor_total,
             soma_valor_desconto,
+            valor_acrescimo_cabecalho,
             soma_valor_comissao,
             soma_volume,
             soma_comissao_supervisor,
@@ -3090,6 +4101,20 @@ def inserir_gondola():
 
         con = get_connection()
         cur = con.cursor()
+
+        cur.execute("""
+            SELECT COUNT(*)
+            FROM TB_PRODUTO
+            WHERE PRD_EMPRESA = 1
+              AND PRD_ID = ?
+              AND COALESCE(PRD_STATUS, 'A') <> 'I'
+        """, (produto_id,))
+
+        if inteiro_seguro(cur.fetchone()[0], 0) == 0:
+            return jsonify({
+                "status": "erro",
+                "mensagem": "Produto não encontrado ou inativo."
+            }), 400
 
         # PRÓXIMO ID
         cur.execute("SELECT COALESCE(MAX(GDL_ID), 0) + 1 FROM TB_GONDOLA")
@@ -3285,6 +4310,7 @@ def _consultar_item_separacao_transferencia(cur, empresa, requisicao, item):
           AND R.TRQ_STATUS = 'S'
           AND I.TRQI_SEQUENCIA = ?
           AND COALESCE(I.TRQI_STATUS, 'A') <> 'C'
+          AND COALESCE(I.TRQI_SEPARAR, 'S') = 'S'
     """, (empresa, requisicao, item))
 
     item_row = cur.fetchone()
@@ -3526,6 +4552,7 @@ def detalhar_requisicao_transferencia():
             WHERE I.TRQI_EMPRESA_MATRIZ = ?
               AND I.TRQI_REQUISICAO = ?
               AND COALESCE(I.TRQI_STATUS, 'A') <> 'C'
+              AND COALESCE(I.TRQI_SEPARAR, 'S') = 'S'
             ORDER BY I.TRQI_SEQUENCIA
         """, (empresa, requisicao))
 
@@ -3770,6 +4797,24 @@ def salvar_item_separacao_transferencia():
         con = get_connection()
         con.begin()
         cur = con.cursor()
+
+        resultado_atual = _consultar_item_separacao_transferencia(
+            cur,
+            empresa,
+            requisicao,
+            item
+        )
+        if resultado_atual is None:
+            con.rollback()
+            return jsonify({
+                "status": "erro",
+                "retorno": "ERRO",
+                "mensagem": (
+                    "Item nÃ£o encontrado, nÃ£o estÃ¡ habilitado para separaÃ§Ã£o "
+                    "ou o controle da separaÃ§Ã£o nÃ£o estÃ¡ ativo."
+                )
+            }), 409
+
         leituras_salvas = []
         mensagem_sucesso = "Leituras gravadas com sucesso."
 
@@ -3787,7 +4832,7 @@ def salvar_item_separacao_transferencia():
                     QTDE_SEPARADA_ITEM,
                     QTDE_RESTANTE_ITEM,
                     QTDE_SEPARADA_REQUISICAO
-                FROM SP_SALVA_LEITURA_TRANSF_REQ (?, ?, ?, ?, ?)
+                FROM SP_SALVA_LEIT_TRANSF_ALIAS (?, ?, ?, ?, ?)
             """, (empresa, requisicao, item, codigo, usuario))
 
             row = cur.fetchone()

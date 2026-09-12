@@ -1,0 +1,3675 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{2675C0E2-AB8D-43D5-997E-02DF3C812D95}</ProjectGuid>
+        <ProjectVersion>18.0</ProjectVersion>
+        <FrameworkType>VCL</FrameworkType>
+        <MainSource>ParmaGestor.dpr</MainSource>
+        <Base>True</Base>
+        <Config Condition="'$(Config)'==''">Debug</Config>
+        <Platform Condition="'$(Platform)'==''">Win32</Platform>
+        <TargetedPlatforms>1</TargetedPlatforms>
+        <AppType>Application</AppType>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
+        <Base>true</Base>
+    </PropertyGroup>
+    <PropertyGroup Condition="('$(Platform)'=='Win32' and '$(Base)'=='true') or '$(Base_Win32)'!=''">
+        <Base_Win32>true</Base_Win32>
+        <CfgParent>Base</CfgParent>
+        <Base>true</Base>
+    </PropertyGroup>
+    <PropertyGroup Condition="('$(Platform)'=='Win64' and '$(Base)'=='true') or '$(Base_Win64)'!=''">
+        <Base_Win64>true</Base_Win64>
+        <CfgParent>Base</CfgParent>
+        <Base>true</Base>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Config)'=='Debug' or '$(Cfg_1)'!=''">
+        <Cfg_1>true</Cfg_1>
+        <CfgParent>Base</CfgParent>
+        <Base>true</Base>
+    </PropertyGroup>
+    <PropertyGroup Condition="('$(Platform)'=='Win32' and '$(Cfg_1)'=='true') or '$(Cfg_1_Win32)'!=''">
+        <Cfg_1_Win32>true</Cfg_1_Win32>
+        <CfgParent>Cfg_1</CfgParent>
+        <Cfg_1>true</Cfg_1>
+        <Base>true</Base>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Config)'=='Release' or '$(Cfg_2)'!=''">
+        <Cfg_2>true</Cfg_2>
+        <CfgParent>Base</CfgParent>
+        <Base>true</Base>
+    </PropertyGroup>
+    <PropertyGroup Condition="('$(Platform)'=='Win32' and '$(Cfg_2)'=='true') or '$(Cfg_2_Win32)'!=''">
+        <Cfg_2_Win32>true</Cfg_2_Win32>
+        <CfgParent>Cfg_2</CfgParent>
+        <Cfg_2>true</Cfg_2>
+        <Base>true</Base>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Base)'!=''">
+        <Custom_Styles>Amakrits|VCLSTYLE|$(PUBLIC)\Documents\Embarcadero\Studio\17.0\Styles\Amakrits.vsf;&quot;Amethyst Kamri|VCLSTYLE|$(PUBLIC)\Documents\Embarcadero\Studio\17.0\Styles\AmethystKamri.vsf&quot;;&quot;Aqua Graphite|VCLSTYLE|$(PUBLIC)\Documents\Embarcadero\Studio\17.0\Styles\AquaGraphite.vsf&quot;;&quot;Aqua Light Slate|VCLSTYLE|$(PUBLIC)\Documents\Embarcadero\Studio\17.0\Styles\AquaLightSlate.vsf&quot;;Auric|VCLSTYLE|$(PUBLIC)\Documents\Embarcadero\Studio\17.0\Styles\Auric.vsf;Carbon|VCLSTYLE|$(PUBLIC)\Documents\Embarcadero\Studio\17.0\Styles\Carbon.vsf;&quot;Charcoal Dark Slate|VCLSTYLE|$(PUBLIC)\Documents\Embarcadero\Studio\17.0\Styles\CharcoalDarkSlate.vsf&quot;;&quot;Cobalt XEMedia|VCLSTYLE|$(PUBLIC)\Documents\Embarcadero\Studio\17.0\Styles\CobaltXEMedia.vsf&quot;;&quot;Cyan Dusk|VCLSTYLE|$(PUBLIC)\Documents\Embarcadero\Studio\17.0\Styles\CyanDusk.vsf&quot;;&quot;Cyan Night|VCLSTYLE|$(PUBLIC)\Documents\Embarcadero\Studio\17.0\Styles\CyanNight.vsf&quot;;&quot;Emerald Light Slate|VCLSTYLE|$(PUBLIC)\Documents\Embarcadero\Studio\17.0\Styles\EmeraldLightSlate.vsf&quot;;Glossy|VCLSTYLE|$(PUBLIC)\Documents\Embarcadero\Studio\17.0\Styles\Glossy.vsf;Glow|VCLSTYLE|$(PUBLIC)\Documents\Embarcadero\Studio\17.0\Styles\Glow.vsf;&quot;Golden Graphite|VCLSTYLE|$(PUBLIC)\Documents\Embarcadero\Studio\17.0\Styles\GoldenGraphite.vsf&quot;;&quot;Iceberg Classico|VCLSTYLE|$(PUBLIC)\Documents\Embarcadero\Studio\17.0\Styles\IcebergClassico.vsf&quot;;&quot;Lavender Classico|VCLSTYLE|$(PUBLIC)\Documents\Embarcadero\Studio\17.0\Styles\LavenderClassico.vsf&quot;;Light|VCLSTYLE|$(PUBLIC)\Documents\Embarcadero\Studio\17.0\Styles\Light.vsf;Luna|VCLSTYLE|$(PUBLIC)\Documents\Embarcadero\Studio\17.0\Styles\Luna.vsf;&quot;Metropolis UI Black|VCLSTYLE|$(PUBLIC)\Documents\Embarcadero\Studio\17.0\Styles\MetropolisUIBlack.vsf&quot;;&quot;Metropolis UI Blue|VCLSTYLE|$(PUBLIC)\Documents\Embarcadero\Studio\17.0\Styles\MetropolisUIBlue.vsf&quot;;&quot;Metropolis UI Dark|VCLSTYLE|$(PUBLIC)\Documents\Embarcadero\Studio\17.0\Styles\MetropolisUIDark.vsf&quot;;&quot;Metropolis UI Green|VCLSTYLE|$(PUBLIC)\Documents\Embarcadero\Studio\17.0\Styles\MetropolisUIGreen.vsf&quot;;Obsidian|VCLSTYLE|$(PUBLIC)\Documents\Embarcadero\Studio\17.0\Styles\Obsidian.vsf;&quot;Onyx Blue|VCLSTYLE|$(PUBLIC)\Documents\Embarcadero\Studio\17.0\Styles\OnyxBlue.vsf&quot;;&quot;Ruby Graphite|VCLSTYLE|$(PUBLIC)\Documents\Embarcadero\Studio\17.0\Styles\RubyGraphite.vsf&quot;;&quot;Sapphire Kamri|VCLSTYLE|$(PUBLIC)\Documents\Embarcadero\Studio\17.0\Styles\SapphireKamri.vsf&quot;;Silver|VCLSTYLE|$(PUBLIC)\Documents\Embarcadero\Studio\17.0\Styles\Silver.vsf;Sky|VCLSTYLE|$(PUBLIC)\Documents\Embarcadero\Studio\17.0\Styles\Sky.vsf;&quot;Slate Classico|VCLSTYLE|$(PUBLIC)\Documents\Embarcadero\Studio\17.0\Styles\SlateClassico.vsf&quot;;&quot;Smokey Quartz Kamri|VCLSTYLE|$(PUBLIC)\Documents\Embarcadero\Studio\17.0\Styles\SmokeyQuartzKamri.vsf&quot;;&quot;Tablet Light|VCLSTYLE|$(PUBLIC)\Documents\Embarcadero\Studio\17.0\Styles\TabletLight.vsf&quot;;TabletDark|VCLSTYLE|$(PUBLIC)\Documents\Embarcadero\Studio\17.0\Styles\TabletDark.vsf;&quot;Turquoise Gray|VCLSTYLE|$(PUBLIC)\Documents\Embarcadero\Studio\17.0\Styles\TurquoiseGray.vsf&quot;;Windows10|VCLSTYLE|$(PUBLIC)\Documents\Embarcadero\Studio\17.0\Styles\Windows10.vsf;&quot;Windows10 Blue|VCLSTYLE|$(PUBLIC)\Documents\Embarcadero\Studio\17.0\Styles\Windows10Blue.vsf&quot;;&quot;Windows10 Dark|VCLSTYLE|$(PUBLIC)\Documents\Embarcadero\Studio\17.0\Styles\Windows10Dark.vsf&quot;</Custom_Styles>
+        <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;Vcl;Vcl.Imaging;Vcl.Touch;Vcl.Samples;Vcl.Shell;$(DCC_Namespace)</DCC_Namespace>
+        <DCC_UnitSearchPath>View\Cad;ThirdParty\WebView4Delphi\source;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+        <Icon_MainIcon>$(BDS)\bin\delphi_PROJECTICON.ico</Icon_MainIcon>
+        <SanitizedProjectName>ParmaGestor</SanitizedProjectName>
+        <DCC_DcuOutput>.\$(Platform)\$(Config)</DCC_DcuOutput>
+        <DCC_ExeOutput>.\$(Platform)\$(Config)</DCC_ExeOutput>
+        <DCC_E>false</DCC_E>
+        <DCC_N>false</DCC_N>
+        <DCC_S>false</DCC_S>
+        <DCC_F>false</DCC_F>
+        <DCC_K>false</DCC_K>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Base_Win32)'!=''">
+        <DCC_Namespace>Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde;$(DCC_Namespace)</DCC_Namespace>
+        <VerInfo_Locale>1033</VerInfo_Locale>
+        <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
+        <DCC_UsePackage>DBXSqliteDriver;DBXDb2Driver;dxCoreRS23;vclactnband;dxPSdxLCLnkRS23;vclFireDAC;dxPSLnksRS23;frxe23;tethering;cxDataRS23;dxPSdxOCLnkRS23;dxTabbedMDIRS23;FireDACADSDriver;fsTee23;dxSkinBlackRS23;dxSkinLondonLiquidSkyRS23;JvPluginSystem;dxDBXServerModeRS23;dxPScxGridLnkRS23;cxSchedulerRS23;FireDACMSSQLDriver;vcltouch;JvBands;frxFD23;vcldb;Intraweb;svn;frxcs23;dxWizardControlRS23;dxPScxCommonRS23;dxSkinMcSkinRS23;JvJans;dxSkinOffice2007BlueRS23;ACBr_NFe;ACBr_NFeDanfeESCPOS;dxBarRS23;ACBr_NFeDanfeFR;cxSchedulerRibbonStyleEventEditorRS23;dxSkinOffice2013WhiteRS23;JvDotNetCtrls;cxLibraryRS23;vclib;cxPivotGridChartRS23;DelPrintDX10;dxSkinSummer2008RS23;dxPSdxDBOCLnkRS23;fsDB23;dxGDIPlusRS23;dxSkinDarkSideRS23;FireDACDBXDriver;dxSkinFoggyRS23;dxSkinSevenRS23;ACBr_NFSeDanfseFR;vclx;dxSkinOffice2010SilverRS23;dxdborRS23;RESTBackendComponents;dxLayoutControlRS23;dxPSPrVwRibbonRS23;VCLRESTComponents;dxSkinDevExpressStyleRS23;dxSkinWhiteprintRS23;vclie;bindengine;CloudService;JvHMI;FireDACMySQLDriver;ACBr_PAF;ACBr_SATECFVirtual;dxSkinOffice2013DarkGrayRS23;DataSnapClient;dxPScxPCProdRS23;fsADO23;bindcompdbx;ACBr_TCP;DBXSybaseASEDriver;IndyIPServer;dxSkinPumpkinRS23;ACBr_CTe;IndySystem;dsnapcon;cxTreeListdxBarPopupMenuRS23;ACBr_synapse;FireDACMSAccDriver;fmxFireDAC;FireDACInfxDriver;vclimg;dxSkinLilianRS23;Jcl;ACBr_SPEDImportar;ACBr_SPED;ACBr_MDFe;frxADO23;dxBarDBNavRS23;dxFlowChartRS23;ACBr_LFD;DBXOdbcDriver;FireDACTDataDriver;FMXTee;fs23;GMLib_D_Seattle10;soaprtl;DbxCommonDriver;dxSpreadSheetRS23;GMLib_D_Seattle10_VCL;JvManagedThreads;dxSkinOffice2007PinkRS23;dxPSdxSpreadSheetLnkRS23;xmlrtl;soapmidas;DataSnapNativeClient;fmxobj;dxSkinHighContrastRS23;dxSkinSevenClassicRS23;rtl;dxSkinTheAsphaltWorldRS23;DbxClientDriver;dxSkinDevExpressDarkStyleRS23;DBXSybaseASADriver;dxNavBarRS23;dxSkinMetropolisDarkRS23;JvTimeFramework;JvSystem;dxRichEditControlRS23;JvStdCtrls;ACBr_Convenio115;appanalytics;cxPivotGridRS23;dxSkinsdxDLPainterRS23;IndyIPClient;dxRibbonRS23;dxPScxVGridLnkRS23;bindcompvcl;frxDB23;cxBarEditItemRS23;dxSkinOffice2007SilverRS23;dxPScxTLLnkRS23;dxMapControlRS23;TeeUI;GMLib_D_Seattle10_FMX;JvDocking;JvPascalInterpreter;VclSmp;dxPScxSchedulerLnkRS23;cxTreeListRS23;FireDACODBCDriver;GMLibEdit_D_Seattle10;JclVcl;DataSnapIndy10ServerTransport;ACBr_Boleto;dxBarExtDBItemsRS23;DataSnapProviderClient;ACBr_SEF2;FireDACMongoDBDriver;dxSkiniMaginaryRS23;frx23;dxSpellCheckerRS23;JvControls;dxSkinsdxBarPainterRS23;JvPrintPreview;ACBr_NFSe;ACBr_MDFeDamdfeFR;dxSkinCoffeeRS23;RESTComponents;DBXInterBaseDriver;ACBr_TEFD;dxADOServerModeRS23;emsclientfiredac;ACBr_SATWS;DataSnapFireDAC;svnui;dxmdsRS23;dxSkinLiquidSkyRS23;dxdbtrRS23;dxSkinSpringTimeRS23;JvGlobus;dxPSCoreRS23;dxSkinscxPCPainterRS23;DBXMSSQLDriver;JvMM;dxSkinXmas2008BlueRS23;DatasnapConnectorsFreePascal;bindcompfmx;JvNet;DBXOracleDriver;dxSkinSilverRS23;dxSkinValentineRS23;inetdb;JvAppFrm;ACBr_Diversos;ACBr_TXTComum;FmxTeeUI;dxBarExtItemsRS23;FireDACIBDriver;fmx;fmxdae;frxDBX23;dxServerModeRS23;ACBr_CTeDacteFR;dxPsPrVwAdvRS23;dxSkinOffice2010BlackRS23;JvWizards;cxPageControlRS23;dxSkinStardustRS23;cxSchedulerGridRS23;ACBr_Ponto;dbexpress;IndyCore;dxSkinSharpPlusRS23;JvPageComps;dsnap;DataSnapCommon;emsclient;FireDACCommon;dxSkinOffice2010BlueRS23;JvDB;ACBr_PCNComum;dxSkinVS2010RS23;dxSkinMetropolisRS23;DataSnapConnectors;cxVerticalGridRS23;ACBR_DeSTDA;soapserver;ACBr_SAT;dxSkinCaramelRS23;dxTileControlRS23;JclDeveloperTools;cxGridRS23;FireDACOracleDriver;DBXMySQLDriver;JvCmp;DBXFirebirdDriver;ACBr_Sintegra;FireDACCommonDriver;ACBr_GNRE;inet;IndyIPCommon;JvCustom;dxSkinDarkRoomRS23;dxDockingRS23;vcl;dxSkinOffice2007GreenRS23;dxPScxExtCommonRS23;JvXPCtrls;ACBr_SATExtratoESCPOS;dxSkinsCoreRS23;FireDACDb2Driver;dxThemeRS23;dxSkinsdxRibbonPainterRS23;dxSkinMoneyTwinsRS23;dxPSdxFCLnkRS23;dxtrmdRS23;TeeDB;FireDAC;JvCore;dxFireDACServerModeRS23;dxSkinBlueRS23;ACBr_Comum;JvCrypt;FireDACSqliteDriver;FireDACPgDriver;ibmonitor;FireDACASADriver;cxEditorsRS23;dxSkinGlassOceansRS23;JvDlgs;JvRuntimeDesign;dxSkinsdxNavBarPainterRS23;dxGaugeControlRS23;ibxpress;Tee;dxSkinSharpRS23;DataSnapServer;ibxbindings;vclwinx;FireDACDSDriver;ACBr_OpenSSL;dxSkinBlueprintRS23;dxSkinOffice2007BlackRS23;CustomIPTransport;vcldsnap;ACBr_DFeComum;dxSkinOffice2013LightGrayRS23;bindcomp;ACBr_Serial;DBXInformixDriver;dxPSdxGaugeControlLnkRS23;fsIBX23;dxPScxPivotGridLnkRS23;dxorgcRS23;ACBr_BlocoX;dxPSdxDBTVLnkRS23;vclribbon;dbxcds;frxIBX23;ACBr_NFCeECFVirtual;adortl;ACBr_BoletoFR;dxComnRS23;dsnapxml;dbrtl;inetdbxpress;IndyProtocols;cxExportRS23;JclContainers;ACBr_MTER;dxSkinscxSchedulerPainterRS23;fmxase;$(DCC_UsePackage)</DCC_UsePackage>
+        <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
+        <Manifest_File>$(BDS)\bin\default_app.manifest</Manifest_File>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Base_Win64)'!=''">
+        <DCC_UsePackage>DBXSqliteDriver;DBXDb2Driver;dxCoreRS23;vclactnband;dxPSdxLCLnkRS23;vclFireDAC;dxPSLnksRS23;tethering;cxDataRS23;dxPSdxOCLnkRS23;dxTabbedMDIRS23;FireDACADSDriver;dxSkinBlackRS23;dxSkinLondonLiquidSkyRS23;dxDBXServerModeRS23;dxPScxGridLnkRS23;cxSchedulerRS23;FireDACMSSQLDriver;vcltouch;vcldb;Intraweb;dxWizardControlRS23;dxPScxCommonRS23;dxSkinMcSkinRS23;dxSkinOffice2007BlueRS23;dxBarRS23;cxSchedulerRibbonStyleEventEditorRS23;dxSkinOffice2013WhiteRS23;cxLibraryRS23;vclib;cxPivotGridChartRS23;dxSkinSummer2008RS23;dxPSdxDBOCLnkRS23;dxGDIPlusRS23;dxSkinDarkSideRS23;FireDACDBXDriver;dxSkinFoggyRS23;dxSkinSevenRS23;vclx;dxSkinOffice2010SilverRS23;dxdborRS23;RESTBackendComponents;dxLayoutControlRS23;dxPSPrVwRibbonRS23;VCLRESTComponents;dxSkinDevExpressStyleRS23;dxSkinWhiteprintRS23;vclie;bindengine;CloudService;FireDACMySQLDriver;dxSkinOffice2013DarkGrayRS23;DataSnapClient;dxPScxPCProdRS23;bindcompdbx;DBXSybaseASEDriver;IndyIPServer;dxSkinPumpkinRS23;IndySystem;dsnapcon;cxTreeListdxBarPopupMenuRS23;FireDACMSAccDriver;fmxFireDAC;FireDACInfxDriver;vclimg;dxSkinLilianRS23;dxBarDBNavRS23;dxFlowChartRS23;DBXOdbcDriver;FireDACTDataDriver;FMXTee;GMLib_D_Seattle10;soaprtl;DbxCommonDriver;dxSpreadSheetRS23;GMLib_D_Seattle10_VCL;dxSkinOffice2007PinkRS23;dxPSdxSpreadSheetLnkRS23;xmlrtl;soapmidas;DataSnapNativeClient;fmxobj;dxSkinHighContrastRS23;dxSkinSevenClassicRS23;rtl;dxSkinTheAsphaltWorldRS23;DbxClientDriver;dxSkinDevExpressDarkStyleRS23;DBXSybaseASADriver;dxNavBarRS23;dxSkinMetropolisDarkRS23;dxRichEditControlRS23;appanalytics;cxPivotGridRS23;dxSkinsdxDLPainterRS23;IndyIPClient;dxRibbonRS23;dxPScxVGridLnkRS23;bindcompvcl;cxBarEditItemRS23;dxSkinOffice2007SilverRS23;dxPScxTLLnkRS23;dxMapControlRS23;TeeUI;GMLib_D_Seattle10_FMX;VclSmp;dxPScxSchedulerLnkRS23;cxTreeListRS23;FireDACODBCDriver;DataSnapIndy10ServerTransport;dxBarExtDBItemsRS23;DataSnapProviderClient;FireDACMongoDBDriver;dxSkiniMaginaryRS23;dxSpellCheckerRS23;dxSkinsdxBarPainterRS23;dxSkinCoffeeRS23;RESTComponents;DBXInterBaseDriver;dxADOServerModeRS23;emsclientfiredac;DataSnapFireDAC;dxmdsRS23;dxSkinLiquidSkyRS23;dxdbtrRS23;dxSkinSpringTimeRS23;dxPSCoreRS23;dxSkinscxPCPainterRS23;DBXMSSQLDriver;dxSkinXmas2008BlueRS23;DatasnapConnectorsFreePascal;bindcompfmx;DBXOracleDriver;dxSkinSilverRS23;dxSkinValentineRS23;inetdb;FmxTeeUI;dxBarExtItemsRS23;FireDACIBDriver;fmx;fmxdae;dxServerModeRS23;dxPsPrVwAdvRS23;dxSkinOffice2010BlackRS23;cxPageControlRS23;dxSkinStardustRS23;cxSchedulerGridRS23;dbexpress;IndyCore;dxSkinSharpPlusRS23;dsnap;DataSnapCommon;emsclient;FireDACCommon;dxSkinOffice2010BlueRS23;dxSkinVS2010RS23;dxSkinMetropolisRS23;DataSnapConnectors;cxVerticalGridRS23;soapserver;dxSkinCaramelRS23;dxTileControlRS23;cxGridRS23;FireDACOracleDriver;DBXMySQLDriver;DBXFirebirdDriver;FireDACCommonDriver;inet;IndyIPCommon;dxSkinDarkRoomRS23;dxDockingRS23;vcl;dxSkinOffice2007GreenRS23;dxPScxExtCommonRS23;dxSkinsCoreRS23;FireDACDb2Driver;dxThemeRS23;dxSkinsdxRibbonPainterRS23;dxSkinMoneyTwinsRS23;dxPSdxFCLnkRS23;dxtrmdRS23;TeeDB;FireDAC;dxFireDACServerModeRS23;dxSkinBlueRS23;FireDACSqliteDriver;FireDACPgDriver;ibmonitor;FireDACASADriver;cxEditorsRS23;dxSkinGlassOceansRS23;dxSkinsdxNavBarPainterRS23;dxGaugeControlRS23;ibxpress;Tee;dxSkinSharpRS23;DataSnapServer;ibxbindings;vclwinx;FireDACDSDriver;dxSkinBlueprintRS23;dxSkinOffice2007BlackRS23;CustomIPTransport;vcldsnap;dxSkinOffice2013LightGrayRS23;bindcomp;DBXInformixDriver;dxPSdxGaugeControlLnkRS23;dxPScxPivotGridLnkRS23;dxorgcRS23;dxPSdxDBTVLnkRS23;vclribbon;dbxcds;adortl;dxComnRS23;dsnapxml;dbrtl;inetdbxpress;IndyProtocols;cxExportRS23;dxSkinscxSchedulerPainterRS23;fmxase;$(DCC_UsePackage)</DCC_UsePackage>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Cfg_1)'!=''">
+        <DCC_Define>DEBUG;$(DCC_Define)</DCC_Define>
+        <DCC_DebugDCUs>true</DCC_DebugDCUs>
+        <DCC_Optimize>false</DCC_Optimize>
+        <DCC_GenerateStackFrames>true</DCC_GenerateStackFrames>
+        <DCC_DebugInfoInExe>true</DCC_DebugInfoInExe>
+        <DCC_RemoteDebug>true</DCC_RemoteDebug>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Cfg_1_Win32)'!=''">
+        <VerInfo_Build>1</VerInfo_Build>
+        <VerInfo_Release>64</VerInfo_Release>
+        <VerInfo_MinorVer>1</VerInfo_MinorVer>
+        <DCC_Description>Parma Gestor</DCC_Description>
+        <Icon_MainIcon>ParmaGestor_Icon.ico</Icon_MainIcon>
+        <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.1.64.1;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
+        <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
+        <VerInfo_Locale>1033</VerInfo_Locale>
+        <DCC_ExeOutput>..\Bin\</DCC_ExeOutput>
+        <DCC_DcuOutput>..\DCU\</DCC_DcuOutput>
+        <AppEnableHighDPI>true</AppEnableHighDPI>
+        <AppEnableRuntimeThemes>true</AppEnableRuntimeThemes>
+        <DCC_RemoteDebug>false</DCC_RemoteDebug>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Cfg_2)'!=''">
+        <DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
+        <DCC_Define>RELEASE;$(DCC_Define)</DCC_Define>
+        <DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
+        <DCC_DebugInformation>0</DCC_DebugInformation>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Cfg_2_Win32)'!=''">
+        <AppEnableHighDPI>true</AppEnableHighDPI>
+        <AppEnableRuntimeThemes>true</AppEnableRuntimeThemes>
+    </PropertyGroup>
+    <ItemGroup>
+        <DelphiCompile Include="$(MainSource)">
+            <MainSource>MainSource</MainSource>
+        </DelphiCompile>
+        <DCCReference Include="..\..\Global\Source\Model\UDMCidade.pas">
+            <Form>DMCidade</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\Model\UDMEmpresa.pas">
+            <Form>DMEmpresa</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\Model\UDMFormulario.pas">
+            <Form>DMFormulario</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\Model\UDMGondola.pas">
+            <Form>DMGondola</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\Model\UDMGrafico.pas">
+            <Form>DMGrafico</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\Model\UDMInventario.pas">
+            <Form>DMInventario</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\Model\UDMLicencas.pas">
+            <Form>DMLicencas</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\Model\UDMNcm.pas">
+            <Form>DMNCM</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\Model\UDMNCMGrupo.pas">
+            <Form>DMNCMGrupo</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\Model\UDMNCMTributoMsg.pas">
+            <Form>DMNCMTributoMsg</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\Model\UDMPais.pas">
+            <Form>DMPais</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\Model\UDMRegistroUtilizado.pas">
+            <Form>DMRegistroUtilizado</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\Model\UDMSintegra.pas">
+            <Form>DMSintegra</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\Model\UDMSpedFiscal.pas">
+            <Form>DMSpedFiscal</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\Model\UDMSpedPisCofins.pas">
+            <Form>DMSpedPisCofins</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\Model\UDMUsuario.pas">
+            <Form>DMUsuario</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\Model\UDMUsuPerfil.pas">
+            <Form>DMUsuarioPerfil</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\Controller\GifImage.pas"/>
+        <DCCReference Include="..\..\Global\Source\Controller\UClassAtivacao.pas"/>
+        <DCCReference Include="..\..\Global\Source\Controller\UClassCidade.pas"/>
+        <DCCReference Include="..\..\Global\Source\Controller\UClassEmpresa.pas"/>
+        <DCCReference Include="..\..\Global\Source\Controller\UClassFormulario.pas"/>
+        <DCCReference Include="..\..\Global\Source\Controller\UClassGeolocalizacao.pas"/>
+        <DCCReference Include="..\..\Global\Source\Controller\UClassGlobal.pas"/>
+        <DCCReference Include="..\..\Global\Source\Controller\UClassGondola.pas"/>
+        <DCCReference Include="..\..\Global\Source\Controller\UClassGrafico.pas"/>
+        <DCCReference Include="..\..\Global\Source\Controller\UClassInventario.pas"/>
+        <DCCReference Include="..\..\Global\Source\Controller\UClassLicencas.pas"/>
+        <DCCReference Include="..\..\Global\Source\Controller\UClassLogin.pas"/>
+        <DCCReference Include="..\..\Global\Source\Controller\UClassNCM.pas"/>
+        <DCCReference Include="..\..\Global\Source\Controller\UClassNCMGrupo.pas"/>
+        <DCCReference Include="..\..\Global\Source\Controller\UClassNCMTributoMsg.pas"/>
+        <DCCReference Include="..\..\Global\Source\Controller\UClassPais.pas"/>
+        <DCCReference Include="..\..\Global\Source\Controller\UClassRegistroUtilizado.pas"/>
+        <DCCReference Include="..\..\Global\Source\Controller\UClassSintegra.pas"/>
+        <DCCReference Include="..\..\Global\Source\Controller\UClassSpedFiscal.pas"/>
+        <DCCReference Include="..\..\Global\Source\Controller\UClassSpedPisCofins.pas"/>
+        <DCCReference Include="..\..\Global\Source\Controller\UClassUsuario.pas"/>
+        <DCCReference Include="..\..\Global\Source\Controller\UClassUsuPerfil.pas"/>
+        <DCCReference Include="..\..\Global\Source\View\UCadPadrao.pas">
+            <Form>FrmCadPadrao</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UManPadrao.pas">
+            <Form>FrmManPadrao</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UMovPadrao.pas">
+            <Form>FrmMovPadrao</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\URelPadrao.pas">
+            <Form>FrmRelPadrao</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UAvisoCertificado.pas">
+            <Form>FrmAvisoCertificado</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UCadCidade.pas">
+            <Form>FrmCadCidade</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UCadEmpresa.pas">
+            <Form>FrmCadEmpresa</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UCadLicencas.pas">
+            <Form>FrmCadLicencas</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UCadUsuario.pas">
+            <Form>FrmCadUsuario</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UCadUsuPerfil.pas">
+            <Form>FrmCadUsuPerfil</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UConfEstacao.pas">
+            <Form>FrmConfEstacao</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\ULogin.pas">
+            <Form>FrmLogin</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UManCidade.pas">
+            <Form>FrmManCidade</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UManConsultaCNPJ.pas">
+            <Form>FrmManConsultaCNPJ</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UManConsultaCPF.pas">
+            <Form>FrmManConsultaCPF</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UManEmpresa.pas">
+            <Form>FrmManEmpresa</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UManGrafico.pas">
+            <Form>frmManGrafico</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UManInventario.pas">
+            <Form>frmManInventario</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UManInventarioSelItens.pas">
+            <Form>frmManInventarioSelItens</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UManLicenca.pas">
+            <Form>FrmManLicenca</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UManLicencaAlterar.pas">
+            <Form>FrmManLicencaAlterar</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UManRegistroUtilizado.pas">
+            <Form>FrmManRegistroUtilizado</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UManSolicitaLicenca.pas">
+            <Form>FrmManSolicitaLicenca</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UManUsuario.pas">
+            <Form>FrmManUsuario</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UManUsuEscolherForm.pas">
+            <Form>FrmManUsuEscolherForm</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UManUsuPerfil.pas">
+            <Form>FrmManUsuPerfil</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UManUsuPerfilEscolherForm.pas">
+            <Form>FrmManUsuPerfilEscolherForm</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UManUsuPermissoes.pas">
+            <Form>FrmManUsuPermissoes</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UMovInventario.pas">
+            <Form>frmMovInventario</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UntPesquisar.pas">
+            <Form>FrmPesquisar</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UPesquisarImpressoras.pas">
+            <Form>FrmPesquisarImpressoras</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\URelInventarioModeloP7.pas">
+            <Form>frmRelInventarioModeloP7</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\Rel\URelMovimentoContaBancaria.pas">
+            <Form>frmRelMovimentoContaBancaria</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\Rel\URelSintegraResumo.pas">
+            <Form>frmRelSintegraResumo</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\Rel\URelVendasProdutos.pas">
+            <Form>frmRelVendasProdutosGerente</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\Cad\UCadGondola.pas">
+            <Form>FrmCadGondola</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\Cad\UCadNCM.pas">
+            <Form>FrmCadNCM</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\Cad\UCadNCMGrupoTrib.pas">
+            <Form>FrmCadNCMGrupoTrib</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\Cad\UManCorrigirSped.pas">
+            <Form>frmManCorrigirSped</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\Cad\UManGondola.pas">
+            <Form>FrmManGondola</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\Cad\UManGondolaImprimir.pas">
+            <Form>FrmManGondolaImprimir</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\Cad\UManImportarTabIBPT.pas">
+            <Form>frmManImportarTabIBPT</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\Cad\UManNCM.pas">
+            <Form>FrmManNCM</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\Cad\UManNCMGrupo.pas">
+            <Form>FrmManNCMGrupo</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\Cad\UManNCMTributoMsg.pas">
+            <Form>FrmManNCMTributoMsg</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\Cad\UManNCMTributos.pas">
+            <Form>FrmManNCMTributo</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\Mov\UManConfiguraSpedFiscal.pas">
+            <Form>frmManConfiguraSpedFiscal</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\Mov\UManSintegra.pas">
+            <Form>FrmManSintegra</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\Mov\UManSpedFiscal.pas">
+            <Form>FrmManSpedFiscal</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\Mov\UManSpedPISCOFINS.pas">
+            <Form>FrmManSpedPisCofins</Form>
+        </DCCReference>
+        <DCCReference Include="Model\UDMAcertoEstoque.pas">
+            <Form>DMAcertoEstoque</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMAgencia.pas">
+            <Form>DMAgencia</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMAuditoria.pas">
+            <Form>DMAuditoria</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMAuditoriaTablet.pas">
+            <Form>DMAuditoriaTablet</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMBalcao.pas">
+            <Form>DMBalcao</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMBanco.pas">
+            <Form>DMBanco</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMBase.pas">
+            <Form>DMBase</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMBoleto.pas">
+            <Form>DMBoleto</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMBorderoBoleto.pas">
+            <Form>DMBorderoBoleto</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMBorderoCobranca.pas">
+            <Form>DMBorderoCobranca</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMBorderoCompCartao.pas">
+            <Form>DMBorderoCompCartao</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMBorderoDeposito.pas">
+            <Form>DMBorderoDeposito</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMBorderoFolhaPagto.pas">
+            <Form>DMBorderoFolhaPagto</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMBorderoNegociacao.pas">
+            <Form>DMBorderoNegociacao</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMBorderoPagamento.pas">
+            <Form>DMBorderoPagamento</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMBorderoRecebimento.pas">
+            <Form>DMBorderoRecebimento</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMBorderoResiduo.pas">
+            <Form>DMBorderoResiduo</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMBuscaPreco.pas">
+            <Form>DMBuscaPreco</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMCaixa.pas">
+            <Form>DMCaixa</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMCarga.pas">
+            <Form>DMCarga</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMCargaBalanca.pas">
+            <Form>DMCargaBalanca</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDmCatalogo.pas">
+            <Form>DMCatalogo</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMCest.pas">
+            <Form>DMCEST</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMCfop.pas">
+            <Form>DMCFOP</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMCfopGrupo.pas">
+            <Form>DMCfopGrupo</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMChequeEmitido.pas">
+            <Form>DMChequeEmitido</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMChequeRecebido.pas">
+            <Form>DMChequeRecebido</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMCliente.pas">
+            <Form>DMCliente</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMClienteGrupo.pas">
+            <Form>DMClienteGrupo</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMColaborador.pas">
+            <Form>DMColaborador</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMColaboradorOcorrencia.pas">
+            <Form>DMColaboradorOcorrencia</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMComissionado.pas">
+            <Form>DMComissionado</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMConexaoTerminalPDV.pas">
+            <Form>DMConexaoTerminalPDV</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMConferePedidoTablet.pas">
+            <Form>DMConferePedidoTablet</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMConhecimentoTransporte.pas">
+            <Form>DMConhecimentoTransp</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMConhecimentoTranspPessoa.pas">
+            <Form>DMConhecimentoTranspPessoa</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMContaBancaria.pas">
+            <Form>DMContaBancaria</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMContato.pas">
+            <Form>DMContato</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMContrato.pas">
+            <Form>DMContrato</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMCTe.pas">
+            <Form>DMCTe</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMDemonstrativo.pas">
+            <Form>DMDemonstrativo</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMDevolucaoMotivo.pas">
+            <Form>DMDevolucaoMotivo</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMDRE.pas">
+            <Form>DMDRE</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMEmprestimo.pas">
+            <Form>DMEmprestimo</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMEstado.pas">
+            <Form>DMEstado</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMExportacaoTekSystem.pas">
+            <Form>DMExportacaoTekSystem</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMFCI.pas">
+            <Form>DMFCI</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMFechamentoCaixa.pas">
+            <Form>DMFechamentoCaixa</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMFechamentoCxFin.pas">
+            <Form>DMFechamentoCxFin</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMFeriado.pas">
+            <Form>DMFeriado</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMFichaProducao.pas">
+            <Form>DMFichaProducao</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMFinanceiroTekSystem.pas">
+            <Form>DMFinanceiroTekSystem</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMFolhaPagamento.pas">
+            <Form>DMFolhaPagamento</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMFolhaPgto.pas">
+            <Form>DMFolhaPgto</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMFormaPagto.pas">
+            <Form>DMFormaPagto</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMFornecedor.pas">
+            <Form>DMFornecedor</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMGerenciamento.pas">
+            <Form>DMGerenciamento</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassAcertoEstoque.pas"/>
+        <DCCReference Include="Controller\UClassAgencia.pas"/>
+        <DCCReference Include="Controller\UClassAuditoria.pas"/>
+        <DCCReference Include="Controller\UClassBanco.pas"/>
+        <DCCReference Include="Controller\UClassBoleto.pas"/>
+        <DCCReference Include="Controller\UClassBorderoBoleto.pas"/>
+        <DCCReference Include="Controller\UClassBorderoCobranca.pas"/>
+        <DCCReference Include="Controller\UClassBorderoCompensarCartao.pas"/>
+        <DCCReference Include="Controller\UClassBorderoDeposito.pas"/>
+        <DCCReference Include="Controller\UClassBorderoFolhaPagto.pas"/>
+        <DCCReference Include="Controller\UClassBorderoNegociacao.pas"/>
+        <DCCReference Include="Controller\UClassBorderoPagamento.pas"/>
+        <DCCReference Include="Controller\UClassBorderoRecebimento.pas"/>
+        <DCCReference Include="Controller\UClassBorderoResiduo.pas"/>
+        <DCCReference Include="Controller\UClassBuscaPreco.pas"/>
+        <DCCReference Include="Controller\UClassCaixa.pas"/>
+        <DCCReference Include="Controller\UClassCarga.pas"/>
+        <DCCReference Include="Controller\UClassCargaBalanca.pas"/>
+        <DCCReference Include="Controller\UClassCEST.pas"/>
+        <DCCReference Include="Controller\UClassCFOP.pas"/>
+        <DCCReference Include="Controller\UClassCFOPGrupo.pas"/>
+        <DCCReference Include="Controller\UClassChequeEmitido.pas"/>
+        <DCCReference Include="Controller\UClassChequeRecebido.pas"/>
+        <DCCReference Include="Controller\UClassCliente.pas"/>
+        <DCCReference Include="Controller\UClassClienteGrupo.pas"/>
+        <DCCReference Include="Controller\UClassColaborador.pas"/>
+        <DCCReference Include="Controller\UClassColaboradorOcorrencia.pas"/>
+        <DCCReference Include="Controller\UClassComissionado.pas"/>
+        <DCCReference Include="Controller\UClassComunicaPDV.pas"/>
+        <DCCReference Include="Controller\UClassConferePedidoTablet.pas"/>
+        <DCCReference Include="Controller\UClassConhecimentoTransp.pas"/>
+        <DCCReference Include="Controller\UClassConhecimentoTranspPessoa.pas"/>
+        <DCCReference Include="Controller\UClassContaBancaria.pas"/>
+        <DCCReference Include="Controller\UClassContato.pas"/>
+        <DCCReference Include="Controller\UClassContrato.pas"/>
+        <DCCReference Include="Controller\UClassCTE.pas"/>
+        <DCCReference Include="Controller\UClassDevolucao.pas"/>
+        <DCCReference Include="Controller\UClassDevolucaoMotivo.pas"/>
+        <DCCReference Include="Controller\UClassDRE.pas"/>
+        <DCCReference Include="Controller\UClassECF.pas"/>
+        <DCCReference Include="Controller\UClassEmprestimo.pas"/>
+        <DCCReference Include="Controller\UClassEstado.pas"/>
+        <DCCReference Include="Controller\UClassExportacaoTekSystem.pas"/>
+        <DCCReference Include="Controller\UClassExportarCadastro.pas"/>
+        <DCCReference Include="Controller\UClassFCI.pas"/>
+        <DCCReference Include="Controller\UClassFechamentoCaixa.pas"/>
+        <DCCReference Include="Controller\UClassFechamentoCxFin.pas"/>
+        <DCCReference Include="Controller\UClassFeriado.pas"/>
+        <DCCReference Include="Controller\UClassFichaProducao.pas"/>
+        <DCCReference Include="Controller\UClassFinanceiroTekSystem.pas"/>
+        <DCCReference Include="Controller\UClassFolhaPagamento.pas"/>
+        <DCCReference Include="Controller\UClassFormaPagto.pas"/>
+        <DCCReference Include="Controller\UClassFornecedor.pas"/>
+        <DCCReference Include="Controller\UClassGerenciamento.pas"/>
+        <DCCReference Include="Model\UDMGrade.pas">
+            <Form>DMGrade</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMImportacaoDATAC.pas">
+            <Form>DMImportacaoDATAC</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMImportacaoGDOR.pas">
+            <Form>DMImportacaoGDOR</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMImportacaoMosaico.pas">
+            <Form>DMImportacaoMOSAICO</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMImportacaoWGestor.pas">
+            <Form>DMImportacaoWGestor</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMInventarioTekSystem.pas">
+            <Form>DMInventarioTekSystem</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMManifestoEletronico.pas">
+            <Form>DMManifestoEletronico</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMMovimentoCaixa.pas">
+            <Form>DMMovimentoCaixa</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMMovimentoConta.pas">
+            <Form>DMMovimentoConta</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMMovProduto.pas">
+            <Form>DMMovProduto</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMMovProdutoTipo.pas">
+            <Form>DMMovProdutoTipo</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMNaturezaOperacao.pas">
+            <Form>DMNaturezaOperacao</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMNotaFiscalInutilizada.pas">
+            <Form>DMNotaFiscalinutilizada</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMNotaFiscalRecebida.pas">
+            <Form>DMNotaFiscalRecebida</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMOcorrencia.pas">
+            <Form>DMOcorrencia</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMOrdemProducao.pas">
+            <Form>DMOrdemProducao</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMPagamento.pas">
+            <Form>DMPagamento</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMPecaCliente.pas">
+            <Form>DMPecaCliente</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMPedidoVenda.pas">
+            <Form>DMPedidoVenda</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMPerca.pas">
+            <Form>DMPerca</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMPerda.pas">
+            <Form>DMPerda</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMPlanoContas.pas">
+            <Form>DmPlanoContas</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMProdCor.pas">
+            <Form>DMProdCor</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMProdGrupo.pas">
+            <Form>DMProdGrupo</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMProdLigacao.pas">
+            <Form>DMProdLigacao</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMProdMarca.pas">
+            <Form>DMProdMarca</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMProdPrecoLigacao.pas">
+            <Form>DMProdPrecoLicitacao</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMProdSubGrupo.pas">
+            <Form>DMProdSubGrupo</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMProduto.pas">
+            <Form>DMProduto</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMRecebimento.pas">
+            <Form>DMRecebimento</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMRecepcaoPedido.pas">
+            <Form>DMRecepcaoPedido</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMRecepcaoPedidoCompra.pas">
+            <Form>DMRecepcaoPedidoCompra</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMReducaoZ.pas">
+            <Form>DMReducaoZ</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMRegiao.pas">
+            <Form>DMRegiao</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMSenhaLiberacao.pas">
+            <Form>DMSenhaLiberacao</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMSuporteTecnico.pas">
+            <Form>DMSuporteTecnico</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMTabelaPreco.pas">
+            <Form>DMTabelaPreco</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMTecnico.pas">
+            <Form>DMTecnico</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMTerminalPDV.pas">
+            <Form>DMTerminalPDV</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMTipoServico.pas">
+            <Form>DMTipoServico</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMTransfEstoque.pas">
+            <Form>DMTransfEstoque</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMTransportador.pas">
+            <Form>DMTransportador</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMUnidadeMedida.pas">
+            <Form>DMUnidadeMedida</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMVales.pas">
+            <Form>DMVales</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMVeiculo.pas">
+            <Form>DMVeiculo</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMVendedor.pas">
+            <Form>DMVendedor</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassGrade.pas"/>
+        <DCCReference Include="Controller\UClassImportacaoCliente.pas"/>
+        <DCCReference Include="Controller\UClassImportacaoDados.pas"/>
+        <DCCReference Include="Controller\UClassImportacaoDATAC.pas"/>
+        <DCCReference Include="Controller\UClassImportacaoDigisat.pas"/>
+        <DCCReference Include="Controller\UClassImportacaoFornecedor.pas"/>
+        <DCCReference Include="Controller\UClassImportacaoGDOR.pas"/>
+        <DCCReference Include="Controller\UClassImportacaoMosaico.pas"/>
+        <DCCReference Include="Controller\UClassImportacaoProduto.pas"/>
+        <DCCReference Include="Controller\UClassImportacaoVendedor.pas"/>
+        <DCCReference Include="Controller\UClassImportacaoWGestor.pas"/>
+        <DCCReference Include="Controller\UClassInventarioTekSystem.pas"/>
+        <DCCReference Include="View\Cad\UCadAgencia.pas">
+            <Form>FrmCadAgencia</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadBanco.pas">
+            <Form>FrmCadBanco</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadCaixa.pas">
+            <Form>frmCadCaixa</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadCEST.pas">
+            <Form>FrmCadCEST</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadCFOP.pas">
+            <Form>FrmCadCFOP</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadCliente.pas">
+            <Form>FrmCadCliente</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadClienteGrupo.pas">
+            <Form>frmCadClienteGrupo</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadColaborador.pas">
+            <Form>FrmCadColaborador</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadComissionado.pas">
+            <Form>FrmCadComissionado</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadConsultaConferenciaPedidoTablet.pas">
+            <Form>frmConsultaConferenciaPedidoTablet</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadContaBancaria.pas">
+            <Form>FrmCadContaBancaria</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadContato.pas">
+            <Form>FrmCadContato</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadDevolucaoMotivo.pas">
+            <Form>frmCadDevolucaoMotivo</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadEstado.pas">
+            <Form>frmCadEstado</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadFeriado.pas">
+            <Form>frmCadFeriado</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadFormaPagto.pas">
+            <Form>FrmCadFormaPagto</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadFornecedor.pas">
+            <Form>FrmCadFornecedor</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadGrade.pas">
+            <Form>FrmCadGrade</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadNaturezaOperacao.pas">
+            <Form>FrmCadNaturezaOperacao</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadOcorrencia.pas">
+            <Form>frmCadOcorrencia</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadPecasCliente.pas">
+            <Form>FrmCadPecasCliente</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadPerda.pas">
+            <Form>FrmCadPerdas</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadPlanoContas.pas">
+            <Form>FrmCadPlanoContas</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadProdCor.pas">
+            <Form>FrmCadProdCor</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadProdGrupo.pas">
+            <Form>FrmCadProdGrupo</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadProdLigacao.pas">
+            <Form>FrmCadProdLigacao</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadProdMarca.pas">
+            <Form>FrmCadProdMarca</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadProdSubGrupo.pas">
+            <Form>FrmCadProdSubGrupo</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadProduto.pas">
+            <Form>FrmCadProduto</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadRegiao.pas">
+            <Form>frmCadRegiao</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadSenhaLiberacao.pas">
+            <Form>frmCadSenhaLiberacao</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadTabelaPreco.pas">
+            <Form>frmCadTabelaPreco</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadTecnico.pas">
+            <Form>FrmCadTecnico</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadTerminalPDV.pas">
+            <Form>FrmCadTerminalPDV</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadTipoServico.pas">
+            <Form>FrmCadTipoServico</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadTransportador.pas">
+            <Form>frmCadTransportador</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadUnidadeMedida.pas">
+            <Form>FrmCadUnidadeMedida</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadVeiculo.pas">
+            <Form>frmCadVeiculo</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadVendedor.pas">
+            <Form>FrmCadVendedor</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UFtrProduto.pas">
+            <Form>FrmFtrProduto</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManAgencia.pas">
+            <Form>FrmManAgencia</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManAlteraVendedorCliente.pas">
+            <Form>frmManAlteraVendedorCliente</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManBaixaChequeCMC7.pas">
+            <Form>frmManBaixaChequeCMC7</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManBanco.pas">
+            <Form>FrmManBanco</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManCaixa.pas">
+            <Form>frmManCaixa</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManCargaConfig.pas">
+            <Form>frmManCargaConfig</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManCEST.pas">
+            <Form>FrmManCest</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManCFOP.pas">
+            <Form>FrmManCFOP</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManCfopGrupo.pas">
+            <Form>FrmManCfopGrupo</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManCliente.pas">
+            <Form>FrmManCliente</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UClienteGeoMap.pas"/>
+        <DCCReference Include="View\Cad\UManClienteAlterar.pas">
+            <Form>frmManClienteAlterar</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManClienteAlterarVarios.pas">
+            <Form>frmManClienteAlterarVarios</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManClienteConfig.pas">
+            <Form>frmManClienteConfig</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManClienteExportar.pas">
+            <Form>FrmManClienteExportar</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManClienteGrupo.pas">
+            <Form>frmManClienteGrupo</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManColaborador.pas">
+            <Form>frmManColaborador</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManComissionado.pas">
+            <Form>FrmManComissionado</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManConsultaChequeCMC7.pas">
+            <Form>frmManConsultaChequeCMC7</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManContaBancaria.pas">
+            <Form>FrmManContaBancaria</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManContaBancaria2.pas">
+            <Form>FrmManContaBancaria2</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManContato.pas">
+            <Form>FrmManContato</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManDevolucaoMotivo.pas">
+            <Form>FrmManDevolucaoMotivo</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManEstado.pas">
+            <Form>frmManEstado</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManFastReport.pas">
+            <Form>frmManFastReport</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManFechamentoCaixaConfig.pas">
+            <Form>frmManFechamentoCaixaConfig</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManFeriado.pas">
+            <Form>frmManFeriado</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManFormaPagto.pas">
+            <Form>FrmManFormaPagto</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManFornecedor.pas">
+            <Form>FrmManFornecedor</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManGrade.pas">
+            <Form>FrmManGrade</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManLiberacaoSenha.pas">
+            <Form>FrmManLiberacaoSenha</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManLiberaLicenca.pas">
+            <Form>FrmManLiberaLicenca</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManMovimentoContaBancaria.pas">
+            <Form>FrmManMovimentoContaBancaria</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManMovProdutoTipo.pas">
+            <Form>FrmManMovProdutoTipo</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManNaturezaOperacao.pas">
+            <Form>FrmManNaturezaOperacao</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManOcorrencia.pas">
+            <Form>frmManOcorrencia</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManPecaCliente.pas">
+            <Form>FrmManPecaCliente</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManPlanoContas.pas">
+            <Form>FrmManPlanoContas</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManProdCor.pas">
+            <Form>FrmManProdCor</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManProdGrupo.pas">
+            <Form>FrmManProdGrupo</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManProdLigacao.pas">
+            <Form>FrmManProdLigacao</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManProdMarca.pas">
+            <Form>FrmManProdMarca</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManProdPrecoLicitacao.pas">
+            <Form>FrmManProdPrecoLicitacao</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManProdSubGrupo.pas">
+            <Form>FrmManProdSubGrupo</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManProdTabelaServ.pas">
+            <Form>FrmManProdTabelaServ</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManProduto.pas">
+            <Form>FrmManProduto</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManProdutoAlterar.pas">
+            <Form>FrmManProdutoAlterar</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManProdutoAlterarVarios.pas">
+            <Form>FrmManPodutoAlterarVarios</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManProdutoComposicao.pas">
+            <Form>FrmManProdutoComposicao</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManProdutoGrade.pas">
+            <Form>FrmManProdutoGrade</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManProdutoPromocao.pas">
+            <Form>FrmManProdutoPromocao</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManRegiao.pas">
+            <Form>frmManRegiao</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManSenhaLiberacao.pas">
+            <Form>FrmManSenhaLiberacao</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManTecnico.pas">
+            <Form>FrmManTecnico</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManTerminalPDV.pas">
+            <Form>FrmManTerminalPDV</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManTipoServico.pas">
+            <Form>FrmManTipoServico</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManTransportador.pas">
+            <Form>frmManTransportador</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManUnidadeMedida.pas">
+            <Form>FrmManUnidadeMedida</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManVeiculo.pas">
+            <Form>frmManVeiculo</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManVeiculoManutencao.pas">
+            <Form>FrmManVeiculoManutencao</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManVendedor.pas">
+            <Form>FrmManVendedor</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManVendedorTabelaServ.pas">
+            <Form>frmManVendedorTabelaServ</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UCadAtualizaFinanceiroTek.pas">
+            <Form>frmAtualizaFinanceiroTek</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UCadBoletoConf.pas">
+            <Form>FrmCadBoletoConf</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UConsultaGrade.pas">
+            <Form>FrmConsultaGrade</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFrmManBorderoCobranca.pas">
+            <Form>frmManBorderoCobranca</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFrmManBorderoCobrancaItem.pas">
+            <Form>frmManBorderoCobrancaItem</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFrmManBorderoNegociacao.pas">
+            <Form>frmManBorderoNegociacao</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFrmManBorderoNegSelecionarRec.pas">
+            <Form>frmManBorderoNegSelecionarRec</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFrmManTekSystemConfiguracao.pas">
+            <Form>frmManTekSystemConfiguracao</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFrmMovBorderoCobranca.pas">
+            <Form>frmMovBorderoCobranca</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrAcertoEstoque.pas">
+            <Form>FrmFtrAcertoEstoque</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrAuditoria.pas">
+            <Form>FrmFtrAuditoria</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrBoleto.pas">
+            <Form>FrmFtrBoleto</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrBorderoBoleto.pas">
+            <Form>FrmFtrBorderoBoleto</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrBorderoCobranca.pas">
+            <Form>frmftrBorderoCobranca</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrBorderoCompensarCartao.pas">
+            <Form>FrmFtrBorderoCompCartao</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrBorderoDeposito.pas">
+            <Form>FrmFtrBorderoDeposito</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrBorderoFolhaPagto.pas">
+            <Form>FrmFtrBorderoFolhaPagto</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrBorderoNegociacao.pas">
+            <Form>frmFtrBorderoNegociacao</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrBorderoPagamento.pas">
+            <Form>FrmFtrBorderoPagamento</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrBorderoRecebimento.pas">
+            <Form>FrmFtrBorderoRecebimento</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrBorderoResiduo.pas">
+            <Form>FrmFtrBorderoResiduo</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrCarga.pas">
+            <Form>frmFtrCarga</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrChequeEmitido.pas">
+            <Form>FrmFtrChequeEmitido</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrChequeRecebido.pas">
+            <Form>FrmFtrChequeRecebido</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrCliente.pas">
+            <Form>frmFtrCliente</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrColaboradorOcorrencia.pas">
+            <Form>frmFtrColaboradorOcorrencia</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrConhecimentoTransp.pas">
+            <Form>FrmFtrConhecimentoTransp</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrDevolucao.pas">
+            <Form>frmFtrDevolucao</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrFechamentoCaixa.pas">
+            <Form>FrmFtrFechamentoCaixa</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrFechamentoCxFin.pas">
+            <Form>FrmFtrFechamentoCxFin</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrFichaProducao.pas">
+            <Form>FrmFtrFichaProducao</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrFolhaPagto.pas">
+            <Form>FrmFtrFolhaPagto</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrFornecedor.pas">
+            <Form>frmFtrFornecedor</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrManifesto.pas">
+            <Form>frmFtrManifesto</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrMovimentoCaixa.pas">
+            <Form>FrmFtrMovimentoCaixa</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrMovimentoConta.pas">
+            <Form>FrmFtrMovimentoConta</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrMovimentoProduto.pas">
+            <Form>FrmFtrMovimentoProduto</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrNotaFiscalEmitida.pas">
+            <Form>FrmFtrNotaFiscalEmitida</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrNotaFiscalRecebida.pas">
+            <Form>FrmFtrNotaFiscalRecebida</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrOrdemProducao.pas">
+            <Form>FrmFtrOrdemProducao</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrPagamento.pas">
+            <Form>FrmFtrPagamento</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrPedidoCompra.pas">
+            <Form>FrmFtrPedidoCompra</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrPedidoVenda.pas">
+            <Form>FrmFtrPedidoVenda</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrPerda.pas">
+            <Form>FrmFtrPerda</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrRecebimento.pas">
+            <Form>FrmFtrRecebimento</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrRecepcaoPedido.pas">
+            <Form>FrmFtrRecepcaoPedido</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrRecepcaoPedidoCompra.pas">
+            <Form>FrmFtrRecepcaoPedidoCompra</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrReducaoZ.pas">
+            <Form>frmFtrReducaoZ</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrSuporteTecnico.pas">
+            <Form>FrmFtrSuporteTecnico</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrTransfEstoque.pas">
+            <Form>FrmFtrTransfEstoque</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrVale.pas">
+            <Form>frmFtrVale</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrVendedor.pas">
+            <Form>frmFtrVendedor</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\ULoadingNFe.pas">
+            <Form>FrmLoadingNFe</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManAcertarEstoque.pas">
+            <Form>FrmManAcertarEstoque</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManAcertoEstoque.pas">
+            <Form>FrmManAcertoEstoque</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManAuditoria.pas">
+            <Form>FrmManAuditoria</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManBoletoBaixa.pas">
+            <Form>FrmManBoletoBaixa</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManBoletoConf.pas">
+            <Form>FrmManBoletoConf</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManBoletoRemessa.pas">
+            <Form>FrmManBoletoRemessa</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManBoletoRetorno.pas">
+            <Form>FrmManBoletoRetorno</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManBoletoVoltarDesconto.pas">
+            <Form>FrmManBoletoVoltarDesconto</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManBorderoBoleto.pas">
+            <Form>FrmManBorderoBoleto</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManBorderoBoletoSelecionar.pas">
+            <Form>FrmManBorderoBoletoSelecionar</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManBorderoCompensarCartao.pas">
+            <Form>FrmManBorderoCompCartao</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManBorderoCompensarCartaoSelecionarRec.pas">
+            <Form>FrmManBorderoCCSelRec</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManBorderoDeposito.pas">
+            <Form>FrmManBorderoDeposito</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManBorderoFolhaPagSelColaborador.pas">
+            <Form>FrmManBorderoFolhaPagSelColaborador</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManBorderoFolhaPagto.pas">
+            <Form>FrmManBorderoFolhaPagto</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManBorderoPagamento.pas">
+            <Form>FrmManBorderoPagamento</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManBorderoPagSelecionarPag.pas">
+            <Form>FrmManBorderoPagSelecionarPag</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManBorderoRecebimento.pas">
+            <Form>FrmManBorderoRecebimento</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManBorderoRecebimentoConf.pas">
+            <Form>frmManBorderoRecebimentoConf</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManBorderoRecSelecionarRec.pas">
+            <Form>FrmManBorderoRecSelecionarRec</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManBorderoResiduo.pas">
+            <Form>FrmManBorderoResiduo</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManBorderoResiduoSelecionarPag.pas">
+            <Form>frmManBorderoResiduoSelecionarPag</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManBorderoResiduoSelecionarRec.pas">
+            <Form>FrmManBorderoResiduoSelecionarRec</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManBuscaPreco.pas">
+            <Form>frmManBuscaPreco</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManCarga.pas">
+            <Form>frmManCarga</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManCargaBalanca.pas">
+            <Form>FrmManCargaBalanca</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManCargaFaturar.pas">
+            <Form>FrmManCargaFaturar</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManCargaImprimir.pas">
+            <Form>FrmManCargaImprimir</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManCargaItem.pas">
+            <Form>FrmManCargaItem</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManCargaMontagem.pas">
+            <Form>FrmManCargaMotagem</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManCargaProduto.pas">
+            <Form>FrmManCargaProduto</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManCargaViagem.pas">
+            <Form>FrmManCargaViagem</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManChequeEmitido.pas">
+            <Form>FrmManChequeEmitido</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManChequeRecebido.pas">
+            <Form>FrmManChequeRecebido</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManChequeRecebidoSelecionar.pas">
+            <Form>FrmManChequeRecebidoSelecionar</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManColaboradorOcorrencia.pas">
+            <Form>frmManColaboradorOcorrencia</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManComunicaPDV.pas">
+            <Form>frmManComunicaPDV</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManConhecimentoTransp.pas">
+            <Form>FrmManConhecimentoTransp</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManConhecimentoTranspDoc.pas">
+            <Form>FrmManConhecimentoTranspDoc</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManConhecimentoTranspImpNFe.pas">
+            <Form>FrmManConhecimentoTranspImpNF</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManConhecimentoTranspInutilizado.pas">
+            <Form>FrmManConhecimentoTranspInutilizado</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManConhecimentoTranspPessoa.pas">
+            <Form>FrmManConhecimentoTranspPessoas</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManConhecTranspEmail.pas">
+            <Form>FrmManConhecTranspEmail</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManContaExtrato.pas">
+            <Form>FrmManContaExtrato</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManDevoluacaoItem.pas">
+            <Form>frmManDevolucaoItem</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManDevolucao.pas">
+            <Form>frmManDevolucao</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManDRE.pas">
+            <Form>FrmManDRE</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManEmprestimo.pas">
+            <Form>FrmManEmprestimo</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManExportacaoTekSystem.pas">
+            <Form>frmManExportacaoTekSystem</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManFCI.pas">
+            <Form>FrmManFCI</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManFCIProduto.pas">
+            <Form>FrmManFCIProduto</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManFechamentoCaixa.pas">
+            <Form>FrmManFechamentoCaixa</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManFechamentoCxFin.pas">
+            <Form>FrmManFechamentoCxFin</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManFichaProducao.pas">
+            <Form>FrmManFichaProducao</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManFichaProducaoItem.pas">
+            <Form>FrmManFichaProducaoItem</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManFinanceiroTekSystem.pas">
+            <Form>frmManFinanceiroTekSystem</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManFolhaPagto.pas">
+            <Form>FrmManFolhaPagto</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManFolhaPagtoConf.pas">
+            <Form>FrmManFolhaPagtoConf</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManGerenciamento.pas">
+            <Form>FrmManGerenciamento</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManImportacaoWGestor.pas">
+            <Form>frmImportacaoWgestor</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManImpressaoEtiquetaPedidoVenda.pas">
+            <Form>frmManImpressaoEtiquetaPedidoVenda</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManInventarioTekSystem.pas">
+            <Form>frmManInventarioTekSystem</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManManifestoEletronico.pas">
+            <Form>frmManManifestoEletronico</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManManifestoEletronicoDescarga.pas">
+            <Form>FrmManManifestoEletronicoDescarga</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManManifestoEletronicoImpDoc.pas">
+            <Form>FrmManManifestoEletronicoImpDoc</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManMovimentoCaixa.pas">
+            <Form>FrmManMovimentoCaixa</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManMovimentoConta.pas">
+            <Form>FrmManMovimentoConta</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManMovimentoProduto.pas">
+            <Form>FrmManMovimentoProduto</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManMovimentoProdutoItem.pas">
+            <Form>FrmManMovimentoProdutoItem</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManNotaFiscalConfig.pas">
+            <Form>FrmManNotaFiscalConfig</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManNotaFiscalEmitida.pas">
+            <Form>FrmManNotaFiscalEmitida</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManNotaFiscalEmitidaEmail.pas">
+            <Form>FrmManNotaFiscalEmitidaEmail</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManNotaFiscalEmitidaItem.pas">
+            <Form>FrmManNotaFiscalEmitidaItem</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManNotaFiscalInutilizada.pas">
+            <Form>FrmManNotaFiscalInutilizada</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManNotaFiscalRecebida.pas">
+            <Form>FrmManNotaFiscalRecebida</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManNotaFiscalRecebidaCusto.pas">
+            <Form>FrmManNotaFiscalRecebidaCusto</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManNotaFiscalRecebidaImpCTe.pas">
+            <Form>FrmManNotaFiscalRecebidaImpCTe</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManNotaFiscalRecebidaImportarXML.pas">
+            <Form>FrmManNotaFiscalRecebidaImportarXML</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManNotaFiscalRecebidaItem.pas">
+            <Form>FrmManNotaFiscalRecebidaItem</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManNotaFiscalRecebidaListarXMLs.pas">
+            <Form>FrmManNotaRecebidaListaXMLs</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManOrdemProducao.pas">
+            <Form>FrmManOrdemProducao</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManOrdemProducaoItem.pas">
+            <Form>FrmManOrdemProducaoItem</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManPagamento.pas">
+            <Form>FrmManPagamento</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManPedidoCompra.pas">
+            <Form>FrmManPedidoCompra</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManPedidoCompraConf.pas">
+            <Form>FrmManPedidoCompraConf</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManPedidoCompraCusto.pas">
+            <Form>frmManPedidoCompraCusto</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManPedidoCompraEnviar.pas">
+            <Form>FrmManPedidoCompraEnviar</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManPedidoCompraImportarProdutos.pas">
+            <Form>FrmManPedidoCompraImportarProdutos</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManPedidoCompraItem.pas">
+            <Form>FrmManPedidoCompraItem</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManPedidoItemEntregue.pas">
+            <Form>frmManPedidoItemEntregue</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManPedidoVenda.pas">
+            <Form>FrmManPedidoVenda</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManPedidoVendaConfig.pas">
+            <Form>FrmManPedidoVendaConfig</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManPedidoVendaDesAcre.pas">
+            <Form>frmManPedidoVendaDesAcre</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManPedidoVendaFat.pas">
+            <Form>FrmManPedidoVendaFat</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManPedidoVendaImportarCompra.pas">
+            <Form>FrmManPedidoVendaImportarCompra</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManPedidoVendaImprimir.pas">
+            <Form>FrmManPedidoVendaImprimir</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManPedidoVendaItem.pas">
+            <Form>FrmManPedidoVendaItem</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManPedidoVendaItemGrade.pas">
+            <Form>FrmManPedidoVendaItemGrade</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManPedidoVendaSelItens.pas">
+            <Form>frmManPedidoVendaSelItens</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManPerda.pas">
+            <Form>FrmManPerda</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManRecebimento.pas">
+            <Form>FrmManRecebimento</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManRecepcaoPedido.pas">
+            <Form>FrmManRecepcaoPedido</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManRecepcaoPedidoCompra.pas">
+            <Form>FrmManRecepcaoPedidoCompra</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManRecepcaoPedidoCompraGrade.pas">
+            <Form>FrmManRecepcaoPedidoCompraGrade</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManRecepcaoPedidoCompraLocalizarItem.pas">
+            <Form>FrmManRecepcaoPedidoCompraLocalizarItem</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManRecepcaoPedidoExportar.pas">
+            <Form>FrmManRecepcaoPedidoExportar</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManRecepcaoPedidoItem.pas">
+            <Form>FrmManRecepcaoPedidoItem</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManReducaoZ.pas">
+            <Form>frmManReducaoZ</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManReducaoZItem.pas">
+            <Form>frmManReducaoZItem</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManSaldoPlanoContas.pas">
+            <Form>FrmManSaldoPlanoContas</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManSuporteTecnico.pas">
+            <Form>FrmManSuporteTecnico</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManTabelaPreco.pas">
+            <Form>frmManTabelaPreco</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManTabelaPrecoItem.pas">
+            <Form>FrmManTabelaPrecoItem</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManTransfEstoque.pas">
+            <Form>FrmManTransfEstoque</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManTransfEstoqueImportarProdutos.pas">
+            <Form>FrmManTransfEstoqueImportarProdutos</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManTransfEstoqueItem.pas">
+            <Form>FrmManTransfEstoqueItem</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManVales.pas">
+            <Form>frmManVales</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovAcertoEstoque.pas">
+            <Form>FrmMovAcertoEstoque</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovAuditoria.pas">
+            <Form>FrmMovAuditoria</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovAuditoriaTablet.pas">
+            <Form>FrmMovAuditoriaTablet</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovBoleto.pas">
+            <Form>FrmMovBoleto</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovBorderoBoleto.pas">
+            <Form>FrmMovBorderoBoleto</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovBorderoCompensarCartao.pas">
+            <Form>FrmMovBorderoCompensarCartao</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovBorderoDeposito.pas">
+            <Form>FrmMovBorderoDeposito</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovBorderoFolhaPagto.pas">
+            <Form>FrmMovBorderoFolhaPgto</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovBorderoNegociacao.pas">
+            <Form>frmMovBorderoNegociacao</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovBorderoPagamento.pas">
+            <Form>FrmMovBorderoPagamento</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovBorderoRecebimento.pas">
+            <Form>FrmMovBorderoRecebimento</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovBorderoResiduo.pas">
+            <Form>FrmMovBorderoResiduo</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovBuscaPreco.pas">
+            <Form>frmMovBuscaPreco</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovCarga.pas">
+            <Form>frmMovCarga</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovCargaBalanca.pas">
+            <Form>FrmMovCargaBalanca</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovChequeEmitido.pas">
+            <Form>FrmMovChequeEmitido</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovChequeRecebido.pas">
+            <Form>FrmMovChequeRecebido</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovColaboradorOcorrencia.pas">
+            <Form>frmMovColaboradorOcorrencia</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovConhecimentoTransporte.pas">
+            <Form>FrmMovConhecimentoTransporte</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovDevolucao.pas">
+            <Form>frmMovDevolucao</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovDRE.pas">
+            <Form>FrmMovDRE</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovEmprestimo.pas">
+            <Form>FrmMovEmprestimo</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovExportacaoTekSystem.pas">
+            <Form>frmMovExportacaoTekSystem</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovFCI.pas">
+            <Form>FrmMovFCI</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovFechamentoCaixa.pas">
+            <Form>FrmMovFechamentoCaixa</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovFechamentoCxFin.pas">
+            <Form>FrmMovFechamentoCxFin</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovFichaProducao.pas">
+            <Form>FrmMovFichaProducao</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovFinanceiroTekSystem.pas">
+            <Form>frmMovFinanceiroTekSystem</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovFolhaPagto.pas">
+            <Form>FrmMovFolhaPagto</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovFolhaPagtoConf.pas">
+            <Form>FrmMovFolhaPagtoConf</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovInventarioTekSystem.pas">
+            <Form>frmMovInventarioTekSystem</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovManifestoEletronico.pas">
+            <Form>frmMovManifestoEletronico</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovMovimentoCaixa.pas">
+            <Form>FrmMovMovimentoCaixa</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovMovimentoConta.pas">
+            <Form>FrmMovMovimentoConta</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovMovimentoProduto.pas">
+            <Form>FrmMovMovimentoProduto</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovNotaFiscalEmitida.pas">
+            <Form>FrmMovNotaFiscalEmitida</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovNotaFiscalRecebida.pas">
+            <Form>FrmMovNotaFiscalRecebida</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelAcertoEstoque.pas">
+            <Form>frmRelAcertoEstoque</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelBoletos.pas">
+            <Form>frmRelBoletos</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelBoletosImportados.pas">
+            <Form>FrmRelBoletosImportados</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelBorderoResiduo.pas">
+            <Form>frmRelBorderoResiduo</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelChequeEmitido.pas">
+            <Form>frmRelChequeEmitido</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelChequeRecebido.pas">
+            <Form>FrmRelChequeRecebido</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelClienteEndereco.pas">
+            <Form>frmRelClienteEndereco</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelClientePositivacao.pas">
+            <Form>frmRelClientePositivacao</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelComissaoMensalista.pas">
+            <Form>frmRelComissaoMensalista</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelComissaoNayna.pas">
+            <Form>frmRelComissaoNayna</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelComissaoPorRecebimento.pas">
+            <Form>frmRelComissaoPorRecebimento</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelComissaoRecebimento.pas">
+            <Form>FrmRelComissaoRecebimento</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelComissaoTecnico.pas">
+            <Form>FrmRelComissaoTecnico</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelComissaoVendedor.pas">
+            <Form>frmRelComissaoVendedor</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelComissaoVendedorVariasEmpresas.pas">
+            <Form>frmRelComissaoVendedorVariasEmpresas</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelComissionado.pas">
+            <Form>FrmRelComissionado</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelContasPagar.pas">
+            <Form>frmRelContasPagar</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelContasReceber.pas">
+            <Form>FrmRelContasReceber</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelContrato.pas">
+            <Form>frmContratoCompraVenda</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelDevolucao.pas">
+            <Form>frmRelDevolucao</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelEstoqueVeiculo.pas">
+            <Form>frmRelEstoqueVeiculo</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelFaturamentoCFOPCST.pas">
+            <Form>FrmRelFaturamentoCFOPCST</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelFaturamentoPisCofins.pas">
+            <Form>frmRelFaturamentoPisCofins</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelFechamentoCaixa.pas">
+            <Form>FrmRelFechamentoCaixa</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelFrotaVeiculo.pas">
+            <Form>FrmRelVeiculo</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelGeolocalizacaoPedido.pas">
+            <Form>FrmRelGeolocalizacaoPedido</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelImpostoCFOPCST.pas">
+            <Form>FrmRelImpostoCFOPCST</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelItensComprados.pas">
+            <Form>FrmRelItensComprados</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelItensComprasCliente.pas">
+            <Form>FrmRelItensComprasCliente</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelNotaFiscal.pas">
+            <Form>FrmRelNotaFiscal</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelOrdemProducaoSintetico.pas">
+            <Form>frmRelOrdemProducaoSintetico</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelPedidoVenda.pas">
+            <Form>FrmRelPedidoVenda</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelPedidoVendaEtiquetas.pas">
+            <Form>frmRelPedidoVendaEtiquetas</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelPedidoVendaEtq.pas">
+            <Form>FrmRelPedidoVendaEtq</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelTransfReqEtiquetas.pas"/>
+        <DCCReference Include="View\Rel\URelPerda.pas">
+            <Form>FrmRelPerda</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelPlanoContas.pas">
+            <Form>FrmRelPlanoContas</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelProdutoEstoque.pas">
+            <Form>frmRelProdutoEstoque</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelProdutoEstoqueValor.pas">
+            <Form>FrmRelProdutoEstoqueValor</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelSeparacaoPedidoVenda.pas">
+            <Form>FrmRelSeparacaoPedidoVenda</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelTabelaPreco.pas">
+            <Form>frmRelTabelaPreco</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelValoresRecebidos.pas">
+            <Form>FrmRelValoresRecebidos</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelVendaCaixa.pas">
+            <Form>FrmRelVendaCaixa</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelVendasGrupoClientes.pas">
+            <Form>frmRelVendasGrupoClientes</Form>
+        </DCCReference>
+        <DCCReference Include="View\UBemVindo.pas">
+            <Form>FrmBemVindo</Form>
+        </DCCReference>
+        <DCCReference Include="View\UPrincipal.pas">
+            <Form>FrmPrincipal</Form>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassManifestoEletronico.pas"/>
+        <DCCReference Include="Controller\UClassMovimentoCaixa.pas"/>
+        <DCCReference Include="Controller\UClassMovimentoConta.pas"/>
+        <DCCReference Include="Controller\UClassMovimentoProduto.pas"/>
+        <DCCReference Include="Controller\UClassMovProdutoTipo.pas"/>
+        <DCCReference Include="Controller\UClassNaturezaOperacao.pas"/>
+        <DCCReference Include="Controller\UClassNotaFiscalEmitida.pas"/>
+        <DCCReference Include="Controller\UClassNotaFiscalRecebida.pas"/>
+        <DCCReference Include="Controller\UClassOcorrencia.pas"/>
+        <DCCReference Include="Controller\UClassOrdemProducao.pas"/>
+        <DCCReference Include="Controller\UClassPagamento.pas"/>
+        <DCCReference Include="Controller\UClassPecaCliente.pas"/>
+        <DCCReference Include="Controller\UClassPedidoCompra.pas"/>
+        <DCCReference Include="Controller\UClassPedidoVenda.pas"/>
+        <DCCReference Include="Controller\UClassPerda.pas"/>
+        <DCCReference Include="Controller\UClassPlanoContas.pas"/>
+        <DCCReference Include="Controller\UClassProdCor.pas"/>
+        <DCCReference Include="Controller\UClassProdGrupo.pas"/>
+        <DCCReference Include="Controller\UClassProdLigacao.pas"/>
+        <DCCReference Include="Controller\UClassProdMarca.pas"/>
+        <DCCReference Include="Controller\UClassProdPrecoLicitacao.pas"/>
+        <DCCReference Include="Controller\UClassProdSubGrupo.pas"/>
+        <DCCReference Include="Controller\UClassProduto.pas"/>
+        <DCCReference Include="Controller\UClassRecebimento.pas"/>
+        <DCCReference Include="Controller\UClassRecepcaoPedido.pas"/>
+        <DCCReference Include="Controller\UClassRecepcaoPedidoCompra.pas"/>
+        <DCCReference Include="Controller\UClassReducaoZ.pas"/>
+        <DCCReference Include="Controller\UClassRegiao.pas"/>
+        <DCCReference Include="Controller\UClassSenhaLiberacao.pas"/>
+        <DCCReference Include="Controller\UClassSuporteTecnico.pas"/>
+        <DCCReference Include="Controller\UClassTabelaPreco.pas"/>
+        <DCCReference Include="Controller\UClassTecnico.pas"/>
+        <DCCReference Include="Controller\UClassTipoServico.pas"/>
+        <DCCReference Include="Controller\UClassTransfEstoque.pas"/>
+        <DCCReference Include="Controller\UClassTransportador.pas"/>
+        <DCCReference Include="Controller\UClassMotoristaApp.pas"/>
+        <DCCReference Include="Controller\UClassUnidadeMedida.pas"/>
+        <DCCReference Include="Controller\UClassVales.pas"/>
+        <DCCReference Include="Controller\UClassVeiculo.pas"/>
+        <DCCReference Include="Controller\UClassVendedor.pas"/>
+        <DCCReference Include="View\Mov\UMovPagamento.pas">
+            <Form>FrmMovPagamento</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovPedidoCompra.pas">
+            <Form>FrmMovPedidoCompra</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovPedidoVenda.pas">
+            <Form>FrmMovPedidoVenda</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovRecebimento.pas">
+            <Form>FrmMovRecebimento</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovRecepcaoPedido.pas">
+            <Form>FrmMovRecepcaoPedido</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovRecepcaoPedidoCompra.pas">
+            <Form>FrmMovRecepcaoPedidoCompra</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\Mov\UMovSintegra.pas">
+            <Form>FrmMovSintegra</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\Mov\UMovSpedFiscal.pas">
+            <Form>FrmMovSpedFiscal</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\Mov\UMovSpedPisCofins.pas">
+            <Form>FrmMovSpedPisCofins</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovOrdemProducao.pas">
+            <Form>FrmMovOrdemProducao</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovReducaoZ.pas">
+            <Form>frmMovReducaoZ</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovTransfEstoque.pas">
+            <Form>FrmMovTransfEstoque</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UFrmPesquisarProduto.pas">
+            <Form>FrmPesquisarProdutos</Form>
+        </DCCReference>
+        <DCCReference Include="Model\UDMCupomFiscal.pas">
+            <Form>DMCupomFiscal</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManSelecionarCupons.pas">
+            <Form>frmManSelecionarCupons</Form>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassSelecionarCupons.pas"/>
+        <DCCReference Include="View\Mov\UManSelecionarCuponsFiltrar.pas">
+            <Form>frmManSelecionarCuponsFiltrar</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManCupomFiscal.pas">
+            <Form>FrmManCupomFiscal</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManCupomFiscalItem.pas">
+            <Form>frmManCupomFiscalItem</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovCupomFiscal.pas">
+            <Form>FrmMovCupomFiscal</Form>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassCupomFiscal.pas"/>
+        <DCCReference Include="View\Mov\UFtrCupomFiscal.pas">
+            <Form>FrmFtrCupomFiscal</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelCupomFiscal.pas">
+            <Form>frmRelCupomFiscal</Form>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassSeguradora.pas"/>
+        <DCCReference Include="Model\UDMSeguradora.pas">
+            <Form>DMSeguradora</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadSeguradora.pas">
+            <Form>frmCadSeguradora</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManSeguradora.pas">
+            <Form>frmManSeguradora</Form>
+        </DCCReference>
+        <DCCReference Include="Model\UDMOrdemServico.pas">
+            <Form>DMOrdemServico</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovOrdemServico.pas">
+            <Form>FrmMovOrdemServico</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManOrdemServico.pas">
+            <Form>FrmManOrdemServico</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrOrdemServico.pas">
+            <Form>FrmFtrOrdemServico</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManOrdemServicoConf.pas">
+            <Form>FrmManOrdemServicoConf</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManOrdemServicoFat.pas">
+            <Form>FrmManOrdemServicoFat</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManOrdemServicoItem.pas">
+            <Form>FrmManOrdemServicoItem</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelOS.pas">
+            <Form>frmRelOS</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\Model\UDMManifestacaoDestinario.pas">
+            <Form>DMManifestacaoDestinatario</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\Controller\UClassManifestacaoDestinatario.pas"/>
+        <DCCReference Include="..\..\Global\Source\View\Mov\UManManifestacaoDestinatario.pas">
+            <Form>FrmManManifestacaoDestinatario</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\Mov\UManManifestacaoDestinatarioConfirmacao.pas">
+            <Form>FrmManManifestacaoDestinatarioConfirmacao</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\Mov\UManManifestacaoDestinatarioConsNFe.pas">
+            <Form>FrmManManifestacaoDestinatarioConsNFe</Form>
+        </DCCReference>
+        <DCCReference Include="Model\UDMImportacaoTecmar.pas">
+            <Form>DMImportacaoTecmar</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassImportacaoTECMAR.pas"/>
+        <DCCReference Include="..\..\Global\Source\Controller\UClassSpedPisCofinsPlanoContas.pas"/>
+        <DCCReference Include="..\..\Global\Source\Model\UDMSpedPisCofinsPlanoContas.pas">
+            <Form>DMSpedPisCofinsPlanoContas</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\Mov\UCadSpedPisCofinsPlanoContas.pas">
+            <Form>frmCadSpedPisCofinsPlanoContas</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\Mov\UManSpedPISCOFINSPlanoContas.pas">
+            <Form>frmManSpedPisCofinsPlanoContas</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\Mov\UManConfiguraSpedPisCofins.pas">
+            <Form>frmManConfiguraSpedPisCofins</Form>
+        </DCCReference>
+        <DCCReference Include="Model\UDMEndereco.pas">
+            <Form>DMEndereco</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassEndereco.pas"/>
+        <DCCReference Include="Controller\UClassImportacaoTekSystemMultiCamadas.pas"/>
+        <DCCReference Include="Model\UDMImportacaoTekSystemMulticamadas.pas">
+            <Form>DMDECOR</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManEndereco.pas">
+            <Form>FrmManEndereco</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManAlterarPrecoTabelaCliente.pas">
+            <Form>frmManAlterarPrecoTabelaCliente</Form>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassBorderoComissao.pas"/>
+        <DCCReference Include="Model\UDMBorderoComissao.pas">
+            <Form>DMBorderoComissao</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrBorderoComissao.pas">
+            <Form>FrmFtrBorderoComissao</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovBorderoComissao.pas">
+            <Form>FrmMovBorderoComissao</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManBorderoComissao.pas">
+            <Form>FrmManBorderoComissao</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelSaldoContas.pas">
+            <Form>frmRelSaldoContas</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelSaldoContasDiario.pas">
+            <Form>frmRelSaldoContasDiario</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManPedidoCompraSelProdutos.pas">
+            <Form>FrmManPedidoCompraSelProdutos</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\Controller\UClassOrcamento.pas"/>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UFrmOrcamentoLiberaAcao.pas">
+            <Form>FrmOrcamentoLiberaAcao</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UFrmProdutoNaoCadastrado.pas">
+            <Form>FrmProdutoNaoCadastrado</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManBorderoRecebimentoTroco.pas">
+            <Form>FrmManBorderoRecTroco</Form>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassImportacaoChipII.pas"/>
+        <DCCReference Include="Model\UDMImportacaoChipII.pas">
+            <Form>DMImportacaoChipII</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMNotaFiscalImportarXML.pas">
+            <Form>DMNotaFiscalImportarXML</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassNotaFiscalImportarXML.pas"/>
+        <DCCReference Include="View\Mov\UManNotaFiscalImportarXML.pas">
+            <Form>FrmManNotaFiscalImportarXML</Form>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassImportacaoPadUbaense.pas"/>
+        <DCCReference Include="Model\UDMImportacaoPadUbaense.pas">
+            <Form>DMImportacaoPadUbaense</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UManOrcamento.pas">
+            <Form>FrmManOrcamento</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\Model\UDMTaxaEntrega.pas">
+            <Form>DMTaxaEntrega</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UFrmOrcamentoPesquisaProduto.pas">
+            <Form>FrmOrcamentoPesquisaProduto</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UFrmOrcamentoPesquisaConvUnidade.pas">
+            <Form>FrmOrcamentoPesquisaConvUnidade</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Cad\UManOrcamentoDescontoAcrescimo.pas">
+            <Form>frmManOrcamentoDescontoAcrescimo</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\Controller\UClassNotaSerieD.pas"/>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Cad\UManClienteDelivery.pas">
+            <Form>frmManClienteDelivery</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Cad\UManTaxaEntrega.pas">
+            <Form>frmManTaxaEntrega</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\Controller\UClassTaxaEntrega.pas"/>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UFrmOrcamentoPesquisaCliente.pas">
+            <Form>FrmOrcamentoPesquisaCliente</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UFrmFinalizaOrcamentoPrazo.pas">
+            <Form>FrmFinalizaOrcamentoPrazo</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Cad\UFrmManClienteAvulso.pas">
+            <Form>frmManClienteAvulso</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UManOrcamentoChequeRecebido.pas">
+            <Form>FrmManOrcamentoChequeRecebido</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UManOrcamentoInformarVendedor.pas">
+            <Form>FrmManOrcamentoInformarVendedor</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UManOrcamentoInformarComissionario.pas">
+            <Form>FrmManOrcamentoInformarComissionario</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UFrmFiltrarItensOrcamento.pas">
+            <Form>FrmFiltrarItensOrcamento</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UFrmOrcamentoSuprimentoSangria.pas">
+            <Form>FrmOrcamentoSuprimentoSangria</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UfrmOrcamentoObservacaoItem.pas">
+            <Form>FrmManOrcamentoObservacaoItem</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UfrmOrcamentoAjustaPrecoVendaItem.pas">
+            <Form>FrmManOrcamentoAjustaPrecoVendaItem</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UManOrcamentoTipoMovimento.pas">
+            <Form>FrmManOrcamentoTipoMovimento</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UManNotaSerieD.pas">
+            <Form>frmManNotaSerieD</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\Model\UDMNotaSerieD.pas">
+            <Form>DMNotaSerieD</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UMovOrcamento.pas">
+            <Form>FrmMovOrcamento</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Cad\UManConsultaProduto.pas">
+            <Form>FrmManConsultaProduto</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Cad\UCadOrcamentoConfig.pas">
+            <Form>frmCadOrcamentoConfig</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\Model\UDMOrcamentoConfig.pas">
+            <Form>DMOrcamentoConfig</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\Controller\UClassOrcamentoConfig.pas"/>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UFtrOrcamento.pas">
+            <Form>FrmFtrOrcamento</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UManOrcamentoExportar.pas">
+            <Form>FrmManOrcamentoExportar</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Cad\UManOrcamentoConfig.pas">
+            <Form>frmManOrcamentoConfig</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UFrmManMapaMesaTouch.pas">
+            <Form>frmManMapaMesaTouch</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UfrmManTecladoVendedorTouch.pas">
+            <Form>frmManTecladoVendedorTouch</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UFrmManBalcaoTouch.pas">
+            <Form>frmManBalcaoTouch</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UFrmManBalcaoQtdeTouch.pas">
+            <Form>frmManBalcaoQtdeTouch</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UFrmManComplementoTouch.pas">
+            <Form>frmManComplementoTouch</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UManProdutosDiversosTouch.pas">
+            <Form>frmManProdutosDiversosTouch</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UManLocalVendaTouch.pas">
+            <Form>frmManLocalVendaTouch</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UfrmManPesoTouch.pas">
+            <Form>frmManPesoTouch</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UFrmManGradeTouch.pas">
+            <Form>frmManGradeTouch</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UFrmManBalcaoModoPreparoTouch.pas">
+            <Form>frmManBalcaoModoPreparoTouch</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UFrmManVendaOrcamento.pas">
+            <Form>frmManVendaOrcamento</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UManTransferenciaMesa.pas">
+            <Form>frmManTransferenciaMesa</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Rel\URelGraficoVendasGeral.pas">
+            <Form>frmRelGraficoVendasGeral</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UFrmManAlteraStatusDelivery.pas">
+            <Form>frmManAlteraStatusDelivery</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManClienteRede.pas">
+            <Form>FrmManClienteRede</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadClienteRede.pas">
+            <Form>FrmCadClienteRede</Form>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassClienteRede.pas"/>
+        <DCCReference Include="Model\UDMClienteRede.pas">
+            <Form>DMClienteRede</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMTelemarketing.pas">
+            <Form>DMTelemarketing</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassTelemarketing.pas"/>
+        <DCCReference Include="View\Mov\UMovTelemarketing.pas">
+            <Form>FrmMovTelemarketing</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManTelemarketing.pas">
+            <Form>FrmManTelemarketing</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UfrmManTecladoMesaTouch.pas">
+            <Form>frmManTecladoMesaTouch</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\Controller\UClassMesa.pas"/>
+        <DCCReference Include="..\..\ParmaComercial\Source\Model\UDMMesa.pas">
+            <Form>DMMesa</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UfrmManTecladoLiberacaoTouch.pas">
+            <Form>frmManTecladoLiberacaoTouch</Form>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassExportaClienteTXT.pas"/>
+        <DCCReference Include="View\Mov\UManExportaClienteTXT.pas">
+            <Form>FrmManExportaClienteTXT</Form>
+        </DCCReference>
+        <DCCReference Include="Model\UDMExportaClienteTXT.pas">
+            <Form>DMExportaClienteTXT</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovExportaClienteTXT.pas">
+            <Form>FrmMovExportaClienteTXT</Form>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassImportacaoCompuFor.pas"/>
+        <DCCReference Include="Model\UDMImportacaoCompuFor.pas">
+            <Form>DMImportacaoCompuFor</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UManUsuarioMsgSistema.pas">
+            <Form>frmManUsuarioMsgSistema</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UCadRevenda.pas">
+            <Form>frmCadRevenda</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UManRevenda.pas">
+            <Form>frmManRevenda</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\Cad\UCadMsgSistema.pas">
+            <Form>frmCadMsgSistema</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UManMsgSistema.pas">
+            <Form>frmManMsgSistema</Form>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassExportaProdutoTXT.pas"/>
+        <DCCReference Include="Model\UDMExportaProdutoTXT.pas">
+            <Form>DMExportaProdutoTXT</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManExportaProdutoTXT.pas">
+            <Form>FrmManExportaProdutoTXT</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovExportaProdutoTXT.pas">
+            <Form>FrmMovExportaProdutoTXT</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UConfFormulario.pas">
+            <Form>frmConfFormulario</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UManVendaOrcamentoTouch.pas">
+            <Form>frmManVendaOrcamentoTouch</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManDescartaValorRecebimento.pas">
+            <Form>frmManDescartaValorRecebimento</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UMovNCMUsados.pas">
+            <Form>frmMovNCMUsados</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UManAlteracaoNCM.pas">
+            <Form>frmManAlteracaoNCM</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelVendasProdutosUsuario.pas">
+            <Form>frmRelVendasProdutosUsuario</Form>
+        </DCCReference>
+        <DCCReference Include="Model\UDMClienteBairro.pas">
+            <Form>DMClienteBairro</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassClienteBairro.pas"/>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Rel\URelClienteResumo.pas">
+            <Form>frmRelClienteResumo</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UFrmManTecladoComandaTouch.pas">
+            <Form>frmManTecladoComandaTouch</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UMovDelivery.pas">
+            <Form>FrmMovDelivery</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Rel\URelTaxaEntrega.pas">
+            <Form>frmRelTaxaEntrega</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UManTouchEscolhaProduto.pas">
+            <Form>frmManTouchEscolhaProduto</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManExcluindoDadosOrcamento.pas">
+            <Form>frmManExcluirDadosOrcamento</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManAlteraPrecoVenda.pas">
+            <Form>frmManAlteraPrecoVenda</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManFxCaixaItem.pas">
+            <Form>frmManFxCaixaItem</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\Model\UDMOsBalanca.pas">
+            <Form>DMOSBalanca</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\Controller\UClassOSBalanca.pas"/>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UManOSBalanca.pas">
+            <Form>FrmManOSBalanca</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UManOSBalancaPeca.pas">
+            <Form>FrmManOSBalancaPeca</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UFtrOSBalanca.pas">
+            <Form>FrmFtrOsBalanca</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UMovOSBalanca.pas">
+            <Form>FrmMovOSBalanca</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManNCMCalcMVA.pas">
+            <Form>FrmManNCMCalcMVA</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Cad\UManProdutoChassi.pas">
+            <Form>FrmManProdutoChassi</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\Mov\UManNFCe.pas">
+            <Form>frmManNFCe</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovConferePedidoTablet.pas">
+            <Form>frmMovConferePedidoTablet</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManConferePedidoTabletFinalizar.pas">
+            <Form>frmManConferePedidoTabletFinalizar</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovConfPedTabletCancelaItem.pas">
+            <Form>frmConfPedTabletEstornaItem</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManConferePedidoTablet.pas">
+            <Form>FrmManConferePedidoTablet</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManQtdeConferencia.pas">
+            <Form>frmManQtdeConferencia</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovNFCe.pas">
+            <Form>FrmMovNFCe</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Configura\Source\Model\UDMPermissoesECF.pas">
+            <Form>DMPermissoesECF</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\Configura\Source\Controller\UClassPermissoesECF.pas"/>
+        <DCCReference Include="..\..\Configura\Source\View\Cad\UCadPermissoesECF.pas">
+            <Form>frmCadPermissoesECF</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Configura\Source\View\Cad\UManPermissoesECF.pas">
+            <Form>frmManPermissoesECF</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadECF.pas">
+            <Form>frmCadECF</Form>
+        </DCCReference>
+        <DCCReference Include="Model\UDMECF.pas">
+            <Form>DMECF</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManECF.pas">
+            <Form>frmManECF</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelHistoricoPreco.pas">
+            <Form>frmRelHistoricoPreco</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManNotaFiscalImpressaoConf.pas">
+            <Form>frmManNotaFiscalImpressaoConf</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelNotasInutilizadas.pas">
+            <Form>frmRelNotasInutilizadas</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFrmFinalizaOrcamento.pas">
+            <Form>FrmFinalizarOrcamento</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\Controller\UClassControleVersao.pas"/>
+        <DCCReference Include="..\..\Global\Source\Model\UDmControleVersao.pas">
+            <Form>DMControleVersao</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\Mov\UControleVersao.pas">
+            <Form>FrmControleVersao</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManEnviarXMLContador.pas">
+            <Form>frmManEnviarXMLContador</Form>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassApto.pas"/>
+        <DCCReference Include="Model\UDMApto.pas">
+            <Form>DMApto</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassTipoApto.pas"/>
+        <DCCReference Include="Model\UDMTipoApto.pas">
+            <Form>DMTipoApto</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassHospedagem.pas"/>
+        <DCCReference Include="Model\UDMHospedagem.pas">
+            <Form>DMHospedagem</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelOpcaoHospedagem.pas">
+            <Form>frmRelOpcaoHospedagem</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadApto.pas">
+            <Form>frmCadApto</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManApto.pas">
+            <Form>frmManApto</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadTipoApto.pas">
+            <Form>frmCadTipoApto</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManTrocaApto.pas">
+            <Form>frmManTrocaApto</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManTipoApto.pas">
+            <Form>frmManTipoApto</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovHospedagem.pas">
+            <Form>FrmMovHospedagem</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelListagemReserva.pas">
+            <Form>frmRelListagemReserva</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelFichaHospedagem.pas">
+            <Form>frmRelFichaHospedagem</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManHospedagem.pas">
+            <Form>FrmManHospedagem</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManHospedes.pas">
+            <Form>FrmManHospedes</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManHospedagemProduto.pas">
+            <Form>FrmManHospedagemProduto</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManHospedagemPrazo.pas">
+            <Form>FrmManHospedagemPrazo</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManHospedagemValores.pas">
+            <Form>frmManHospedagemValores</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrHospedagem.pas">
+            <Form>frmFtrHospedagem</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManHospedagemConf.pas">
+            <Form>FrmManHospedagemConf</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovHospedagemPeriodo.pas">
+            <Form>FrmMovHospedagemPeriodo</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelEstoque.pas">
+            <Form>frmRelEstoque</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelEstoqueHotel.pas">
+            <Form>frmRelEstoqueHotel</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelListagemProdutosVendidosHotel.pas">
+            <Form>frmRelListagemProdutosVendidosHotel</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelListagemContasReceberHotel.pas">
+            <Form>frmRelListagemContasReceberHotel</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\Mov\UManImpressorasSistema.pas">
+            <Form>frmManImpressorasSistema</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFrmFinalizaNFCe.pas">
+            <Form>FrmFinalizarNFCe</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFrmFinalizaNFCePrazo.pas">
+            <Form>FrmFinalizaNFCePrazo</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManNFCeInformarVendedor.pas">
+            <Form>FrmManNFCeInformarVendedor</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\Model\UDMNFCe.pas">
+            <Form>DMNFCe</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFrmNFCeLiberaAcao.pas">
+            <Form>FrmNFCeLiberaAcao</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Cad\UCadMesa.pas">
+            <Form>FrmCadMesa</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Cad\UManMesa.pas">
+            <Form>FrmManMesa</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Cad\UManProdutoComplemento.pas">
+            <Form>FrmManProdutoComplemento</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\Controller\UClassComplemento.pas"/>
+        <DCCReference Include="..\..\ParmaComercial\Source\Model\UDMComplemento.pas">
+            <Form>DMComplemento</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Cad\UManComplemento.pas">
+            <Form>FrmManComplemento</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Cad\UCadComplemento.pas">
+            <Form>FrmCadComplemento</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Cad\UCadLocalPreparo.pas">
+            <Form>FrmCadLocalPreparo</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\Model\UDMLocalPreparo.pas">
+            <Form>DMLocalPrepraro</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\Controller\UClassLocalPreparo.pas"/>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Cad\UManLocalPreparo.pas">
+            <Form>FrmManLocalPreparo</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Cad\UCadComanda.pas">
+            <Form>FrmCadComanda</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Cad\UManComanda.pas">
+            <Form>FrmManComanda</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Cad\UCadNumeracaoControleComanda.pas">
+            <Form>FrmCadNumeracaoControleComanda</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\Model\UDMComanda.pas">
+            <Form>DMComanda</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\Model\UDMNumeracaoControleComanda.pas">
+            <Form>DMNumeracaoControleComanda</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\Controller\UClassNumeracaoControleComanda.pas"/>
+        <DCCReference Include="..\..\ParmaComercial\Source\Controller\UClassComanda.pas"/>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UFrmManNumeracaoControleComanda.pas">
+            <Form>FrmManNumeracaoControleComanda</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFrmNFCePesquisaCliente.pas">
+            <Form>FrmNFCePesquisaCliente</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFrmNFCePesquisaProduto.pas">
+            <Form>FrmNFCePesquisaProduto</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManNFCeDescontoAcrescimo.pas">
+            <Form>frmManNFCeDescontoAcrescimo</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManNFCeChequeRecebido.pas">
+            <Form>FrmManNFCeChequeRecebido</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFrmPesquisaNFCeItem.pas">
+            <Form>frmPesquisaNFCeItem</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManNFCeCancelaItem.pas">
+            <Form>frmManNFCeCancelaItem</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovFechamentoCxHotel.pas">
+            <Form>FrmMovFechamentoCxHotel</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManFechamentoCxHotel.pas">
+            <Form>FrmManFechamentoCxHotel</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFrmManImportarPreVenda.pas">
+            <Form>frmManImportarPreVenda</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManNFCeEmail.pas">
+            <Form>FrmManNFCeEmail</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrNFCe.pas">
+            <Form>FrmFtrNFCe</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFrmManNFCeClienteAvulso.pas">
+            <Form>frmManNFCeClienteAvulso</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFrmNFCeSuprimentoSangria.pas">
+            <Form>FrmNFCeSuprimentoSangria</Form>
+        </DCCReference>
+        <DCCReference Include="Model\UDMCaixaEmail.pas">
+            <Form>DMCaixaEmail</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovCaixaEmail.pas">
+            <Form>frmMovCaixaEmail</Form>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassCaixaEmail.pas"/>
+        <DCCReference Include="View\Mov\UFrmManCaixaEmail.pas">
+            <Form>frmManCaixaEmail</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManCaixaEmailConf.pas">
+            <Form>FrmManCaixaEmailConf</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\Cad\UCadAdmCartao.pas">
+            <Form>frmCadAdmCartao</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\Cad\UManAdmCartao.pas">
+            <Form>frmManAdmCartao</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\Model\UDMAdmCartao.pas">
+            <Form>DMAdmCartao</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UManSkins.pas">
+            <Form>frmManSkins</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\Controller\UClassAdmCartao.pas"/>
+        <DCCReference Include="View\Mov\UManInutilizacaoAutomarica.pas">
+            <Form>frmManInutilizacaoAutomatica</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFrmManImportarPreVendaMapa.pas">
+            <Form>frmManImportarPreVendaMapa</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelMovimentacaoProduto.pas"/>
+        <DCCReference Include="View\Mov\UMovNotaSerieD.pas">
+            <Form>frmMovNotaSerieD</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrNotaSerieD.pas">
+            <Form>frmFtrNotaSerieD</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFrmManNotaFiscalSerieD.pas">
+            <Form>frmManNotaFiscalSerieD</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFrmManNotaFiscalSerieDItem.pas">
+            <Form>FrmManNotaFiscalSerieDItem</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelItensSerieDVendidos.pas">
+            <Form>frmRelItensSerieDVendidos</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManEMailXmlContador.pas">
+            <Form>FrmManEMailXmlContador</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\Mov\UManAtualizarDadosProduto.pas">
+            <Form>frmManAtualizarDadosProduto</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\Model\UDmAtualizarDadosProdutos.pas">
+            <Form>DMAtualizarDadosProdutos</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Rel\URelOSDetalhada.pas">
+            <Form>frmRelOSDetalhada</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManFechamentoCaixaNFCe.pas">
+            <Form>FrmManFechamentoCaixaNFCe</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UManCompactarArquivos.pas">
+            <Form>frmManCompactarArquivos</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManGerarBoletosAvulso.pas">
+            <Form>FrmManGerarBoletosAvulso</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFrmNFCePesquisaConvUnidade.pas">
+            <Form>FrmNFCePesquisaConvUnidade</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\Mov\UManHerancaEmpresa.pas">
+            <Form>frmManHerancaEmpresa</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UMovGerenciadorPreVenda.pas">
+            <Form>frmMovGerenciadorPreVenda</Form>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassOrdemServico.pas"/>
+        <DCCReference Include="..\..\Global\Source\Controller\UClassHerancaEmpresa.pas"/>
+        <DCCReference Include="..\..\Global\Source\View\Mov\UManConfigBoletoPadrao.pas">
+            <Form>frmManConfigBoletoPadrao</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManNFCeAjustaPrecoVendaItem.pas">
+            <Form>frmManNFCeAjustaPrecoVendaItem</Form>
+        </DCCReference>
+        <DCCReference Include="Model\UDMTabelaPrecoApto.pas">
+            <Form>DMTabelaPrecoApto</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassTabelaPrecoApto.pas"/>
+        <DCCReference Include="View\Mov\UManTabelaPrecoApto.pas">
+            <Form>frmManTabelaPrecoApto</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelResumoVendas.pas">
+            <Form>frmRelResumoVendas</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadTabelaPrecoApto.pas">
+            <Form>frmCadTabelaPrecoApto</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\ULoadingNFCe.pas">
+            <Form>FrmLoadingNFCe</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManPedidoVendaImprimirOS.pas">
+            <Form>FrmManPedidoVendaImprimirOS</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManBorderoNegociacaoAlterar.pas">
+            <Form>frmManBorderoNegociacaoAlterar</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManBorderoPagamentoConf.pas">
+            <Form>frmManBorderoPagamentoConf</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManRecebimentoConf.pas">
+            <Form>frmManRecebimentoConf</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Cad\UManProdutoSelecionar.pas">
+            <Form>FrmManProdutoSelecionar</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\Model\UDMProdModoPreparo.pas">
+            <Form>DMProdModoPreparo</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\Controller\UClassProdModoPreparo.pas"/>
+        <DCCReference Include="..\..\ParmaComercial\Source\Model\UDMModoPreparo.pas">
+            <Form>DMModoPreparo</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\Controller\UClassModoPreparo.pas"/>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Cad\UManProdModoPreparo.pas">
+            <Form>frmManProdModoPreparo</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Cad\UManModoPreparo.pas">
+            <Form>frmManModoPreparo</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UCadGondolaNut.pas">
+            <Form>FrmCadGondolaNut</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManGondolaNutImprimir.pas">
+            <Form>FrmManGondolaNutImprimir</Form>
+        </DCCReference>
+        <DCCReference Include="Model\UDMPedidoCompra.pas">
+            <Form>DMPedidoCompra</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMSetorMov.pas">
+            <Form>DMSetorMov</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassSetorMov.pas"/>
+        <DCCReference Include="View\Mov\UCadSetorMov.pas">
+            <Form>frmCadSetorMov</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManIntermediador.pas">
+            <Form>frmManIntermediador</Form>
+        </DCCReference>
+        <DCCReference Include="Model\UDMIntermediador.pas">
+            <Form>DMIntermediador</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassIntermediador.pas"/>
+        <DCCReference Include="View\Mov\UManDevolucaoProduto.pas">
+            <Form>frmManDevolucaoProduto</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManOrcamentoDadosFiscais.pas">
+            <Form>frmManOrcamentoDadosFiscais</Form>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassLocalEmbarqueExterior.pas"/>
+        <DCCReference Include="Model\UDMLocalEmbarqueExterior.pas">
+            <Form>DMLocalEmbarqueExterior</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManLocalEmbarqueExterior.pas">
+            <Form>frmManLocalEmbarqueExterior</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManAtualizaCSOSNNFeRecebida.pas">
+            <Form>frmManAtualizaCSOSNNFeRecebida</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManSetorMov.pas">
+            <Form>frmManSetorMov</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelConcilicacaoBancaria.pas">
+            <Form>frmRelConcilicacaoBancaria</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\Cad\UCadDelivery.pas">
+            <Form>frmCadDelivery</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\Model\UDMDelivery.pas">
+            <Form>DMDelivery</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\Controller\UClassDelivery.pas"/>
+        <DCCReference Include="..\..\Global\Source\View\Cad\UManDelivery.pas">
+            <Form>frmManDelivery</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\Cad\UManPlataformaItem.pas">
+            <Form>frmManPlataformaItem</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelComissaoParmasoft.pas">
+            <Form>frmRelComissaoParmasoft</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManCadProdutoRapido.pas">
+            <Form>frmManCadProdutoRapido</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UFrmAbertura.pas">
+            <Form>frmAberturaSistema</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManInicioDia.pas">
+            <Form>frmManInicioDia</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelListagemFrigobarVendidosHotel.pas">
+            <Form>frmRelListagemFrigobarVendidosHotel</Form>
+        </DCCReference>
+        <DCCReference Include="Model\UDMAgendamento.pas">
+            <Form>DMAgendamento</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassAgendamento.pas"/>
+        <DCCReference Include="View\Mov\UManAgendamentoHorario.pas">
+            <Form>frmManAgendamentoHorario</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManAgendamento.pas">
+            <Form>frmManAgendamento</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManVendaPrecoLicitacao.pas">
+            <Form>frmManVendaPrecoLicitacao</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovAgendamento.pas">
+            <Form>frmMovAgendamento</Form>
+        </DCCReference>
+        <DCCReference Include="Model\UDMDevolucao.pas">
+            <Form>DMDevolucao</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelEscolhaOS.pas">
+            <Form>frmRelEscolhaOS</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManSpedFiscal1601.pas">
+            <Form>frmManSpedFiscal1601</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelContasReceberME.pas">
+            <Form>FrmRelContasReceberME</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManProdXMLImportacao.pas">
+            <Form>frmManProdXMLImportacao</Form>
+        </DCCReference>
+        <DCCReference Include="Model\UDMConverterCFOPxCST.pas">
+            <Form>DMConverterCFOPxCST</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelMovimentacaoVendasPowerBi.pas">
+            <Form>frmRelMovimentacaoVendaPowerBi</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelProdutoSemVenda.pas">
+            <Form>frmRelProdutoSemVenda</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelContasPagarME.pas">
+            <Form>frmRelContasPagarME</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\ufrmStatus.pas">
+            <Form>frmStatus</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManOrcamentoAlterarParcela.pas">
+            <Form>frmManOrcamentoAlterarParcela</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelCancelPreVenda.pas">
+            <Form>frmRelCancelPreVenda</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManNotaFiscalImportarXMLFornecedor.pas">
+            <Form>FrmManNotaFiscalImportarXMLFornecedor</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManAgendamentoConfig.pas">
+            <Form>frmManAgendamentoConfig</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManRecebimentoHotel.pas">
+            <Form>frmManRecebimentoHotel</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovConsignado.pas">
+            <Form>FrmMovConsignado</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrConsignado.pas">
+            <Form>FrmFtrConsignado</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelEtiquetaRoupas.pas">
+            <Form>frmRelEtiquetaRoupas</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UFrmConexoes.pas">
+            <Form>FrmConexoes</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\Model\UDMDashBoard.pas">
+            <Form>DMDashBoard</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UManDashBoard.pas">
+            <Form>frmManDashBoard</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFrmManOrdemProducaoConf.pas">
+            <Form>frmManOrdemProducaoConf</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrAgendamento.pas">
+            <Form>frmFtrAgendamento</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManRecepcaoPedidoConfig.pas">
+            <Form>frmManRecepcaoPedidoConfig</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManDevolucaoSelecionarPedido.pas">
+            <Form>FrmManDevolucaoSelecionarPedido</Form>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassNotaFiscalEmitidaXML.pas"/>
+        <DCCReference Include="View\Mov\UManOrcamentoSel.pas">
+            <Form>frmManOrcamentoSel</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManConfiguraTelaTouch.pas">
+            <Form>frmManConfiguraTelaTouch</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\ParmaComercial\Source\View\Mov\UFrmManBalcaoTouch15.pas">
+            <Form>frmManBalcaoTouch15</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\RelListagemCTe.pas">
+            <Form>frmRelListagemCTe</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManClienteVeiculo.pas">
+            <Form>frmManClienteVeiculo</Form>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassNotaFiscalEmitida115.pas"/>
+        <DCCReference Include="Model\UDMNotaFiscalEmitida115.pas">
+            <Form>DMNotaFiscalEmitida115</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMNotaFiscalEmitida.pas">
+            <Form>DMNotaFiscalEmitida</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\Controller\UClassTraducao.pas"/>
+        <DCCReference Include="..\..\Auto_Atendimento\Source\View\Mov\UfrmManTecladoCNPJTouch.pas">
+            <Form>frmManTecladoCNPJTouch</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFrmAtualizarDadosNFCe.pas">
+            <Form>frmAtualizarDadosNFCe</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManMovProdutoConfig.pas">
+            <Form>frmManMovProdutoConfig</Form>
+        </DCCReference>
+        <DCCReference Include="Model\UDMControleGeladeira.pas">
+            <Form>DMControleGeladeira</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassControleGeladeira.pas"/>
+        <DCCReference Include="View\Mov\UMovControleGeladeira.pas">
+            <Form>frmMovControleGeladeira</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManControleGeladeira.pas">
+            <Form>frmManControleGeladeira</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManControleGeladeiraItem.pas">
+            <Form>frmManControleGeladeiraItem</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelFxCaixaPorData.pas">
+            <Form>frmRelFxCaixaPorData</Form>
+        </DCCReference>
+        <DCCReference Include="Model\UDMRelatorioMultiEmpresa.pas">
+            <Form>DMRelatorioMultiEmpresa</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\USplash.pas">
+            <Form>FrmSplash</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\UManNotaFiscalEmitidaImportar.pas">
+            <Form>frmManNotaFiscalEmitidaImportar</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\Controller\UClassNotaFiscalDuplicar.pas"/>
+        <DCCReference Include="..\..\Global\Source\Model\UDMNotaFiscalDuplicar.pas">
+            <Form>DMNotaFiscalDuplicar</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMOrcamento.pas">
+            <Form>DMOrcamento</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassImportarXmlManual.pas"/>
+        <DCCReference Include="View\Cad\UManProdutoUnidade.pas">
+            <Form>FrmManProdutoUnidade</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelAniversariantes.pas">
+            <Form>frmRelAniversariantes</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFrmManResumoConsginado.pas">
+            <Form>frmManResumoConsginado</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovBorderoNegociacaoPag.pas">
+            <Form>frmMovBorderoNegociacaoPag</Form>
+        </DCCReference>
+        <DCCReference Include="Model\UDMBorderoNegociacaoPag.pas">
+            <Form>DMBorderoNegociacaoPag</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassBorderoNegociacaoPag.pas"/>
+        <DCCReference Include="View\Mov\UFrmManBorderoNegociacaoPag.pas">
+            <Form>frmManBorderoNegociacaoPag</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFrmManBorderoNegSelecionarPag.pas">
+            <Form>frmManBorderoNegSelecionarPag</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UFtrBorderoNegociacaoPag.pas">
+            <Form>frmFtrBorderoNegociacaoPag</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManBorderoNegociacaoPagAlterar.pas">
+            <Form>frmManBorderoNegociacaoPagAlterar</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManGerarNFeInventario.pas">
+            <Form>frmManGerarNFeInventario</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\Frm_SelecionarCertificado.pas">
+            <Form>frmSelecionarCertificado</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Auto_Atendimento\Source\Model\UDMAutoAtendimento.pas">
+            <Form>DMAutoAtendimento</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\Model\UDMPromocao.pas">
+            <Form>DMPromocao</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="..\..\Global\Source\View\Cad\UManPromocaoPorDiaSemana.pas">
+            <Form>FrmManPromocaoPorDiaSemana</Form>
+        </DCCReference>
+        <DCCReference Include="Model\UDMOrcamentoDescontos.pas">
+            <Form>DMOrcamentoDescontos</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMProdutoComb.pas">
+            <Form>DMProdutoComb</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassProdutoComb.pas"/>
+        <DCCReference Include="..\..\Auto_Atendimento\Source\View\Mov\frObtemCampo.pas">
+            <Form>FormObtemCampo</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Auto_Atendimento\Source\View\Mov\frExibeMensagem.pas">
+            <Form>FormExibeMensagem</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Auto_Atendimento\Source\View\Mov\frMenuTEF.pas">
+            <Form>FormMenuTEF</Form>
+        </DCCReference>
+        <DCCReference Include="..\..\Frente Fiscal\Source\View\Mov\UManExibeMenu.pas">
+            <Form>frmManExibeMenu</Form>
+        </DCCReference>
+        <DCCReference Include="View\Cad\UManGondolaConfig.pas">
+            <Form>frmManGondolaConfig</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\RelEntradaSaidaMadereira.pas">
+            <Form>frmRelEntradaSaidaMadereira</Form>
+        </DCCReference>
+        <DCCReference Include="Model\UDMConfereCarregamento.pas">
+            <Form>DMConfereCarregamento</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassConfereCarregamento.pas"/>
+        <DCCReference Include="View\Cad\UManconfereCarregamento.pas">
+            <Form>FrmManConfereCarregamento</Form>
+        </DCCReference>
+        <DCCReference Include="View\Rel\URelSangriaSuprimentoNovo.pas">
+            <Form>frmRelSangriaSuprimento</Form>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManProdutoConferenciaPrecoEmpresas.pas"/>
+        <DCCReference Include="Model\UDMOrdemCortina.pas">
+            <Form>DMOrdemCortina</Form>
+            <FormType>dfm</FormType>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassOrdemCortina.pas"/>
+        <DCCReference Include="View\Cad\UCadOrdemCortina.pas">
+            <Form>FrmCadOrdemCortina</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="Model\UDMConfereCarga.pas">
+            <Form>DMConfereCarga</Form>
+            <FormType>dfm</FormType>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassConfereCarga.pas"/>
+        <DCCReference Include="View\Mov\UManConfereCarga.pas">
+            <Form>FrmManConfereCarga</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="Model\UDMConfereTransfReqCarga.pas">
+            <Form>DMConfereTransfReqCarga</Form>
+            <FormType>dfm</FormType>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassConfereTransfReqCarga.pas"/>
+        <DCCReference Include="View\Mov\UManConfereTransfReqCarga.pas">
+            <Form>FrmManConfereTransfReqCarga</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="Model\UDMRecebTransfReqCarga.pas">
+            <Form>DMRecebTransfReqCarga</Form>
+            <FormType>dfm</FormType>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassRecebTransfReqCarga.pas"/>
+        <DCCReference Include="View\Mov\UMovRecebTransfReqCarga.pas">
+            <Form>FrmMovRecebTransfReqCarga</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="Model\UDMConfereRecebTransfReqCarga.pas">
+            <Form>DMConfereRecebTransfReqCarga</Form>
+            <FormType>dfm</FormType>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassConfereRecebTransfReqCarga.pas"/>
+        <DCCReference Include="View\Mov\UManConfereRecebTransfReqCarga.pas">
+            <Form>FrmManConfereRecebTransfReqCarga</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManMotivoDivergRecebTransfReq.pas">
+            <Form>FrmManMotivoDivergRecebTransfReq</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="Model\UDMCentralLogTransf.pas">
+            <Form>DMCentralLogTransf</Form>
+            <FormType>dfm</FormType>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassCentralLogTransf.pas"/>
+        <DCCReference Include="View\Mov\UMovCentralLogTransf.pas">
+            <Form>FrmMovCentralLogTransf</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManCentralLogTransf.pas">
+            <Form>FrmManCentralLogTransf</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovTransfReq.pas">
+            <Form>FrmMovTransfReq</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UMovTransfReqCarga.pas">
+            <Form>FrmMovTransfReqCarga</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManImpressaoEtiquetaTransfReq.pas"/>
+        <DCCReference Include="View\Mov\UManLimparSeparacaoItemTransfReq.pas"/>
+        <DCCReference Include="View\Mov\UManTransfReq.pas">
+            <Form>FrmManTransfReq</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManTransfReqCarga.pas">
+            <Form>FrmManTransfReqCarga</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManTransfReqCargaOrigem.pas">
+            <Form>FrmManTransfReqCargaOrigem</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="View\Mov\UManTransfReqItem.pas">
+            <Form>FrmManTransfReqItem</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="Model\UDMTransfReq.pas">
+            <Form>DMTransfReq</Form>
+            <FormType>dfm</FormType>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Model\UDMTransfReqCarga.pas">
+            <Form>DMTransfReqCarga</Form>
+            <FormType>dfm</FormType>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="Controller\UClassTransfReq.pas"/>
+        <DCCReference Include="Controller\UClassTransfReqCarga.pas"/>
+        <None Include="View\Rel\Impressoes\impressaoOS_Help.fr3"/>
+        <BuildConfiguration Include="Release">
+            <Key>Cfg_2</Key>
+            <CfgParent>Base</CfgParent>
+        </BuildConfiguration>
+        <BuildConfiguration Include="Base">
+            <Key>Base</Key>
+        </BuildConfiguration>
+        <BuildConfiguration Include="Debug">
+            <Key>Cfg_1</Key>
+            <CfgParent>Base</CfgParent>
+        </BuildConfiguration>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Delphi.Personality.12</Borland.Personality>
+        <Borland.ProjectType>Application</Borland.ProjectType>
+        <BorlandProject>
+            <Delphi.Personality>
+                <Source>
+                    <Source Name="MainSource">ParmaGestor.dpr</Source>
+                </Source>
+                <Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclDataSnapNativeServer230.bpl">Embarcadero DBExpress DataSnap Native Server Components</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dcloffice2k230.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclofficexp230.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
+                    <Excluded_Packages Name="C:\Users\Public\Documents\Embarcadero\Studio\17.0\Bpl\dclcxPivotGridOLAPRS23.bpl">ExpressPivotGrid OLAP by Developer Express Inc.</Excluded_Packages>
+                    <Excluded_Packages Name="C:\Users\Public\Documents\Embarcadero\Studio\17.0\Bpl\dclcxSchedulerTreeBrowserRS23.bpl">ExpressScheduler tree browser by Developer Express Inc.</Excluded_Packages>
+                </Excluded_Packages>
+            </Delphi.Personality>
+            <Deployment Version="2">
+                <DeployFile LocalName="View\Rel\Impressoes\impressaoOS_Help.fr3" Configuration="Debug" Class="ProjectFile">
+                    <Platform Name="Win32">
+                        <RemoteDir>.\</RemoteDir>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="..\Bin\ParmaGestor.exe" Configuration="Debug" Class="ProjectOutput">
+                    <Platform Name="Win32">
+                        <RemoteName>ParmaGestor.exe</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployClass Name="DependencyModule">
+                    <Platform Name="Win32">
+                        <Operation>0</Operation>
+                        <Extensions>.dll;.bpl</Extensions>
+                    </Platform>
+                    <Platform Name="iOSDevice64">
+                        <Operation>1</Operation>
+                        <Extensions>.dylib</Extensions>
+                    </Platform>
+                    <Platform Name="OSX32">
+                        <RemoteDir>Contents\MacOS</RemoteDir>
+                        <Operation>1</Operation>
+                        <Extensions>.dylib</Extensions>
+                    </Platform>
+                    <Platform Name="iOSDevice32">
+                        <Operation>1</Operation>
+                        <Extensions>.dylib</Extensions>
+                    </Platform>
+                    <Platform Name="iOSSimulator">
+                        <Operation>1</Operation>
+                        <Extensions>.dylib</Extensions>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="ProjectOSXResource">
+                    <Platform Name="OSX32">
+                        <RemoteDir>Contents\Resources</RemoteDir>
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="AndroidClassesDexFile">
+                    <Platform Name="Android">
+                        <RemoteDir>classes</RemoteDir>
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="AdditionalDebugSymbols">
+                    <Platform Name="Win32">
+                        <RemoteDir>Contents\MacOS</RemoteDir>
+                        <Operation>0</Operation>
+                    </Platform>
+                    <Platform Name="iOSSimulator">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="OSX32">
+                        <RemoteDir>Contents\MacOS</RemoteDir>
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="iPad_Launch768">
+                    <Platform Name="iOSSimulator">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice64">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice32">
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="Android_LauncherIcon144">
+                    <Platform Name="Android">
+                        <RemoteDir>res\drawable-xxhdpi</RemoteDir>
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="AndroidLibnativeMipsFile">
+                    <Platform Name="Android">
+                        <RemoteDir>library\lib\mips</RemoteDir>
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Required="true" Name="ProjectOutput">
+                    <Platform Name="Win32">
+                        <Operation>0</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice64">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="OSX32">
+                        <RemoteDir>Contents\MacOS</RemoteDir>
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice32">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="Android">
+                        <RemoteDir>library\lib\armeabi-v7a</RemoteDir>
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSSimulator">
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="DependencyFramework">
+                    <Platform Name="Win32">
+                        <Operation>0</Operation>
+                    </Platform>
+                    <Platform Name="OSX32">
+                        <RemoteDir>Contents\MacOS</RemoteDir>
+                        <Operation>1</Operation>
+                        <Extensions>.framework</Extensions>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="iPhone_Launch640">
+                    <Platform Name="iOSSimulator">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice64">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice32">
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="iPad_Launch1024">
+                    <Platform Name="iOSSimulator">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice64">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice32">
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="ProjectiOSDeviceDebug">
+                    <Platform Name="iOSDevice64">
+                        <RemoteDir>..\$(PROJECTNAME).app.dSYM\Contents\Resources\DWARF</RemoteDir>
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice32">
+                        <RemoteDir>..\$(PROJECTNAME).app.dSYM\Contents\Resources\DWARF</RemoteDir>
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="AndroidLibnativeX86File">
+                    <Platform Name="Android">
+                        <RemoteDir>library\lib\x86</RemoteDir>
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="iPhone_Launch320">
+                    <Platform Name="iOSSimulator">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice64">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice32">
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="ProjectiOSInfoPList">
+                    <Platform Name="iOSSimulator">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice64">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice32">
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="AndroidLibnativeArmeabiFile">
+                    <Platform Name="Android">
+                        <RemoteDir>library\lib\armeabi</RemoteDir>
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="DebugSymbols">
+                    <Platform Name="Win32">
+                        <Operation>0</Operation>
+                    </Platform>
+                    <Platform Name="iOSSimulator">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="OSX32">
+                        <RemoteDir>Contents\MacOS</RemoteDir>
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="iPad_Launch1536">
+                    <Platform Name="iOSSimulator">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice64">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice32">
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="Android_SplashImage470">
+                    <Platform Name="Android">
+                        <RemoteDir>res\drawable-normal</RemoteDir>
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="Android_LauncherIcon96">
+                    <Platform Name="Android">
+                        <RemoteDir>res\drawable-xhdpi</RemoteDir>
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="Android_SplashImage640">
+                    <Platform Name="Android">
+                        <RemoteDir>res\drawable-large</RemoteDir>
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="iPhone_Launch640x1136">
+                    <Platform Name="iOSSimulator">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice64">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice32">
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="ProjectiOSEntitlements">
+                    <Platform Name="iOSDevice64">
+                        <RemoteDir>../</RemoteDir>
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice32">
+                        <RemoteDir>../</RemoteDir>
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="Android_LauncherIcon72">
+                    <Platform Name="Android">
+                        <RemoteDir>res\drawable-hdpi</RemoteDir>
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="AndroidGDBServer">
+                    <Platform Name="Android">
+                        <RemoteDir>library\lib\armeabi-v7a</RemoteDir>
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="ProjectOSXInfoPList">
+                    <Platform Name="OSX32">
+                        <RemoteDir>Contents</RemoteDir>
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="ProjectOSXEntitlements">
+                    <Platform Name="OSX32">
+                        <RemoteDir>../</RemoteDir>
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="iPad_Launch2048">
+                    <Platform Name="iOSSimulator">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice64">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice32">
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="AndroidSplashStyles">
+                    <Platform Name="Android">
+                        <RemoteDir>res\values</RemoteDir>
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="Android_SplashImage426">
+                    <Platform Name="Android">
+                        <RemoteDir>res\drawable-small</RemoteDir>
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="AndroidSplashImageDef">
+                    <Platform Name="Android">
+                        <RemoteDir>res\drawable</RemoteDir>
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="ProjectiOSResource">
+                    <Platform Name="iOSSimulator">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice64">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice32">
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="ProjectAndroidManifest">
+                    <Platform Name="Android">
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="Android_DefaultAppIcon">
+                    <Platform Name="Android">
+                        <RemoteDir>res\drawable</RemoteDir>
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="File">
+                    <Platform Name="Win32">
+                        <Operation>0</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice64">
+                        <Operation>0</Operation>
+                    </Platform>
+                    <Platform Name="OSX32">
+                        <RemoteDir>Contents\Resources\StartUp\</RemoteDir>
+                        <Operation>0</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice32">
+                        <Operation>0</Operation>
+                    </Platform>
+                    <Platform Name="Android">
+                        <Operation>0</Operation>
+                    </Platform>
+                    <Platform Name="iOSSimulator">
+                        <Operation>0</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="AndroidServiceOutput">
+                    <Platform Name="Android">
+                        <RemoteDir>library\lib\armeabi-v7a</RemoteDir>
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Required="true" Name="DependencyPackage">
+                    <Platform Name="Win32">
+                        <Operation>0</Operation>
+                        <Extensions>.bpl</Extensions>
+                    </Platform>
+                    <Platform Name="iOSDevice64">
+                        <Operation>1</Operation>
+                        <Extensions>.dylib</Extensions>
+                    </Platform>
+                    <Platform Name="OSX32">
+                        <RemoteDir>Contents\MacOS</RemoteDir>
+                        <Operation>1</Operation>
+                        <Extensions>.dylib</Extensions>
+                    </Platform>
+                    <Platform Name="iOSDevice32">
+                        <Operation>1</Operation>
+                        <Extensions>.dylib</Extensions>
+                    </Platform>
+                    <Platform Name="iOSSimulator">
+                        <Operation>1</Operation>
+                        <Extensions>.dylib</Extensions>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="Android_LauncherIcon48">
+                    <Platform Name="Android">
+                        <RemoteDir>res\drawable-mdpi</RemoteDir>
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="Android_SplashImage960">
+                    <Platform Name="Android">
+                        <RemoteDir>res\drawable-xlarge</RemoteDir>
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="Android_LauncherIcon36">
+                    <Platform Name="Android">
+                        <RemoteDir>res\drawable-ldpi</RemoteDir>
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <DeployClass Name="ProjectiOSDeviceResourceRules">
+                    <Platform Name="iOSDevice64">
+                        <Operation>1</Operation>
+                    </Platform>
+                    <Platform Name="iOSDevice32">
+                        <Operation>1</Operation>
+                    </Platform>
+                </DeployClass>
+                <ProjectRoot Platform="iOSDevice64" Name="$(PROJECTNAME).app"/>
+                <ProjectRoot Platform="Win64" Name="$(PROJECTNAME)"/>
+                <ProjectRoot Platform="iOSDevice32" Name="$(PROJECTNAME).app"/>
+                <ProjectRoot Platform="Win32" Name="$(PROJECTNAME)"/>
+                <ProjectRoot Platform="OSX32" Name="$(PROJECTNAME).app"/>
+                <ProjectRoot Platform="Android" Name="$(PROJECTNAME)"/>
+                <ProjectRoot Platform="iOSSimulator" Name="$(PROJECTNAME).app"/>
+            </Deployment>
+            <Platforms>
+                <Platform value="Win32">True</Platform>
+                <Platform value="Win64">False</Platform>
+            </Platforms>
+        </BorlandProject>
+        <ProjectFileVersion>12</ProjectFileVersion>
+    </ProjectExtensions>
+    <Import Project="$(BDS)\Bin\CodeGear.Delphi.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Delphi.Targets')"/>
+    <Import Project="$(APPDATA)\Embarcadero\$(BDSAPPDATABASEDIR)\$(PRODUCTVERSION)\UserTools.proj" Condition="Exists('$(APPDATA)\Embarcadero\$(BDSAPPDATABASEDIR)\$(PRODUCTVERSION)\UserTools.proj')"/>
+    <Import Project="$(MSBuildProjectName).deployproj" Condition="Exists('$(MSBuildProjectName).deployproj')"/>
+</Project>
+
