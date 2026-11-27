@@ -9,15 +9,13 @@ from app.api_errors import ApiError
 from .repository import register_delivery_operation
 
 
-PAYLOAD_VERSION = 1
+PAYLOAD_VERSION = 2
 _ALLOWED_FIELDS = {
     "operacao_guid",
+    "occurrence_guid",
     "codigo",
     "data_hora_aparelho",
     "fuso_minutos",
-    "latitude",
-    "longitude",
-    "precisao",
 }
 
 
@@ -68,7 +66,7 @@ def _canonical_decimal(value):
 
 def _device_datetime(value, fuso_minutos):
     if value is None:
-        return None, fuso_minutos
+        return None, fuso_minutos, None
     if not isinstance(value, str) or not value.strip():
         raise ApiError("data_hora_aparelho invalida.", 400)
 
@@ -80,6 +78,7 @@ def _device_datetime(value, fuso_minutos):
     except ValueError:
         raise ApiError("data_hora_aparelho invalida.", 400)
 
+    payload_value = parsed.isoformat()
     if parsed.tzinfo is not None:
         offset = parsed.utcoffset()
         if offset is None or offset.total_seconds() % 60:
@@ -90,7 +89,7 @@ def _device_datetime(value, fuso_minutos):
         fuso_minutos = timestamp_offset
         parsed = parsed.replace(tzinfo=None)
 
-    return parsed, fuso_minutos
+    return parsed, fuso_minutos, payload_value
 
 
 def _payload_hash(canonical_payload):
@@ -115,8 +114,7 @@ def register_delivery(
     if not isinstance(payload, dict):
         raise ApiError("Payload JSON invalido.", 400)
 
-    unexpected = set(payload) - _ALLOWED_FIELDS
-    if unexpected:
+    if set(payload) != _ALLOWED_FIELDS:
         raise ApiError("O payload contem campos nao permitidos.", 400)
 
     if isinstance(parada, bool) or parada <= 0 or isinstance(pedido, bool) or pedido <= 0:
@@ -124,6 +122,7 @@ def register_delivery(
 
     manifesto_guid = _uuid(manifesto_guid, "manifesto_guid")
     operacao_guid = _uuid(payload.get("operacao_guid"), "operacao_guid")
+    occurrence_guid = _uuid(payload.get("occurrence_guid"), "occurrence_guid")
 
     codigo = payload.get("codigo")
     if not isinstance(codigo, str):
@@ -133,33 +132,21 @@ def register_delivery(
         raise ApiError("codigo invalido.", 400)
 
     fuso_minutos = _optional_integer(payload.get("fuso_minutos"), "fuso_minutos")
-    if fuso_minutos is not None and not -32768 <= fuso_minutos <= 32767:
+    if fuso_minutos is None or not -840 <= fuso_minutos <= 840:
         raise ApiError("fuso_minutos fora do intervalo suportado.", 400)
-    data_hora_aparelho, fuso_minutos = _device_datetime(
+    data_hora_aparelho, fuso_minutos, data_hora_payload = _device_datetime(
         payload.get("data_hora_aparelho"), fuso_minutos
     )
 
-    latitude = _optional_decimal(payload.get("latitude"), "latitude", 10, 8)
-    longitude = _optional_decimal(payload.get("longitude"), "longitude", 10, 8)
-    precisao = _optional_decimal(payload.get("precisao"), "precisao", 13, 2)
-
     canonical_payload = {
-        "codigo": codigo,
-        "data_hora_aparelho": (
-            data_hora_aparelho.isoformat(timespec="microseconds")
-            if data_hora_aparelho
-            else None
-        ),
-        "dispositivo": dispositivo,
-        "fuso_minutos": fuso_minutos,
-        "latitude": _canonical_decimal(latitude),
-        "longitude": _canonical_decimal(longitude),
         "manifesto_guid": manifesto_guid,
-        "motorista": motorista_id,
-        "parada": parada,
-        "pedido": pedido,
-        "precisao": _canonical_decimal(precisao),
-        "sessao": sessao_id,
+        "stop_id": parada,
+        "order_id": pedido,
+        "operacao_guid": operacao_guid,
+        "occurrence_guid": occurrence_guid,
+        "codigo": codigo,
+        "data_hora_aparelho": data_hora_payload,
+        "fuso_minutos": fuso_minutos,
     }
 
     return register_delivery_operation(
@@ -169,13 +156,14 @@ def register_delivery(
         parada=parada,
         pedido=pedido,
         operacao_guid=operacao_guid,
+        occurrence_guid=occurrence_guid,
         payload_versao=PAYLOAD_VERSION,
         payload_hash=_payload_hash(canonical_payload),
         codigo=codigo,
         data_hora_aparelho=data_hora_aparelho,
         fuso_minutos=fuso_minutos,
-        latitude=latitude,
-        longitude=longitude,
-        precisao=precisao,
+        latitude=None,
+        longitude=None,
+        precisao=None,
         dispositivo=dispositivo,
     )

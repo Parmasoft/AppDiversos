@@ -1,0 +1,153 @@
+diff --git a/AppMotorista/ApiMotoristaNuvem/app/contracts.py b/AppMotorista/ApiMotoristaNuvem/app/contracts.py
+index fa1fb362..25c4e402 100644
+--- a/AppMotorista/ApiMotoristaNuvem/app/contracts.py
++++ b/AppMotorista/ApiMotoristaNuvem/app/contracts.py
+@@ -15,7 +15,8 @@ _EVENT_FIELDS = {
+     "fonte_autoritativa", "operacao_guid", "carga_guid", "manifesto_guid",
+     "parada_guid", "pedido_guid", "cliente",
+ }
+-_DELIVERY_READ_FIELDS = {"operacao_guid", "codigo", "data_hora_aparelho", "fuso_minutos"}
++_DELIVERY_READ_V1_FIELDS = {"operacao_guid", "codigo", "data_hora_aparelho", "fuso_minutos"}
++_DELIVERY_READ_V2_FIELDS = _DELIVERY_READ_V1_FIELDS | {"occurrence_guid"}
+ 
+ 
+ def _require(mapping, fields, location):
+@@ -99,10 +100,11 @@ def validate_fencing_headers(request):
+ 
+ 
+ def validate_delivery_read(payload):
+-    _require(payload, _DELIVERY_READ_FIELDS, "delivery_read")
+-    unexpected = sorted(set(payload) - _DELIVERY_READ_FIELDS)
+-    if unexpected:
+-        raise ApiError(400, "CONTRATO_INVALIDO", f"delivery_read: campos nao permitidos: {', '.join(unexpected)}")
++    if not isinstance(payload, dict):
++        raise ApiError(400, "CONTRATO_INVALIDO", "delivery_read deve ser um objeto")
++    fields = set(payload)
++    if fields != _DELIVERY_READ_V1_FIELDS and fields != _DELIVERY_READ_V2_FIELDS:
++        raise ApiError(400, "CONTRATO_INVALIDO", "delivery_read contem campos invalidos")
+     try:
+         operation_guid = UUID(str(payload["operacao_guid"]))
+         device_time = datetime.fromisoformat(str(payload["data_hora_aparelho"]))
+@@ -114,10 +116,16 @@ def validate_delivery_read(payload):
+     code = str(payload["codigo"]).strip().upper()
+     if not code or len(code) > 200 or not -840 <= timezone_offset <= 840:
+         raise ApiError(400, "CONTRATO_INVALIDO", "codigo ou fuso invalido")
+-    return {
++    normalized = {
+         "operacao_guid": str(operation_guid), "codigo": code,
+         "data_hora_aparelho": device_time.isoformat(), "fuso_minutos": timezone_offset,
+     }
++    if "occurrence_guid" in payload:
++        try:
++            normalized["occurrence_guid"] = str(UUID(str(payload["occurrence_guid"])))
++        except (TypeError, ValueError):
++            raise ApiError(400, "CONTRATO_INVALIDO", "occurrence_guid invalido")
++    return normalized
+ 
+ 
+ def validate_tracking_event(event):
+diff --git a/AppMotorista/ApiMotoristaNuvem/app/service.py b/AppMotorista/ApiMotoristaNuvem/app/service.py
+index 21caa1f8..d065c312 100644
+--- a/AppMotorista/ApiMotoristaNuvem/app/service.py
++++ b/AppMotorista/ApiMotoristaNuvem/app/service.py
+@@ -663,6 +663,42 @@ def _read_hash(manifest_guid, stop_id, order_id, payload):
+     return hashlib.sha256(material.encode("utf-8")).hexdigest()
+ 
+ 
++def _insert_delivery_read_ledger(connection, values):
++    """Write V2 ledger on both the pre-return and return-lifecycle schemas.
++
++    This only records cloud ledger metadata. It neither claims nor sends a return.
++    """
++    if connection.dialect.name != "postgresql":
++        connection.execute(delivery_read_operation.insert().values(**values))
++        return
++    has_return_lifecycle = connection.execute(text("""
++        SELECT EXISTS (
++            SELECT 1 FROM information_schema.columns
++             WHERE table_schema = 'public'
++               AND table_name = 'delivery_read_operation'
++               AND column_name = 'return_payload_hash'
++        )
++    """)).scalar_one()
++    if not has_return_lifecycle:
++        connection.execute(delivery_read_operation.insert().values(**values))
++        return
++    connection.execute(text("""
++        INSERT INTO delivery_read_operation (
++            tenant_id, operation_guid, driver_guid, manifest_guid, stop_id, order_id,
++            request_hash, request_json, response_json, created_at,
++            return_contract_version, return_payload_hash, return_state, return_attempt_count
++        ) VALUES (
++            :tenant_id, :operation_guid, :driver_guid, :manifest_guid, :stop_id, :order_id,
++            :request_hash, CAST(:request_json AS jsonb), CAST(:response_json AS jsonb), :created_at,
++            1, :request_hash, 'PENDING', 0
++        )
++    """), {
++        **values,
++        "request_json": json.dumps(values["request_json"]),
++        "response_json": json.dumps(values["response_json"]),
++    })
++
++
+ def register_delivery_read(session, manifest_guid, stop_id, order_id, payload):
+     request_hash = _read_hash(manifest_guid, stop_id, order_id, payload)
+     with get_engine().begin() as connection:
+@@ -692,22 +728,25 @@ def register_delivery_read(session, manifest_guid, stop_id, order_id, payload):
+         if detail["carga"]["id"] in current_app.config["DELIVERY_DENIED_LOAD_IDS"]:
+             raise ApiError(403, "CARGA_NAO_AUTORIZADA", "Carga nao autorizada para delivery_read")
+         stop = next((value for value in detail["paradas"] if value["parada"] == stop_id), None)
+-        candidates = [] if stop is None else [
+-            value for value in stop["ocorrencias"]
+-            if value["pedido"] == order_id
+-            and str(value.get("codigo", "")).strip().upper() == payload["codigo"]
+-        ]
+-        occurrence = next((value for value in candidates if value["status"] == "P"), None)
+-        if stop is None:
+-            response = _delivery_response("RECUSADA", "OUTRA_PARADA", "Parada nao pertence a esta viagem", payload["operacao_guid"])
+-        elif not candidates:
+-            same_stop = any(str(value.get("codigo", "")).strip().upper() == payload["codigo"] for value in stop["ocorrencias"])
+-            same_manifest = any(str(value.get("codigo", "")).strip().upper() == payload["codigo"] for candidate in detail["paradas"] for value in candidate["ocorrencias"])
+-            code = "OUTRO_PEDIDO" if same_stop else "OUTRA_PARADA" if same_manifest else "CODIGO_NAO_DISPONIVEL"
+-            response = _delivery_response("RECUSADA", code, "Codigo nao disponivel para este pedido", payload["operacao_guid"])
++        occurrence_guid = payload.get("occurrence_guid")
++        occurrence = next(
++            (value for candidate_stop in detail["paradas"] for value in candidate_stop["ocorrencias"]
++             if occurrence_guid and value.get("guid") == occurrence_guid),
++            None,
++        )
++        # Existing operations were resolved above. New V1 operations never deliver.
++        if occurrence_guid is None:
++            response = _delivery_response("RECUSADA", "OCORRENCIA_GUID_OBRIGATORIA", "occurrence_guid e obrigatorio para novas operacoes", payload["operacao_guid"])
+         elif occurrence is None:
+-            code = "ROLO_JA_RECEPCIONADO" if any(value.get("tipo") == "R" for value in candidates) else "MULTIPLICIDADE_ESGOTADA"
+-            response = _delivery_response("RECUSADA", code, "Ocorrencia ja recepcionada", payload["operacao_guid"])
++            response = _delivery_response("RECUSADA", "OCORRENCIA_NAO_ENCONTRADA", "Ocorrencia nao pertence a esta viagem", payload["operacao_guid"])
++        elif stop is None:
++            response = _delivery_response("RECUSADA", "OUTRA_PARADA", "Parada nao pertence a esta viagem", payload["operacao_guid"])
++        elif occurrence not in stop["ocorrencias"] or occurrence.get("pedido") != order_id:
++            response = _delivery_response("RECUSADA", "OCORRENCIA_FORA_DO_ESCOPO", "Ocorrencia nao pertence a esta parada ou pedido", payload["operacao_guid"])
++        elif str(occurrence.get("codigo", "")).strip().upper() != payload["codigo"]:
++            response = _delivery_response("RECUSADA", "CODIGO_DIVERGENTE", "Codigo nao corresponde a ocorrencia informada", payload["operacao_guid"])
++        elif occurrence.get("status") != "P":
++            response = _delivery_response("RECUSADA", "OCORRENCIA_JA_ENTREGUE", "Ocorrencia ja recepcionada", payload["operacao_guid"], occurrence["guid"])
+         else:
+             occurrence["status"] = "E"
+             pending_order = sum(1 for value in stop["ocorrencias"] if value["pedido"] == order_id and value["status"] == "P")
+@@ -722,9 +761,11 @@ def register_delivery_read(session, manifest_guid, stop_id, order_id, payload):
+             # registra a intenção idempotente, mas a confirmação operacional e
+             # qualquer alteração de projeção pertencem a um bloco posterior.
+ 
+-        connection.execute(delivery_read_operation.insert().values(
+-            tenant_id=session["tenant_id"], operation_guid=payload["operacao_guid"], driver_guid=session["driver_guid"], manifest_guid=manifest_guid,
+-            stop_id=stop_id, order_id=order_id, request_hash=request_hash, request_json=payload,
+-            response_json=response, created_at=database_now(connection),
+-        ))
++        _insert_delivery_read_ledger(connection, {
++            "tenant_id": session["tenant_id"], "operation_guid": payload["operacao_guid"],
++            "driver_guid": session["driver_guid"], "manifest_guid": manifest_guid,
++            "stop_id": stop_id, "order_id": order_id, "request_hash": request_hash,
++            "request_json": payload, "response_json": response,
++            "created_at": database_now(connection),
++        })
+         return response, 200

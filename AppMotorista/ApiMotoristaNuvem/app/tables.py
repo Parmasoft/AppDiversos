@@ -5,6 +5,7 @@ from sqlalchemy import (
     Column,
     DateTime,
     ForeignKey,
+    ForeignKeyConstraint,
     Identity,
     Index,
     Integer,
@@ -57,6 +58,18 @@ agent_credential = Table(
     UniqueConstraint("tenant_id", "agent_guid", name="uq_agent_credential_tenant_guid"),
 )
 
+# Escopo administrativo persistente da credencial tecnica.  A empresa nao e
+# recebida como autorizacao do Agente: os fluxos sensiveis cruzam esta tabela
+# com a projecao que ja esta no servidor.
+agent_credential_company_access = Table(
+    "agent_credential_company_access",
+    metadata,
+    Column("agent_credential_id", Integer, ForeignKey("agent_credential.id", ondelete="CASCADE"), primary_key=True),
+    Column("company_id", Integer, primary_key=True),
+    Column("active", Boolean, nullable=False, server_default="true"),
+    Column("created_at", DateTime(timezone=True), nullable=False, server_default=func.now()),
+)
+
 mobile_session = Table(
     "mobile_session",
     metadata,
@@ -68,6 +81,37 @@ mobile_session = Table(
     Column("expires_at", DateTime(timezone=True), nullable=False),
     Column("revoked_at", DateTime(timezone=True)),
     Column("created_at", DateTime(timezone=True), nullable=False),
+)
+
+# Credenciais verificaveis projetadas pelo Agente. Nunca recebem senha bruta.
+mobile_driver_identity = Table(
+    "mobile_driver_identity",
+    metadata,
+    Column("tenant_id", Integer, ForeignKey("tenant.id"), primary_key=True),
+    Column("driver_guid", String(100), primary_key=True),
+    Column("driver_app_id", Integer, nullable=False),
+    Column("driver_name", String(200), nullable=False),
+    Column("login_normalized", String(80), nullable=False),
+    Column("password_verifier", String(255), nullable=False),
+    Column("active", Boolean, nullable=False),
+    Column("updated_at", DateTime(timezone=True), nullable=False, server_default=func.now()),
+    UniqueConstraint("tenant_id", "login_normalized", name="uq_mobile_driver_tenant_login"),
+)
+
+mobile_driver_company_access = Table(
+    "mobile_driver_company_access",
+    metadata,
+    Column("tenant_id", Integer, ForeignKey("tenant.id"), primary_key=True),
+    Column("company_id", Integer, primary_key=True),
+    Column("driver_guid", String(100), primary_key=True),
+    Column("transporter_id", Integer),
+    Column("active", Boolean, nullable=False),
+    Column("updated_at", DateTime(timezone=True), nullable=False, server_default=func.now()),
+    ForeignKeyConstraint(
+        ["tenant_id", "driver_guid"],
+        ["mobile_driver_identity.tenant_id", "mobile_driver_identity.driver_guid"],
+        name="fk_mobile_driver_company_identity",
+    ),
 )
 
 # Ledger da unica escrita aceita diretamente do aplicativo.  Nao ha FK, cliente
@@ -86,7 +130,20 @@ delivery_read_operation = Table(
     Column("request_json", JSON_DOCUMENT, nullable=False),
     Column("response_json", JSON_DOCUMENT, nullable=False),
     Column("created_at", DateTime(timezone=True), nullable=False),
+    # Lifecycle owned by the technical Agent.  The original mobile request and
+    # response above are immutable and are never consumed or overwritten.
+    Column("return_contract_version", Integer, nullable=False, server_default="1"),
+    Column("return_payload_hash", String(64), nullable=False),
+    Column("return_state", String(20), nullable=False, server_default="PENDING"),
+    Column("claimed_by_agent_id", Integer, ForeignKey("agent_credential.id")),
+    Column("claimed_instance_guid", Uuid(as_uuid=False)),
+    Column("claim_expires_at", DateTime(timezone=True)),
+    Column("return_attempt_count", Integer, nullable=False, server_default="0"),
+    Column("return_result_json", JSON_DOCUMENT),
+    Column("returned_at", DateTime(timezone=True)),
     CheckConstraint("length(request_hash) = 64", name="delivery_read_request_hash_length"),
+    CheckConstraint("length(return_payload_hash) = 64", name="delivery_read_return_hash_length"),
+    CheckConstraint("return_state IN ('PENDING', 'CLAIMED', 'APPLIED', 'REJECTED')", name="delivery_read_return_state"),
     UniqueConstraint("tenant_id", "operation_guid", name="uq_delivery_read_tenant_operation"),
 )
 

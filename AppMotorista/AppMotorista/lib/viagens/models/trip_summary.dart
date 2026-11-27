@@ -1,3 +1,5 @@
+enum OfflineAvailability { available, pending, failed }
+
 class TripSummary {
   const TripSummary({
     required this.manifestGuid,
@@ -10,6 +12,7 @@ class TripSummary {
     this.releasedAt,
     this.locallyCompleted = false,
     this.awaitingSync = false,
+    this.offlineAvailability = OfflineAvailability.pending,
   });
 
   final String manifestGuid;
@@ -22,6 +25,7 @@ class TripSummary {
   final DateTime? releasedAt;
   final bool locallyCompleted;
   final bool awaitingSync;
+  final OfflineAvailability offlineAvailability;
 
   factory TripSummary.fromJson(Map<String, dynamic> json) {
     return TripSummary(

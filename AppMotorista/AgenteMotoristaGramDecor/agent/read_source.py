@@ -50,23 +50,33 @@ class FirebirdSnapshotSource:
         try:
             connection.begin(tpb=fdb.ISOLATION_LEVEL_READ_COMMITED_RO)
             cursor = connection.cursor()
-            scope_filter = " OR ".join(
-                "(M.CARGM_EMPRESA = ? AND M.CARGM_CARGA = ?)" for _ in allowed_scopes
-            )
-            parameters = tuple(value for scope in allowed_scopes for value in scope)
+            scope_conditions = []
+            parameters = []
+            for company, load in allowed_scopes:
+                if load is None:
+                    scope_conditions.append("(M.CARGM_EMPRESA = ?)")
+                    parameters.append(company)
+                else:
+                    scope_conditions.append("(M.CARGM_EMPRESA = ? AND M.CARGM_CARGA = ?)")
+                    parameters.extend((company, load))
+            scope_filter = " OR ".join(scope_conditions)
             cursor.execute(
                 f"""
-                SELECT M.CARGM_GUID
+                SELECT DISTINCT M.CARGM_GUID
                   FROM TB_CARGA_MANIFESTO M
+                  JOIN TB_MOTORISTA_APP D
+                    ON D.MOTAPP_ID = M.CARGM_MOTORISTA_APP
                   JOIN TB_MOTORISTA_APP_EMPRESA ME
                     ON ME.MOTAPPE_EMPRESA = M.CARGM_EMPRESA
                    AND ME.MOTAPPE_MOTORISTA = M.CARGM_MOTORISTA_APP
                    AND ME.MOTAPPE_ATIVO = 'S'
                  WHERE M.CARGM_STATUS = 'L'
+                   AND M.CARGM_DH_LIBERACAO IS NOT NULL
+                   AND D.MOTAPP_ATIVO = 'S'
                    AND ({scope_filter})
                  ORDER BY M.CARGM_EMPRESA, M.CARGM_ID
                 """,
-                parameters,
+                tuple(parameters),
             )
             return [row[0] for row in cursor.fetchall()]
         finally:
@@ -92,6 +102,45 @@ class FirebirdSnapshotSource:
             for guid in self.list_released_manifest_guids(allowed_scopes)
         ]
 
+    def list_driver_identities(self, allowed_scopes):
+        """Full company-scoped credential projection; never returns a raw password."""
+        companies = sorted({company for company, _load in allowed_scopes})
+        if not companies:
+            return []
+        connection = self._connection()
+        try:
+            connection.begin(tpb=fdb.ISOLATION_LEVEL_READ_COMMITED_RO)
+            cursor = connection.cursor()
+            placeholders = ", ".join("?" for _ in companies)
+            cursor.execute(
+                f"""
+                SELECT ME.MOTAPPE_EMPRESA, D.MOTAPP_ID, D.MOTAPP_GUID,
+                       D.MOTAPP_NOME, D.MOTAPP_LOGIN, D.MOTAPP_SENHA_HASH,
+                       D.MOTAPP_ATIVO, ME.MOTAPPE_ATIVO, ME.MOTAPPE_TRANSPORTADOR
+                 FROM TB_MOTORISTA_APP_EMPRESA ME
+                  JOIN TB_MOTORISTA_APP D ON D.MOTAPP_ID = ME.MOTAPPE_MOTORISTA
+                 WHERE ME.MOTAPPE_EMPRESA IN ({placeholders})
+                   AND D.MOTAPP_LOGIN IS NOT NULL
+                   AND D.MOTAPP_SENHA_HASH IS NOT NULL
+                 ORDER BY ME.MOTAPPE_EMPRESA, D.MOTAPP_ID
+                """,
+                tuple(companies),
+            )
+            return [
+                {
+                    "empresa": row[0], "motorista_id": row[1], "motorista_guid": row[2],
+                    "nome": row[3], "login": row[4].strip().upper(),
+                    "password_verifier": row[5], "motorista_ativo": row[6] == "S",
+                    "vinculo_ativo": row[7] == "S", "transportador": row[8],
+                }
+                for row in cursor.fetchall()
+            ]
+        finally:
+            try:
+                connection.rollback()
+            finally:
+                connection.close()
+
     @staticmethod
     def _read_detail(cursor, manifest_guid):
         cursor.execute(
@@ -112,7 +161,10 @@ class FirebirdSnapshotSource:
               JOIN TB_CARGA C
                 ON C.CARG_EMPRESA = M.CARGM_EMPRESA AND C.CARG_ID = M.CARGM_CARGA
               JOIN TB_EMPRESA E ON E.EMP_ID = M.CARGM_EMPRESA
-             WHERE M.CARGM_GUID = ? AND M.CARGM_STATUS = 'L'
+             WHERE M.CARGM_GUID = ?
+               AND M.CARGM_STATUS = 'L'
+               AND M.CARGM_DH_LIBERACAO IS NOT NULL
+               AND D.MOTAPP_ATIVO = 'S'
             """,
             (manifest_guid,),
         )
@@ -124,7 +176,7 @@ class FirebirdSnapshotSource:
         cursor.execute(
             """
             SELECT P.CARGPA_ID, P.CARGPA_GUID, P.CARGPA_CLIENTE,
-                   COALESCE(CL.CLI_FANTASIA_APELIDO, CL.CLI_RSOCIAL_NOME),
+                   COALESCE(NULLIF(TRIM(CL.CLI_FANTASIA_APELIDO), ''), CL.CLI_RSOCIAL_NOME),
                    P.CARGPA_ORDEM_PLANEJADA, P.CARGPA_ORDEM_SUGERIDA,
                    P.CARGPA_ORDEM_REALIZADA, P.CARGPA_STATUS,
                    P.CARGPA_ENDERECO, P.CARGPA_NUMERO, P.CARGPA_COMPLEMENTO,

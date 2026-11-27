@@ -31,13 +31,36 @@ class AppConfig {
   final Duration requestTimeout;
   final bool readOnly;
 
+  AppConfig copyWith({String? baseUri}) => AppConfig(
+    environment: environment,
+    baseUri: baseUri ?? this.baseUri,
+    requestTimeout: requestTimeout,
+    readOnly: readOnly,
+  );
+
   bool get isDevelopment => environment == 'desenvolvimento';
 
   bool get enableMobileBootstrap => environment == 'homologacao';
 
   bool get isHomologationReadOnly => environment == 'homologacao' && readOnly;
 
-  String get sessionStorageKey => environment == 'homologacao'
-      ? homologationSessionStorageKey
-      : legacySessionStorageKey;
+  /// The sole endpoint that owned the pre-isolation session key.  Compatibility
+  /// is intentionally unavailable for any configurable endpoint.
+  bool get mayReadHomologationLegacySession =>
+      environment == 'homologacao' &&
+      baseUri.trim().toLowerCase() == 'https://motorista.parmatech.com.br';
+
+  /// Keeps credentials from one server out of another server's session.
+  String get sessionStorageKey =>
+      '${environment == 'homologacao' ? homologationSessionStorageKey : legacySessionStorageKey}_$storageScope';
+
+  /// Stable, filesystem-safe scope derived from the selected API origin.
+  String get storageScope {
+    var hash = 0x811c9dc5;
+    for (final codeUnit in baseUri.trim().toLowerCase().codeUnits) {
+      hash ^= codeUnit;
+      hash = (hash * 0x01000193) & 0x7fffffff;
+    }
+    return hash.toRadixString(16);
+  }
 }

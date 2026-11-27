@@ -1,0 +1,21 @@
+[Unit]
+Description=API Malhas Nuvem (Gunicorn)
+After=network.target postgresql@18-main.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/api-malhas-nuvem
+EnvironmentFile=/etc/api-malhas-nuvem.env
+ExecStart=/opt/api-malhas-nuvem/.venv/bin/gunicorn --workers 2 --bind 127.0.0.1:8092 --access-logfile - --error-logfile - 'app:create_app()'
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/var/log/api-malhas-nuvem
+
+[Install]
+WantedBy=multi-user.target

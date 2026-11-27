@@ -79,6 +79,22 @@ class CloudClient:
             data=payload_literal.encode("utf-8"),
         )
 
+    def sync_driver_identities(self, companies, identities):
+        return self._request("POST", "/api/v1/agente/motoristas", json={
+            "contrato_versao": 1, "empresas": list(companies), "identidades": identities,
+        })
+
+    def claim_delivery_returns(self, agent_instance_guid, operation_guid=None):
+        payload = {"agent_instance_guid": agent_instance_guid}
+        if operation_guid is not None:
+            payload["operation_guid"] = operation_guid
+        return self._request("POST", "/api/v1/agente/retornos/claim", json=payload)
+
+    def acknowledge_delivery_return(self, result, agent_instance_guid):
+        return self._request("POST", "/api/v1/agente/retornos/ack", headers={
+            "X-Agent-Instance-Guid": agent_instance_guid,
+        }, json=result)
+
 
 class SnapshotSynchronizer:
     def __init__(self, source, client, state, allowed_scopes):
@@ -124,11 +140,25 @@ class SnapshotSynchronizer:
 
     def run_once(self):
         results = []
+        if hasattr(self.source, "list_driver_identities"):
+            identities = self.source.list_driver_identities(self.allowed_scopes)
+            if hasattr(self.client, "sync_driver_identities"):
+                companies = sorted({company for company, _load in self.allowed_scopes})
+                results.append(self.client.sync_driver_identities(companies, identities))
+        released_manifest_guids = tuple(self.source.list_released_manifest_guids(self.allowed_scopes))
+        released_manifest_set = set(released_manifest_guids)
         for pending in self.state.list_pending():
+            if pending["manifesto_guid"] not in released_manifest_set:
+                self.state.discard_pending(pending, "manifesto nao esta mais elegivel")
+                results.append({
+                    "resultado": "PENDENTE_DESCARTADO_INELEGIVEL",
+                    "manifesto_guid": pending["manifesto_guid"],
+                })
+                continue
             lease = self._acquire(pending["manifesto_guid"])
             results.append(self._publish_pending(pending, lease))
 
-        for manifesto_guid in self.source.list_released_manifest_guids(self.allowed_scopes):
+        for manifesto_guid in released_manifest_guids:
             lease = self._acquire(manifesto_guid)
             detail = self.source.read_manifest(manifesto_guid)
             pending = self.state.create_pending(

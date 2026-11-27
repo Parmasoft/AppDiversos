@@ -1,5 +1,19 @@
 # ApiMotoristaNuvem - PostgreSQL preparado em fonte
 
+## Status de homologação — 19/11/2026
+
+A API oficial em uso pelo App Motorista é
+`https://motorista.parmatech.com.br`. O endpoint público
+`GET /api/v1/health` foi conferido no Samsung S20 e respondeu o serviço como
+saudável. O login do motorista e a abertura de **Minhas viagens** foram
+homologados no aparelho; a tela informou "Nenhuma viagem liberada".
+
+O aplicativo usa a URL oficial compilada por `dart-define`, sem configuração
+de IP pelo motorista. A publicação de viagens depende do
+`AgenteMotoristaGramDecor`; não houve publicação confirmada da carga 776 nesta
+rodada. O retorno de entregas continua desabilitado até homologação segura da
+estrutura Firebird e do respectivo fluxo de retorno.
+
 API isolada da API local e do Firebird GramDecor. A producao exige PostgreSQL por
 `postgresql+psycopg`; SQLite e aceito somente como banco descartavel quando `TESTING=true`.
 Nenhum servico da DigitalOcean foi criado ou alterado.

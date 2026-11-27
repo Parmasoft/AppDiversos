@@ -7,6 +7,7 @@ import 'pages/scanner_page.dart';
 import 'pages/produto_encontrado_page.dart';
 import 'pages/config_page.dart';
 import 'pages/buscar_produto_page.dart';
+import 'pages/recebimento_pedido_compra_page.dart';
 import 'pages/requisicoes_transferencia_page.dart';
 import 'pages/regularizacao_rolos_filial_page.dart';
 import 'pages/separacao_rolos_page.dart';
@@ -276,6 +277,15 @@ class _TelaUnicaState extends State<TelaUnica> {
       MaterialPageRoute(
         builder: (_) =>
             BuscarProdutoPage(baseUrl: baseUrl, empresaId: empresaId),
+      ),
+    );
+  }
+
+  Future<void> abrirRecebimentoPedidoCompra() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const RecebimentoPedidoCompraPage(),
       ),
     );
   }
@@ -690,6 +700,38 @@ class _TelaUnicaState extends State<TelaUnica> {
                                         ),
                                         label: const Text(
                                           "Buscar Produto",
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.white,
+                                          foregroundColor: Colors.black,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              14,
+                                            ),
+                                            side: const BorderSide(
+                                              color: Colors.black12,
+                                            ),
+                                          ),
+                                          elevation: 3,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    SizedBox(
+                                      width: 250,
+                                      height: 48,
+                                      child: ElevatedButton.icon(
+                                        onPressed: abrirRecebimentoPedidoCompra,
+                                        icon: const Icon(
+                                          Icons.shopping_cart_outlined,
+                                          size: 22,
+                                        ),
+                                        label: const Text(
+                                          "Pedido de Compras",
                                           style: TextStyle(
                                             fontSize: 18,
                                             fontWeight: FontWeight.bold,

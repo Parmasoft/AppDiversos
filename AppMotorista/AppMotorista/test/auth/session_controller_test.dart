@@ -1,5 +1,7 @@
+import 'package:app_motorista/auth/models/session.dart';
 import 'package:app_motorista/auth/services/session_controller.dart';
 import 'package:app_motorista/core/errors/api_exception.dart';
+import 'package:app_motorista/storage/session_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers/fakes.dart';
@@ -35,6 +37,18 @@ void main() {
 
       expect(controller.state, SessionState.authenticated);
       expect(gateway.renewCalls, 0);
+    });
+
+    test('falha no armazenamento sai do bootstrap e informa o login', () async {
+      final controller = SessionController(
+        repository: FakeAuthGateway(),
+        storage: _FailingSessionStorage(),
+      );
+
+      await controller.restore();
+
+      expect(controller.state, SessionState.loggedOut);
+      expect(controller.loginError, contains('restaurar a'));
     });
 
     test('renova sessão expirada durante a restauração', () async {
@@ -183,4 +197,16 @@ void main() {
       expect(storage.value, isNull);
     });
   });
+}
+
+class _FailingSessionStorage implements SessionStorage {
+  @override
+  Future<void> clear() async {}
+
+  @override
+  Future<DriverSession?> read() =>
+      Future.error(StateError('secure storage unavailable'));
+
+  @override
+  Future<void> write(DriverSession session) async {}
 }

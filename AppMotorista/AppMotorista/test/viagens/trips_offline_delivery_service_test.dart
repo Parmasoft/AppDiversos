@@ -80,13 +80,50 @@ void main() {
     expect(transport.calls, 1);
     final sent = transport.bodies.single! as Map<String, Object>;
     expect(sent['operacao_guid'], '11111111-1111-4111-8111-111111111111');
+    expect(sent['occurrence_guid'], 'OC-1');
     final operation = await outboxStore.find(
       '11111111-1111-4111-8111-111111111111',
     );
     expect(operation!.state, OutboxSyncState.synced);
     expect(operation.occurrenceGuid, 'OC-1');
+    expect(operation.payloadVersion, 2);
     expect(jsonDecode(operation.payloadJson), sent);
   });
+
+  test(
+    'aceite online com UUID divergente vira conflito e não SYNCED',
+    () async {
+      final transport = _RecordingTransport([
+        _deliveryResponse(result: 'ACEITA', occurrenceGuid: 'OC-2'),
+      ]);
+      final service = await _service(
+        transport: transport,
+        operationGuids: ['12121212-1212-4121-8121-121212121212'],
+        appDatabase: appDatabase,
+        tripStore: tripStore,
+      );
+
+      final result = await service.registerRead(
+        manifestGuid: 'MANIFEST-1',
+        stopId: 20,
+        orderId: 200,
+        code: 'CODIGO-C',
+      );
+
+      expect(result.isConflict, isTrue);
+      expect(result.responseCode, 'OCORRENCIA_GUID_DIVERGENTE');
+      final operation = await outboxStore.find(
+        '12121212-1212-4121-8121-121212121212',
+      );
+      expect(operation!.state, OutboxSyncState.conflict);
+      expect(operation.occurrenceGuid, 'OC-1');
+      expect(operation.lastError, contains('diverge'));
+      expect(
+        (jsonDecode(operation.responseJson!) as Map)['ocorrencia_guid'],
+        'OC-2',
+      );
+    },
+  );
 
   test(
     'perda de resposta mantém sucesso local e o mesmo UUID pendente',
@@ -116,9 +153,14 @@ void main() {
       expect(operation!.state, OutboxSyncState.pending);
       expect(operation.attemptCount, 1);
       expect(operation.occurrenceGuid, 'OC-1');
+      expect(operation.payloadVersion, 2);
       expect(
         (jsonDecode(operation.payloadJson) as Map)['operacao_guid'],
         operation.operationGuid,
+      );
+      expect(
+        (jsonDecode(operation.payloadJson) as Map)['occurrence_guid'],
+        operation.occurrenceGuid,
       );
     },
   );

@@ -36,6 +36,7 @@ void main() {
       stopId: 7,
       orderId: 123,
       operationGuid: 'OP-GUID',
+      occurrenceGuid: 'OC-GUID',
       code: 'ETIQUETA',
       deviceDateTime: date,
       timezoneOffsetMinutes: -180,
@@ -51,6 +52,7 @@ void main() {
     expect(transport.lastHeaders, {'Authorization': 'Bearer ACCESS'});
     expect(transport.lastBody, {
       'operacao_guid': 'OP-GUID',
+      'occurrence_guid': 'OC-GUID',
       'codigo': 'ETIQUETA',
       'data_hora_aparelho': date.toIso8601String(),
       'fuso_minutos': -180,
@@ -79,6 +81,7 @@ void main() {
       stopId: 7,
       orderId: 123,
       operationGuid: 'OP-GUID',
+      occurrenceGuid: 'OC-GUID',
       code: 'ETIQUETA',
       deviceDateTime: DateTime(2026, 8, 26),
       timezoneOffsetMinutes: -180,

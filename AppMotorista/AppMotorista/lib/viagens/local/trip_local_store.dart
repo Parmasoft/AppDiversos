@@ -1,3 +1,5 @@
+import 'package:sqflite/sqflite.dart';
+
 import '../../storage/app_database.dart';
 import '../models/trip_detail.dart';
 import '../models/trip_summary.dart';
@@ -6,6 +8,87 @@ class TripLocalStore {
   const TripLocalStore(this._appDatabase);
 
   final AppDatabase _appDatabase;
+
+  /// A persisted snapshot is only considered offline-ready when all records
+  /// written by [replaceSnapshot] can be read back as one coherent snapshot.
+  Future<bool> hasCompleteSnapshot({
+    required String driverGuid,
+    required String manifestGuid,
+  }) async {
+    final trip = await readSnapshot(
+      driverGuid: driverGuid,
+      manifestGuid: manifestGuid,
+    );
+    return trip != null &&
+        trip.manifestGuid == manifestGuid &&
+        trip.occurrenceCount ==
+            trip.stops.fold<int>(0, (sum, stop) => sum + stop.occurrences.length);
+  }
+
+  Future<void> markDownloadPending({
+    required String driverGuid,
+    required String manifestGuid,
+    required DateTime updatedAt,
+  }) => _setDownloadState(
+    driverGuid: driverGuid,
+    manifestGuid: manifestGuid,
+    state: 'pending',
+    errorMessage: null,
+    updatedAt: updatedAt,
+  );
+
+  Future<void> markDownloadFailed({
+    required String driverGuid,
+    required String manifestGuid,
+    required String errorMessage,
+    required DateTime updatedAt,
+  }) => _setDownloadState(
+    driverGuid: driverGuid,
+    manifestGuid: manifestGuid,
+    state: 'failed',
+    errorMessage: errorMessage,
+    updatedAt: updatedAt,
+  );
+
+  Future<void> clearDownloadState({
+    required String driverGuid,
+    required String manifestGuid,
+  }) async {
+    final database = await _appDatabase.database;
+    await database.delete(
+      AppDatabase.tripDownloadTable,
+      where: 'driver_guid = ? AND manifest_guid = ?',
+      whereArgs: [driverGuid, manifestGuid],
+    );
+  }
+
+  Future<Map<String, String>> downloadStates({required String driverGuid}) async {
+    final database = await _appDatabase.database;
+    final rows = await database.query(
+      AppDatabase.tripDownloadTable,
+      columns: ['manifest_guid', 'state'],
+      where: 'driver_guid = ?',
+      whereArgs: [driverGuid],
+    );
+    return {for (final row in rows) _string(row, 'manifest_guid'): _string(row, 'state')};
+  }
+
+  Future<void> _setDownloadState({
+    required String driverGuid,
+    required String manifestGuid,
+    required String state,
+    required String? errorMessage,
+    required DateTime updatedAt,
+  }) async {
+    final database = await _appDatabase.database;
+    await database.insert(AppDatabase.tripDownloadTable, {
+      'driver_guid': driverGuid,
+      'manifest_guid': manifestGuid,
+      'state': state,
+      'error_message': errorMessage,
+      'updated_at': _date(updatedAt),
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
 
   Future<void> replaceSnapshot({
     required String driverGuid,
@@ -97,6 +180,11 @@ class TripLocalStore {
           });
         }
       }
+      await transaction.delete(
+        AppDatabase.tripDownloadTable,
+        where: 'driver_guid = ? AND manifest_guid = ?',
+        whereArgs: [driverGuid, trip.manifestGuid],
+      );
     });
   }
 

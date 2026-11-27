@@ -1,16 +1,10 @@
-# busca_ean_novo
+# BarCodeNovo — Etiquetas e separação
 
-A new Flutter project.
+Aplicativo Flutter do ecossistema BarCode para leitura de etiquetas e operações de separação. A API de desenvolvimento correspondente está em `../api/app.py`.
 
-## Getting Started
+## Documentação operacional
 
-This project is a starting point for a Flutter application.
+- [Status das Etiquetas de Confecção](STATUS_ETIQUETAS_CONFECCAO.md): decisões de arquitetura, F22, teste integrado do Pedido 19900, auditoria de estoque e pendências.
+- [Último ponto de parada](ULTIMO_PONTO_DE_PARADA.md): histórico consolidado de todos os módulos e checkpoints.
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+O formato F22 é exclusivo da Confecção. Não alterar o contrato R18 legado da GramDecor para acomodá-lo; detalhes e limites estão no status operacional.

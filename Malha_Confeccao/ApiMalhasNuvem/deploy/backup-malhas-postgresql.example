@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Template: instalar somente após definir um destino externo aprovado.
+set -euo pipefail
+backup_dir=/var/backups/api-malhas-nuvem/postgresql
+mkdir -p "$backup_dir"
+umask 077
+pg_dump --dbname="$PG_DUMP_URL" --format=custom --no-owner --no-privileges --file "$backup_dir/malhas_nuvem-$(date -u +%Y%m%dT%H%M%SZ).dump"
+find "$backup_dir" -type f -name 'malhas_nuvem-*.dump' -mtime +14 -delete
+# Copiar o dump para MALHAS_BACKUP_DESTINATION externo ao droplet e testar
+# pg_restore em banco descartável antes de liberar produção.

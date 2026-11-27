@@ -11,6 +11,8 @@ import 'package:app_motorista/sync/local/outbox_local_store.dart';
 import 'package:app_motorista/sync/models/outbox_operation.dart';
 import 'package:app_motorista/viagens/local/delivery_local_store.dart';
 import 'package:app_motorista/viagens/local/trip_local_store.dart';
+import 'package:app_motorista/viagens/models/trip_detail.dart';
+import 'package:app_motorista/viagens/models/trip_summary.dart';
 import 'package:app_motorista/viagens/repositories/trips_repository.dart';
 import 'package:app_motorista/viagens/services/trips_service.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -41,6 +43,35 @@ void main() {
     if (temporaryDirectory.existsSync()) {
       await temporaryDirectory.delete(recursive: true);
     }
+  });
+
+  test('listar viagens dispara o download completo para uso offline', () async {
+    final service = await _service(
+      localStore: localStore,
+      appDatabase: appDatabase,
+      transport: _QueueTransport([_listResponse(), _detailResponse(loadId: 531)]),
+      automaticDownload: true,
+    );
+
+    final listed = await service.list();
+    expect(listed.single.offlineAvailability, OfflineAvailability.pending);
+
+    for (var attempt = 0; attempt < 40; attempt++) {
+      if (await localStore.hasCompleteSnapshot(
+        driverGuid: 'DRIVER-A',
+        manifestGuid: 'MANIFEST-1',
+      )) {
+        break;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
+    expect(
+      await localStore.hasCompleteSnapshot(
+        driverGuid: 'DRIVER-A',
+        manifestGuid: 'MANIFEST-1',
+      ),
+      isTrue,
+    );
   });
 
   test(
@@ -273,6 +304,105 @@ void main() {
   });
 
   test(
+    'lista remota preserva o agregado local concluido apos refresh',
+    () async {
+      await _saveVisualSnapshot(localStore, occurrenceStatus: 'E');
+      await OutboxLocalStore(appDatabase).enqueue(
+        _visualOperation(
+          state: OutboxSyncState.synced,
+          operationGuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        ),
+      );
+      final service = await _service(
+        localStore: localStore,
+        appDatabase: appDatabase,
+        transport: _QueueTransport([_listResponse(), _listResponse()]),
+      );
+
+      final first = (await service.list()).single;
+      final refreshed = (await service.list()).single;
+
+      for (final summary in [first, refreshed]) {
+        expect(summary.locallyCompleted, isTrue);
+        expect(summary.awaitingSync, isFalse);
+        expect(summary.loadId, 531);
+        expect(summary.description, 'VIAGEM TESTE');
+      }
+    },
+  );
+
+  test(
+    'lista remota mantem conclusao local aguardando sincronizacao',
+    () async {
+      for (final state in [
+        OutboxSyncState.pending,
+        OutboxSyncState.sending,
+        OutboxSyncState.retry,
+      ]) {
+        await _saveVisualSnapshot(localStore, occurrenceStatus: 'E');
+        await OutboxLocalStore(appDatabase).enqueue(
+          _visualOperation(
+            state: state,
+            operationGuid: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa${state.index}',
+          ),
+        );
+        final service = await _service(
+          localStore: localStore,
+          appDatabase: appDatabase,
+          transport: _QueueTransport([_listResponse()]),
+        );
+
+        final summary = (await service.list()).single;
+
+        expect(summary.locallyCompleted, isTrue, reason: state.name);
+        expect(summary.awaitingSync, isTrue, reason: state.name);
+      }
+    },
+  );
+
+  test('lista remota mantem branca a carga parcialmente pendente', () async {
+    await _saveVisualSnapshot(localStore, occurrenceStatus: 'P');
+    final service = await _service(
+      localStore: localStore,
+      appDatabase: appDatabase,
+      transport: _QueueTransport([_listResponse()]),
+    );
+
+    final summary = (await service.list()).single;
+
+    expect(summary.locallyCompleted, isFalse);
+    expect(summary.awaitingSync, isFalse);
+  });
+
+  test(
+    'conflito ou rejeicao nao deixa carga amarela na lista remota',
+    () async {
+      for (final state in [
+        OutboxSyncState.conflict,
+        OutboxSyncState.rejected,
+      ]) {
+        await _saveVisualSnapshot(localStore, occurrenceStatus: 'P');
+        await OutboxLocalStore(appDatabase).enqueue(
+          _visualOperation(
+            state: state,
+            operationGuid: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb${state.index}',
+          ),
+        );
+        final service = await _service(
+          localStore: localStore,
+          appDatabase: appDatabase,
+          transport: _QueueTransport([_listResponse()]),
+        );
+
+        final summary = (await service.list()).single;
+
+        expect(summary.locallyCompleted, isFalse, reason: state.name);
+        expect(summary.awaitingSync, isFalse, reason: state.name);
+      }
+    },
+  );
+
+  test(
     'reaplica leituras synced por GUID ao reabrir snapshot remoto defasado',
     () async {
       final outboxStore = OutboxLocalStore(appDatabase);
@@ -345,30 +475,33 @@ void main() {
     },
   );
 
-  test('pending, sending e retry nao participam da reconciliacao synced', () async {
-    final outboxStore = OutboxLocalStore(appDatabase);
-    for (final state in [
-      OutboxSyncState.pending,
-      OutboxSyncState.sending,
-      OutboxSyncState.retry,
-    ]) {
-      await outboxStore.enqueue(
-        _syncedRead(
-          guid: 'bbbbbbbb-bbbb-4bbb-8bbb-aaaaaaaaaaa${state.index}',
-          confirmedOccurrenceGuid: 'C-1',
-          occurrenceGuid: 'C-1',
-          state: state,
+  test(
+    'pending, sending e retry nao participam da reconciliacao synced',
+    () async {
+      final outboxStore = OutboxLocalStore(appDatabase);
+      for (final state in [
+        OutboxSyncState.pending,
+        OutboxSyncState.sending,
+        OutboxSyncState.retry,
+      ]) {
+        await outboxStore.enqueue(
+          _syncedRead(
+            guid: 'bbbbbbbb-bbbb-4bbb-8bbb-aaaaaaaaaaa${state.index}',
+            confirmedOccurrenceGuid: 'C-1',
+            occurrenceGuid: 'C-1',
+            state: state,
+          ),
+        );
+      }
+      expect(
+        await outboxStore.listSyncedDeliveryReads(
+          driverGuid: 'DRIVER-A',
+          manifestGuid: 'MANIFEST-1',
         ),
+        isEmpty,
       );
-    }
-    expect(
-      await outboxStore.listSyncedDeliveryReads(
-        driverGuid: 'DRIVER-A',
-        manifestGuid: 'MANIFEST-1',
-      ),
-      isEmpty,
-    );
-  });
+    },
+  );
 }
 
 AppDatabase _database(String databasePath) {
@@ -381,6 +514,7 @@ Future<TripsService> _service({
   required ApiTransport transport,
   String driverGuid = 'DRIVER-A',
   bool readOnly = false,
+  bool automaticDownload = false,
 }) async {
   final sessionController = SessionController(
     repository: FakeAuthGateway(),
@@ -396,6 +530,7 @@ Future<TripsService> _service({
     outboxLocalStore: OutboxLocalStore(appDatabase),
     now: () => DateTime.utc(2026, 8, 27, 12),
     readOnly: readOnly,
+    automaticDownload: automaticDownload,
   );
 }
 
@@ -458,6 +593,72 @@ ApiResponse _listResponse() {
   );
 }
 
+Future<void> _saveVisualSnapshot(
+  TripLocalStore store, {
+  required String occurrenceStatus,
+}) {
+  return store.replaceSnapshot(
+    driverGuid: 'DRIVER-A',
+    trip: TripDetail(
+      manifestGuid: 'MANIFEST-1',
+      manifestStatus: 'L',
+      loadId: 500,
+      description: 'SNAPSHOT LOCAL',
+      driverName: 'PAULO',
+      originName: 'GRAMDECOR',
+      occurrenceCount: 1,
+      stops: [
+        TripStop(
+          id: 20,
+          plannedOrder: 1,
+          status: occurrenceStatus,
+          clientName: 'CLIENTE',
+          city: 'UBA',
+          state: 'MG',
+          address: 'RUA',
+          orders: [TripOrder(id: 200, status: occurrenceStatus)],
+          occurrences: [
+            ManifestOccurrence(
+              id: 1,
+              guid: 'C-1',
+              orderId: 200,
+              productId: 1001,
+              type: 'C',
+              code: 'CODIGO-C',
+              quantity: '1.0000',
+              status: occurrenceStatus,
+            ),
+          ],
+        ),
+      ],
+    ),
+    downloadedAt: DateTime.utc(2026, 8, 27, 12),
+  );
+}
+
+OutboxOperation _visualOperation({
+  required OutboxSyncState state,
+  required String operationGuid,
+}) {
+  return OutboxOperation(
+    operationGuid: operationGuid,
+    operationType: 'delivery_read',
+    payloadVersion: 2,
+    driverGuid: 'DRIVER-A',
+    manifestGuid: 'MANIFEST-1',
+    occurrenceGuid: 'C-1',
+    stopId: 20,
+    orderId: 200,
+    code: 'CODIGO-C',
+    deviceDateTime: DateTime.utc(2026, 8, 27, 12),
+    timezoneOffsetMinutes: 0,
+    payloadJson: '{}',
+    state: state,
+    attemptCount: 0,
+    createdAt: DateTime.utc(2026, 8, 27, 12),
+  );
+}
+
 OutboxOperation _syncedRead({
   required String guid,
   required String confirmedOccurrenceGuid,
@@ -476,7 +677,10 @@ OutboxOperation _syncedRead({
     code: 'CODIGO-C-REPETIDO',
     deviceDateTime: DateTime.utc(2026, 8, 27, 12),
     timezoneOffsetMinutes: 0,
-    payloadJson: jsonEncode({'operacao_guid': guid, 'codigo': 'CODIGO-C-REPETIDO'}),
+    payloadJson: jsonEncode({
+      'operacao_guid': guid,
+      'codigo': 'CODIGO-C-REPETIDO',
+    }),
     state: state,
     attemptCount: 1,
     createdAt: DateTime.utc(2026, 8, 27, 12),

@@ -290,6 +290,29 @@ void main() {
     },
   );
 
+  test('aceite com ocorrência divergente vira conflito e não SYNCED', () async {
+    final accepted = await _read(deliveryStore, 1, clock.value);
+    final controller = createController(
+      send: (_, _) async => _accepted(occurrenceGuid: 'OC-2', replay: false),
+    );
+
+    final report = await controller.processNow();
+    final operation = (await outboxStore.find(accepted.operationGuid))!;
+    final snapshot = (await tripStore.readSnapshot(
+      driverGuid: 'DRIVER-A',
+      manifestGuid: 'MANIFEST-1',
+    ))!;
+
+    expect(report.confirmed, 0);
+    expect(report.conflicts, 1);
+    expect(operation.state, OutboxSyncState.conflict);
+    expect(operation.responseCode, 'OK');
+    expect(operation.responseJson, contains('OC-2'));
+    expect(operation.lastError, contains('diverge'));
+    expect(snapshot.stops.single.pendingFor(200), 2);
+    controller.dispose();
+  });
+
   test('duas solicitações concorrentes compartilham um único envio', () async {
     final accepted = await _read(deliveryStore, 1, clock.value);
     final response = Completer<DeliveryReadResult>();

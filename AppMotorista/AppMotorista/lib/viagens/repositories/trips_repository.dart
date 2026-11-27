@@ -38,6 +38,7 @@ class TripsRepository {
     required int stopId,
     required int orderId,
     required String operationGuid,
+    required String occurrenceGuid,
     required String code,
     required DateTime deviceDateTime,
     required int timezoneOffsetMinutes,
@@ -50,6 +51,7 @@ class TripsRepository {
       acceptedStatusCodes: const {409},
       body: <String, Object>{
         'operacao_guid': operationGuid,
+        'occurrence_guid': occurrenceGuid,
         'codigo': code,
         'data_hora_aparelho': deviceDateTime.toIso8601String(),
         'fuso_minutos': timezoneOffsetMinutes,
@@ -63,7 +65,7 @@ class TripsRepository {
     required String accessToken,
   }) async {
     if (operation.operationType != 'delivery_read' ||
-        operation.payloadVersion != 1) {
+        (operation.payloadVersion != 1 && operation.payloadVersion != 2)) {
       throw const FormatException('Tipo ou versão de operação inválida.');
     }
     final decoded = jsonDecode(operation.payloadJson);
@@ -75,6 +77,19 @@ class TripsRepository {
       throw const FormatException(
         'UUID do payload diverge da operação persistida.',
       );
+    }
+    if (operation.payloadVersion == 2) {
+      final persistedOccurrenceGuid =
+          decoded['occurrence_guid']?.toString().trim() ?? '';
+      final localOccurrenceGuid = operation.occurrenceGuid?.trim() ?? '';
+      if (persistedOccurrenceGuid.isEmpty ||
+          localOccurrenceGuid.isEmpty ||
+          persistedOccurrenceGuid.toUpperCase() !=
+              localOccurrenceGuid.toUpperCase()) {
+        throw const FormatException(
+          'Ocorrência do payload diverge da operação persistida.',
+        );
+      }
     }
     final json = await _client.postPersistedJson(
       '/api/v1/motorista/viagens/${operation.manifestGuid}/paradas/'

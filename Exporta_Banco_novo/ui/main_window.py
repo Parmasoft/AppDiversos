@@ -1,4 +1,8 @@
 import tkinter as tk
+import re
+import queue
+import threading
+from decimal import Decimal
 from tkinter import ttk, messagebox, filedialog
 
 from services.firebird_service import FirebirdService
@@ -38,10 +42,18 @@ class MainWindow(tk.Tk):
         self.lbl_resumo_execucao = None
         self.lbl_progresso_execucao = None
         self.pb_execucao = None
+        self._fila_interface = queue.Queue()
+        self._thread_trabalho = None
+        self._operacao_em_andamento = False
+        self._em_thread_trabalho = False
+        self._dados_execucao = None
+        self._controles_bloqueados = []
 
         self.base_inicial_processada = False
 
         self.var_somente_10 = tk.BooleanVar(value=False)
+        self.var_filtro_produtos = tk.StringVar(value="Todos")
+        self._filtro_produtos_em_execucao = False
 
 
         self.var_limpar_destino = tk.BooleanVar(value=False)
@@ -51,6 +63,7 @@ class MainWindow(tk.Tk):
 
         self._configurar_estilos()
         self._criar_layout()
+        self.protocol("WM_DELETE_WINDOW", self._ao_fechar_janela)
 
     def _configurar_estilos(self):
         style = ttk.Style()
@@ -105,6 +118,15 @@ class MainWindow(tk.Tk):
             "Arquivo.TButton",
             font=("Segoe UI", 9, "bold"),
             padding=(6, 2),
+        )
+        style.configure(
+            "Azul.Horizontal.TProgressbar",
+            troughcolor="#dce1e8",
+            background="#006fcb",
+            bordercolor="#b9c2ce",
+            lightcolor="#1586df",
+            darkcolor="#00579f",
+            thickness=18,
         )
 
     def _criar_layout(self):
@@ -223,30 +245,25 @@ class MainWindow(tk.Tk):
         interno_opcoes = tk.Frame(bloco_opcoes, bg="#ffffff")
         interno_opcoes.pack(fill="both", expand=True, padx=8, pady=8)
 
-        ttk.Checkbutton(
+        ttk.Label(
             interno_opcoes,
-            text="Migrar somente 10 registros por tabela",
-            variable=self.var_somente_10,
-        ).pack(anchor="w", pady=(0, 6))
+            text="Produtos: última movimentação operacional",
+            style="Campo.TLabel",
+        ).pack(anchor="w")
 
-        ttk.Checkbutton(
+        ttk.Combobox(
             interno_opcoes,
-            text="Limpar tabela destino antes de inserir",
-            variable=self.var_limpar_destino,
+            textvariable=self.var_filtro_produtos,
+            values=("Todos", "12 meses", "24 meses", "36 meses", "60 meses"),
+            state="readonly",
+            width=18,
         ).pack(anchor="w", pady=(0, 6))
 
         ttk.Checkbutton(
             interno_opcoes,
             text="Continuar mesmo se uma tabela falhar",
             variable=self.var_continuar_erro,
-        ).pack(anchor="w", pady=(0, 12))
-
-        ttk.Button(
-            interno_opcoes,
-            text="Analisar pacote selecionado",
-            style="Secao.TButton",
-            command=self._analisar_destino_pacote,
-        ).pack(fill="x", pady=(0, 8))
+        ).pack(anchor="w", pady=(0, 14))
 
         ttk.Button(
             interno_opcoes,
@@ -254,20 +271,6 @@ class MainWindow(tk.Tk):
             style="Secao.TButton",
             command=self._migrar_pacote_selecionado,
         ).pack(fill="x", pady=(0, 8))
-
-        ttk.Button(
-            interno_opcoes,
-            text="Migrar tabela selecionada",
-            style="Secao.TButton",
-            command=self._migrar_tabela_selecionada,
-        ).pack(fill="x", pady=(0, 8))
-
-        ttk.Button(
-            interno_opcoes,
-            text="Limpar log",
-            style="Secao.TButton",
-            command=self._limpar_log,
-        ).pack(fill="x")
 
         faixa_progresso = tk.Frame(parent, bg="#f5f6f8")
         faixa_progresso.grid(row=1, column=0, sticky="ew", pady=(0, 8))
@@ -286,6 +289,7 @@ class MainWindow(tk.Tk):
             mode="determinate",
             maximum=100,
             value=0,
+            style="Azul.Horizontal.TProgressbar",
         )
         self.pb_execucao.grid(row=1, column=0, sticky="ew")
 
@@ -452,6 +456,9 @@ class MainWindow(tk.Tk):
         }
 
     def _obter_dados_conexao(self, lado):
+        if self._na_thread_trabalho() and self._dados_execucao:
+            return dict(self._dados_execucao["conexoes"][lado])
+
         widgets = self._obter_widgets_lado(lado)
 
         porta_txt = (widgets["porta"].get() or "").strip()
@@ -479,6 +486,167 @@ class MainWindow(tk.Tk):
 
     def _fechar_conexao(self, con):
         self.firebird_service.fechar_conexao(con)
+
+    def _somente_10_ativo(self):
+        return False
+
+    def _limpar_destino_ativo(self):
+        return False
+
+    def _continuar_erro_ativo(self):
+        if self._na_thread_trabalho() and self._dados_execucao:
+            return self._dados_execucao["continuar_erro"]
+        return self.var_continuar_erro.get()
+
+    def update_idletasks(self):
+        if self._na_thread_trabalho():
+            return
+        return super().update_idletasks()
+
+    def _na_thread_trabalho(self):
+        return (
+            self.__dict__.get("_em_thread_trabalho", False)
+            and threading.current_thread() is self.__dict__.get("_thread_trabalho")
+        )
+
+    def _publicar_interface(self, tipo, **dados):
+        if self._na_thread_trabalho():
+            self._fila_interface.put((tipo, dados))
+            return True
+        return False
+
+    def _atualizar_progresso(self, maximum=None, value=None, indeterminado=False):
+        if self._publicar_interface(
+            "progresso", maximum=maximum, value=value, indeterminado=indeterminado
+        ):
+            return
+        if self.pb_execucao is None:
+            return
+        self.pb_execucao.stop()
+        self.pb_execucao.configure(mode="indeterminate" if indeterminado else "determinate")
+        if indeterminado:
+            self.pb_execucao.start(12)
+            return
+        if maximum is not None:
+            self.pb_execucao.configure(maximum=max(maximum, 1))
+        if value is not None:
+            self.pb_execucao.configure(value=value)
+
+    def _atualizar_status_execucao(self, texto):
+        if self._publicar_interface("status", texto=texto):
+            return
+        if self.lbl_progresso_execucao is not None:
+            self.lbl_progresso_execucao.configure(text=texto)
+
+    def _atualizar_resumo_execucao(self, texto):
+        if self._publicar_interface("resumo", texto=texto):
+            return
+        if self.lbl_resumo_execucao is not None:
+            self.lbl_resumo_execucao.configure(text=texto)
+
+    def _notificar_execucao(self, nivel, titulo, texto):
+        if self._publicar_interface("dialogo", nivel=nivel, titulo=titulo, texto=texto):
+            return
+        getattr(messagebox, f"show{nivel}")(titulo, texto)
+
+    def _iniciar_operacao_thread(self, funcao, *args, **kwargs):
+        if self._operacao_em_andamento:
+            messagebox.showwarning("Migração em andamento", "Aguarde a operação atual terminar.")
+            return
+
+        self._dados_execucao = {
+            "conexoes": {
+                "origem": self._obter_dados_conexao("origem"),
+                "destino": self._obter_dados_conexao("destino"),
+            },
+            "somente_10": False,
+            "limpar_destino": False,
+            "continuar_erro": self.var_continuar_erro.get(),
+            "filtro_produtos": self.var_filtro_produtos.get(),
+        }
+        self._operacao_em_andamento = True
+        self._bloquear_controles_execucao()
+        self._atualizar_status_execucao("Preparando operação em segundo plano...")
+        self._atualizar_progresso(indeterminado=True)
+
+        def trabalho():
+            self._em_thread_trabalho = True
+            try:
+                funcao(*args, **kwargs)
+            except Exception as erro:
+                self._publicar_interface("dialogo", nivel="error", titulo="Erro na migração", texto=str(erro))
+            finally:
+                self._em_thread_trabalho = False
+                self._fila_interface.put(("fim_operacao", {}))
+
+        self._thread_trabalho = threading.Thread(target=trabalho, daemon=True)
+        self._thread_trabalho.start()
+        self.after(50, self._processar_fila_interface)
+
+    def _preparar_nova_execucao(self):
+        self._limpar_log()
+        self._atualizar_resumo_execucao("Preparando nova migração.")
+        self._atualizar_status_execucao("Aguardando início da execução.")
+        self._atualizar_progresso(maximum=100, value=0)
+
+    def _processar_fila_interface(self):
+        try:
+            while True:
+                tipo, dados = self._fila_interface.get_nowait()
+                if tipo == "log":
+                    self._escrever_log(dados["texto"])
+                elif tipo == "progresso":
+                    self._atualizar_progresso(**dados)
+                elif tipo == "status":
+                    self._atualizar_status_execucao(dados["texto"])
+                elif tipo == "resumo":
+                    self._atualizar_resumo_execucao(dados["texto"])
+                elif tipo == "dialogo":
+                    self._notificar_execucao(**dados)
+                elif tipo == "atualizar_pacotes":
+                    self._atualizar_pacotes_liberados()
+                elif tipo == "fim_operacao":
+                    self._concluir_operacao_thread()
+        except queue.Empty:
+            pass
+        if self._operacao_em_andamento:
+            self.after(50, self._processar_fila_interface)
+
+    def _concluir_operacao_thread(self):
+        self._operacao_em_andamento = False
+        self._thread_trabalho = None
+        self._dados_execucao = None
+        self._atualizar_progresso(value=0, maximum=100)
+        self._desbloquear_controles_execucao()
+
+    def _bloquear_controles_execucao(self):
+        self._controles_bloqueados = []
+        tipos = (tk.Button, tk.Entry, tk.Listbox, ttk.Button, ttk.Entry, ttk.Combobox, ttk.Checkbutton)
+        def visitar(widget):
+            if isinstance(widget, tipos):
+                try:
+                    estado = str(widget.cget("state"))
+                    widget.configure(state="disabled")
+                    self._controles_bloqueados.append((widget, estado))
+                except tk.TclError:
+                    pass
+            for filho in widget.winfo_children():
+                visitar(filho)
+        visitar(self)
+
+    def _desbloquear_controles_execucao(self):
+        for widget, estado in self._controles_bloqueados:
+            try:
+                widget.configure(state=estado)
+            except tk.TclError:
+                pass
+        self._controles_bloqueados = []
+
+    def _ao_fechar_janela(self):
+        if self._operacao_em_andamento:
+            messagebox.showwarning("Migração em andamento", "Aguarde a conclusão antes de fechar a janela.")
+            return
+        self.destroy()
 
     def _testar_conexao(self, lado):
         con = None
@@ -605,7 +773,10 @@ class MainWindow(tk.Tk):
                     "TB_PROD_GRUPO",
                     "TB_PROD_SUB_GRUPO",
                     "TB_PRODUTO",
+                    "TB_PRODUTO_TRIBUTO",
+                    "TB_PRODUTO_NUTRICIONAL",
                     "TB_PROD_CODIGO_BARRAS",
+                    "TB_PROD_XML_IMPORTADO",
                 ],
             },
             {
@@ -630,6 +801,175 @@ class MainWindow(tk.Tk):
                 ],
             },
         ]
+
+    def _obter_meses_filtro_produtos(self):
+        opcoes = {
+            "Todos": None,
+            "12 meses": 12,
+            "24 meses": 24,
+            "36 meses": 36,
+            "60 meses": 60,
+        }
+        if self._na_thread_trabalho() and self._dados_execucao:
+            return opcoes.get(self._dados_execucao["filtro_produtos"], None)
+        return opcoes.get(self.var_filtro_produtos.get(), None)
+
+    def _filtro_produtos_ativo(self):
+        return (
+            self._filtro_produtos_em_execucao
+            and self._obter_meses_filtro_produtos() is not None
+        )
+
+    def _montar_predicado_produto_elegivel(self, alias_produto):
+        """Retorna a regra única de elegibilidade para o pacote Produtos.
+
+        A razão de produto é a fonte de última movimentação operacional. Eventos
+        de cadastro não qualificam o produto; documentos ainda pendentes são
+        exceções para não deixar itens referenciados fora da migração.
+        """
+        meses = self._obter_meses_filtro_produtos()
+        if meses is None:
+            return "1 = 1"
+
+        corte = f"DATEADD(-{meses} MONTH TO CURRENT_DATE)"
+        return f"""
+            (
+                EXISTS (
+                    SELECT 1
+                    FROM TB_PRODUTO_MOVIMENTO pm
+                    WHERE pm.PRDM_EMPRESA = {alias_produto}.PRD_EMPRESA
+                      AND pm.PRDM_PRODUTO = {alias_produto}.PRD_ID
+                      AND pm.PRDM_DT_MOVIMENTO >= {corte}
+                      AND COALESCE(pm.PRDM_ORIGEM_MOVIMENTO, '') <> 'CADASTRO'
+                )
+                OR EXISTS (
+                    SELECT 1
+                    FROM TB_NOTA_FISCAL_ITEM ni
+                    JOIN TB_NOTA_FISCAL n
+                      ON n.NF_EMPRESA = ni.NFI_EMPRESA
+                     AND n.NF_ID = ni.NFI_NOTA_FISCAL
+                    WHERE ni.NFI_EMPRESA = {alias_produto}.PRD_EMPRESA
+                      AND ni.NFI_PRODUTO = {alias_produto}.PRD_ID
+                      AND (
+                          n.NF_STATUS IN ('P', 'V')
+                          OR (
+                              n.NF_STATUS = 'D'
+                              AND n.NF_DT_EMISSAO >= {corte}
+                          )
+                      )
+                )
+                OR EXISTS (
+                    SELECT 1
+                    FROM TB_PEDIDO_VENDA_ITEM pvi
+                    JOIN TB_PEDIDO_VENDA pv
+                      ON pv.PEV_EMPRESA = pvi.PEVI_EMPRESA
+                     AND pv.PEV_ID = pvi.PEVI_PEDIDO_VENDA
+                    WHERE pvi.PEVI_EMPRESA = {alias_produto}.PRD_EMPRESA
+                      AND pvi.PEVI_PRODUTO = {alias_produto}.PRD_ID
+                      AND pv.PEV_STATUS IN ('A', 'O', 'G')
+                )
+                OR EXISTS (
+                    SELECT 1
+                    FROM TB_PEDIDO_COMPRA_ITEM pci
+                    JOIN TB_PEDIDO_COMPRA pc
+                      ON pc.PDC_EMPRESA = pci.PDCI_EMPRESA
+                     AND pc.PDC_ID = pci.PDCI_PEDIDO_COMPRA
+                    WHERE pci.PDCI_EMPRESA = {alias_produto}.PRD_EMPRESA
+                      AND pci.PDCI_PRODUTO = {alias_produto}.PRD_ID
+                      AND pc.PDC_STATUS IN ('A', 'E')
+                )
+            )
+        """
+
+    def _montar_sql_origem_produtos(self, tabela, contar=False):
+        """Filtra as tabelas do pacote Produtos pela elegibilidade do produto."""
+        tabela = self.firebird_service.normalizar_nome_tabela(tabela)
+        meses = self._obter_meses_filtro_produtos()
+        # Mesmo sem filtro temporal, a tributação só pode acompanhar produtos
+        # existentes na origem. As demais tabelas preservam o comportamento
+        # histórico de leitura integral quando a opção é "Todos".
+        if tabela not in (
+            "TB_PRODUTO_TRIBUTO",
+            "TB_PRODUTO_NUTRICIONAL",
+            "TB_PROD_XML_IMPORTADO",
+        ) and (
+            not self._filtro_produtos_ativo() or meses is None
+        ):
+            return None
+
+        primeiro = "FIRST 10 " if self._somente_10_ativo() and not contar else ""
+        predicado = self._montar_predicado_produto_elegivel("p")
+
+        if tabela == "TB_PRODUTO":
+            if contar:
+                return f"SELECT COUNT(*) FROM TB_PRODUTO p WHERE {predicado}"
+            return f"SELECT {primeiro}p.* FROM TB_PRODUTO p WHERE {predicado}"
+
+        if tabela == "TB_PRODUTO_TRIBUTO":
+            where = (
+                "EXISTS (SELECT 1 FROM TB_PRODUTO p "
+                "WHERE p.PRD_EMPRESA = t.PRDT_EMPRESA "
+                "AND p.PRD_ID = t.PRDT_PRODUTO "
+                f"AND {predicado})"
+            )
+            if contar:
+                return f"SELECT COUNT(*) FROM TB_PRODUTO_TRIBUTO t WHERE {where}"
+            return f"SELECT {primeiro}t.* FROM TB_PRODUTO_TRIBUTO t WHERE {where}"
+
+        if tabela == "TB_PRODUTO_NUTRICIONAL":
+            where = (
+                "EXISTS (SELECT 1 FROM TB_PRODUTO p "
+                "WHERE p.PRD_EMPRESA = n.PRDN_EMPRESA "
+                "AND p.PRD_ID = n.PRDN_PRODUTO "
+                f"AND {predicado})"
+            )
+            if contar:
+                return f"SELECT COUNT(*) FROM TB_PRODUTO_NUTRICIONAL n WHERE {where}"
+            return f"SELECT {primeiro}n.* FROM TB_PRODUTO_NUTRICIONAL n WHERE {where}"
+
+        if tabela == "TB_PROD_XML_IMPORTADO":
+            where = (
+                "(x.PXI_PRODUTO IS NULL OR EXISTS (SELECT 1 FROM TB_PRODUTO p "
+                "WHERE p.PRD_EMPRESA = x.PXI_EMPRESA "
+                "AND p.PRD_ID = x.PXI_PRODUTO "
+                f"AND {predicado}))"
+            )
+            if contar:
+                return f"SELECT COUNT(*) FROM TB_PROD_XML_IMPORTADO x WHERE {where}"
+            return f"SELECT {primeiro}x.* FROM TB_PROD_XML_IMPORTADO x WHERE {where}"
+
+        vinculos = {
+            "TB_PROD_CODIGO_BARRAS": ("b", "PRDC_EMPRESA", "PRDC_PRODUTO", None),
+            "TB_PROD_MARCA": ("m", "PMAR_EMPRESA", "PMAR_ID", "PRD_MARCA"),
+            "TB_PROD_GRUPO": ("g", "PGRU_EMPRESA", "PGRU_ID", "PRD_GRUPO"),
+            "TB_PROD_SUB_GRUPO": ("s", "PSGR_EMPRESA", "PSGR_ID", "PRD_SUBGRUPO"),
+        }
+        vinculo = vinculos.get(tabela)
+        if not vinculo:
+            return None
+
+        alias, campo_empresa, campo_id, campo_produto = vinculo
+        if campo_produto is None:
+            condicao_produto = (
+                f"p.PRD_EMPRESA = {alias}.{campo_empresa} "
+                f"AND p.PRD_ID = {alias}.{campo_id}"
+            )
+        elif tabela == "TB_PROD_SUB_GRUPO":
+            condicao_produto = (
+                f"p.PRD_EMPRESA = {alias}.{campo_empresa} "
+                f"AND p.PRD_GRUPO = {alias}.PSGR_GRUPO "
+                f"AND p.PRD_SUBGRUPO = {alias}.{campo_id}"
+            )
+        else:
+            condicao_produto = (
+                f"p.PRD_EMPRESA = {alias}.{campo_empresa} "
+                f"AND p.{campo_produto} = {alias}.{campo_id}"
+            )
+
+        where = f"EXISTS (SELECT 1 FROM TB_PRODUTO p WHERE {condicao_produto} AND {predicado})"
+        if contar:
+            return f"SELECT COUNT(*) FROM {tabela} {alias} WHERE {where}"
+        return f"SELECT {primeiro}{alias}.* FROM {tabela} {alias} WHERE {where}"
     
     def _pacote_esta_liberado(self, indice):
         if indice in (0, 1, 2, 3):
@@ -808,6 +1148,8 @@ class MainWindow(tk.Tk):
         return self.lst_tabelas.get(selecionados[0])
 
     def _escrever_log(self, texto):
+        if self._publicar_interface("log", texto=texto):
+            return
         if self.txt_log is None:
             return
 
@@ -903,11 +1245,18 @@ class MainWindow(tk.Tk):
         if not resposta:
             return
 
+        self._preparar_nova_execucao()
+
         if pacote["nome"] == "Financeiro em aberto":
-            self._migrar_financeiro_em_aberto()
+            self._iniciar_operacao_thread(self._migrar_financeiro_em_aberto)
             return
 
-        self._migrar_lista_tabelas(pacote["tabelas"], pacote["nome"])
+        self._iniciar_operacao_thread(
+            self._migrar_lista_tabelas,
+            pacote["tabelas"],
+            pacote["nome"],
+            aplicar_filtro_produtos=pacote["nome"] == "Produtos",
+        )
 
 
     def _obter_chave_upsert_tabela(self, tabela):
@@ -950,7 +1299,14 @@ class MainWindow(tk.Tk):
             "TB_PROD_GRUPO": ["PGRU_EMPRESA", "PGRU_ID"],
             "TB_PROD_SUB_GRUPO": ["PSGR_EMPRESA", "PSGR_GRUPO", "PSGR_ID"],
             "TB_PRODUTO": ["PRD_EMPRESA", "PRD_ID"],
+            "TB_PRODUTO_TRIBUTO": ["PRDT_EMPRESA", "PRDT_PRODUTO"],
+            "TB_PRODUTO_NUTRICIONAL": ["PRDN_EMPRESA", "PRDN_PRODUTO"],
             "TB_PROD_CODIGO_BARRAS": ["PRDC_EMPRESA", "PRDC_PRODUTO", "PRDC_COD_BARRAS"],
+            "TB_PROD_XML_IMPORTADO": [
+                "PXI_EMPRESA",
+                "PXI_EMITENTE",
+                "PXI_COD_PROD_EMIT",
+            ],
 
             # ==========================================================
             # FORMAS DE PAGAMENTO
@@ -1035,7 +1391,11 @@ class MainWindow(tk.Tk):
         if not resposta:
             return
 
-        self._migrar_lista_tabelas([tabela], f"Tabela isolada: {tabela}")
+        self._iniciar_operacao_thread(
+            self._migrar_lista_tabelas,
+            [tabela],
+            f"Tabela isolada: {tabela}",
+        )
 
     def _migrar_financeiro_em_aberto(self):
         con_origem = None
@@ -1112,8 +1472,8 @@ class MainWindow(tk.Tk):
                 f"TB_RECEBIMENTO: {len(registros)} recebimento(s) em aberto encontrado(s)."
             )
 
-            if self.pb_execucao is not None:
-                self.pb_execucao.configure(maximum=max(len(registros), 1), value=0)
+            self._atualizar_progresso(maximum=len(registros), value=0)
+            recebimentos_processados = 0
 
             proximo_rec_id_por_empresa = {}
 
@@ -1166,9 +1526,17 @@ class MainWindow(tk.Tk):
 
                 total_lidos += 1
                 total_inseridos += 1
+                recebimentos_processados += 1
 
-                if self.pb_execucao is not None:
-                    self.pb_execucao.configure(value=total_lidos)
+                percentual = (
+                    recebimentos_processados * 100 / len(registros)
+                    if registros else 0
+                )
+                self._atualizar_status_execucao(
+                    "TB_RECEBIMENTO: "
+                    f"{recebimentos_processados}/{len(registros)} ({percentual:.1f}%)"
+                )
+                self._atualizar_progresso(value=recebimentos_processados)
 
                 if total_lidos == 1 or total_lidos % 50 == 0:
                     self.update_idletasks()
@@ -1228,14 +1596,12 @@ class MainWindow(tk.Tk):
             self._escrever_log(resumo.replace("\n", " | "))
             self._escrever_log("=" * 70)
 
-            self.lbl_resumo_execucao.configure(
-                text=(
-                    f"Financeiro concluído | recebimentos={len(mapa_recebimento)} | "
-                    f"inseridos={total_inseridos}"
-                )
+            self._atualizar_resumo_execucao(
+                f"Financeiro concluído | recebimentos={len(mapa_recebimento)} | "
+                f"inseridos={total_inseridos}"
             )
 
-            messagebox.showinfo("Financeiro concluído", resumo)
+            self._notificar_execucao("info", "Financeiro concluído", resumo)
 
         except Exception as e:
             try:
@@ -1244,7 +1610,8 @@ class MainWindow(tk.Tk):
             except Exception:
                 pass
 
-            messagebox.showerror(
+            self._notificar_execucao(
+                "error",
                 "Erro no financeiro",
                 f"Não foi possível concluir o financeiro em aberto.\n\n{e}",
             )
@@ -1324,15 +1691,23 @@ class MainWindow(tk.Tk):
         return lidos, inseridos
 
 
-    def _migrar_lista_tabelas(self, tabelas, titulo_execucao):
+    def _migrar_lista_tabelas(
+        self,
+        tabelas,
+        titulo_execucao,
+        aplicar_filtro_produtos=False,
+    ):
         con_origem = None
         con_destino = None
+        filtro_produtos_anterior = self._filtro_produtos_em_execucao
+        self._filtro_produtos_em_execucao = aplicar_filtro_produtos
 
         total_tabelas = 0
         sucesso_tabelas = 0
         falha_tabelas = 0
         total_lidos = 0
         total_inseridos = 0
+        falhas_tributarias = []
 
         try:
             dados_origem = self._obter_dados_conexao("origem")
@@ -1344,40 +1719,39 @@ class MainWindow(tk.Tk):
             self._escrever_log("")
             self._escrever_log("=" * 70)
             self._escrever_log(f"Iniciando execução: {titulo_execucao}")
-            self._escrever_log(f"Somente 10 registros: {'SIM' if self.var_somente_10.get() else 'NÃO'}")
-            self._escrever_log(f"Limpar destino antes: {'SIM' if self.var_limpar_destino.get() else 'NÃO'}")
-            self._escrever_log(f"Continuar em caso de erro: {'SIM' if self.var_continuar_erro.get() else 'NÃO'}")
+            self._escrever_log(f"Somente 10 registros: {'SIM' if self._somente_10_ativo() else 'NÃO'}")
+            if self._filtro_produtos_ativo():
+                self._escrever_log(
+                    "Filtro Produtos: últimos "
+                    f"{self._obter_meses_filtro_produtos()} meses de movimentação operacional "
+                    "(CADASTRO excluído; documentos pendentes preservados)."
+                )
+            self._escrever_log(f"Limpar destino antes: {'SIM' if self._limpar_destino_ativo() else 'NÃO'}")
+            self._escrever_log(f"Continuar em caso de erro: {'SIM' if self._continuar_erro_ativo() else 'NÃO'}")
             
             self._escrever_log("=" * 70)
 
-            if self.pb_execucao is not None:
-                self.pb_execucao.configure(maximum=1, value=0)
-
-            if self.lbl_progresso_execucao is not None:
-                self.lbl_progresso_execucao.configure(
-                    text=f"Iniciando execução: {titulo_execucao}"
-                )
+            self._atualizar_progresso(maximum=1, value=0)
+            self._atualizar_status_execucao(f"Iniciando execução: {titulo_execucao}")
 
             self.update_idletasks()
 
             for tabela in tabelas:
                 total_tabelas += 1
-                self.lbl_resumo_execucao.configure(text=f"Migrando tabela: {tabela} ...")
+                total_registros_tabela = 0
+                self._atualizar_resumo_execucao(f"Migrando tabela: {tabela} ...")
+                self._atualizar_status_execucao(
+                    f"Iniciando tabela {total_tabelas}/{len(tabelas)}: {tabela}"
+                )
 
-                if self.lbl_progresso_execucao is not None:
-                    self.lbl_progresso_execucao.configure(
-                        text=f"Iniciando tabela {total_tabelas}/{len(tabelas)}: {tabela}"
-                    )
-
-                if self.pb_execucao is not None:
-                    total_registros_tabela = self._contar_registros_origem_migracao(
-                        con_origem,
-                        tabela,
-                    )
-                    self.pb_execucao.configure(
-                        maximum=max(total_registros_tabela, 1),
-                        value=0,
-                    )
+                total_registros_tabela = self._contar_registros_origem_migracao(
+                    con_origem,
+                    tabela,
+                )
+                if total_registros_tabela is None:
+                    self._atualizar_progresso(indeterminado=True)
+                else:
+                    self._atualizar_progresso(maximum=total_registros_tabela, value=0)
 
                 self.update_idletasks()
 
@@ -1399,12 +1773,19 @@ class MainWindow(tk.Tk):
                     falha_tabelas += 1
                     self._escrever_log(f"[ERRO] {tabela} | {e}")
 
+                    if tabela == "TB_PRODUTO_TRIBUTO":
+                        falhas_tributarias.append((total_registros_tabela, str(e)))
+                        self._escrever_log(
+                            "[PENDENCIA CRITICA] Tributacao nao migrada; "
+                            f"registros potencialmente afetados={total_registros_tabela}."
+                        )
+
                     try:
                         con_destino.rollback()
                     except Exception:
                         pass
 
-                    if not self.var_continuar_erro.get():
+                    if not self._continuar_erro_ativo():
                         raise RuntimeError(f"Execução interrompida na tabela {tabela}: {e}")
 
                 finally:
@@ -1424,50 +1805,65 @@ class MainWindow(tk.Tk):
                 f"Registros inseridos: {total_inseridos}"
             )
 
+            if falhas_tributarias:
+                afetados = sum(item[0] for item in falhas_tributarias)
+                causas = " | ".join(item[1] for item in falhas_tributarias)
+                resumo = (
+                    "MIGRACAO INCOMPLETA: pendencia tributaria.\n\n"
+                    + resumo
+                    + "\n\nPENDENCIA CRITICA: TB_PRODUTO_TRIBUTO nao foi migrada. "
+                    f"Registros potencialmente afetados: {afetados}.\nCausa: {causas}"
+                )
+
             self._escrever_log("-" * 70)
             self._escrever_log(resumo.replace("\n", " | "))
             self._escrever_log("=" * 70)
 
             
-            self.lbl_resumo_execucao.configure(
-                text=(
-                    f"Concluído | sucesso={sucesso_tabelas} | "
-                    f"falha={falha_tabelas} | inseridos={total_inseridos}"
-                )
+            self._atualizar_resumo_execucao(
+                f"Concluído | sucesso={sucesso_tabelas} | "
+                f"falha={falha_tabelas} | inseridos={total_inseridos}"
             )
 
-            if self.lbl_progresso_execucao is not None:
-                self.lbl_progresso_execucao.configure(
-                    text=(
-                        f"Concluído: {titulo_execucao} | "
-                        f"sucesso={sucesso_tabelas} | falha={falha_tabelas}"
-                    )
-                )
+            self._atualizar_status_execucao(
+                f"Concluído: {titulo_execucao} | "
+                f"sucesso={sucesso_tabelas} | falha={falha_tabelas}"
+            )
 
             if titulo_execucao == "Cadastros básicos" and falha_tabelas == 0:
                 self.base_inicial_processada = True
-                self._atualizar_pacotes_liberados()
+                if not self._publicar_interface("atualizar_pacotes"):
+                    self._atualizar_pacotes_liberados()
                 self._escrever_log(
                     "Cadastros básicos processados com sucesso. Financeiro em aberto liberado."
                 )
 
-            messagebox.showinfo("Migração concluída", resumo)
+            if falhas_tributarias:
+                self._notificar_execucao("warning", "Migração incompleta", resumo)
+            else:
+                self._notificar_execucao("info", "Migração concluída", resumo)
 
 
 
         except Exception as e:
-            messagebox.showerror(
+            self._notificar_execucao(
+                "error",
                 "Erro na migração",
                 f"Não foi possível concluir a migração.\n\n{e}",
             )
         finally:
             self._fechar_conexao(con_origem)
             self._fechar_conexao(con_destino)
+            self._filtro_produtos_em_execucao = filtro_produtos_anterior
 
     def _montar_sql_origem_tabela(self, tabela):
         tabela = self.firebird_service.normalizar_nome_tabela(tabela)
 
-        first = "FIRST 10 " if self.var_somente_10.get() else ""
+        sql_produtos = self._montar_sql_origem_produtos(tabela)
+        if sql_produtos:
+            return sql_produtos
+
+        first = "FIRST 10 " if self._somente_10_ativo() else ""
 
         if tabela == "TB_RECEBIMENTO":
             return (
@@ -1526,7 +1922,7 @@ class MainWindow(tk.Tk):
                     f")"
                 )
 
-        if self.var_somente_10.get():
+        if self._somente_10_ativo():
             return f"SELECT FIRST 10 * FROM {tabela}"
 
         return f"SELECT * FROM {tabela}"
@@ -1534,8 +1930,12 @@ class MainWindow(tk.Tk):
     def _montar_sql_count_origem_tabela(self, tabela):
         tabela = self.firebird_service.normalizar_nome_tabela(tabela)
 
-        if self.var_somente_10.get():
+        if self._somente_10_ativo():
             return None
+
+        sql_produtos = self._montar_sql_origem_produtos(tabela, contar=True)
+        if sql_produtos:
+            return sql_produtos
 
         if tabela == "TB_RECEBIMENTO":
             return (
@@ -1600,19 +2000,339 @@ class MainWindow(tk.Tk):
     def _contar_registros_origem_migracao(self, con_origem, tabela):
         tabela = self.firebird_service.normalizar_nome_tabela(tabela)
 
-        if self.var_somente_10.get():
-            return 10
+        if self._somente_10_ativo():
+            return None
 
         sql_count = self._montar_sql_count_origem_tabela(tabela)
 
         if not sql_count:
-            return 10
+            return None
 
         cur = con_origem.cursor()
         cur.execute(sql_count)
         linha = cur.fetchone()
 
         return int(linha[0] or 0)
+
+    def _obter_campos_por_nome(self, con, tabela):
+        campos = self.firebird_service.obter_campos_tabela(con, tabela)
+        return {campo["nome"]: campo for campo in campos}
+
+    def _tipos_numericos_tributarios_compativeis(self, tipo_origem, tipo_destino):
+        """Aceita somente ampliacao segura de NUMERIC para aliquotas conhecidas."""
+        padrao = r"^NUMERIC\((\d+),(\d+)\)$"
+        origem = re.fullmatch(padrao, tipo_origem or "")
+        destino = re.fullmatch(padrao, tipo_destino or "")
+        if not origem or not destino:
+            return False
+
+        precisao_origem, escala_origem = map(int, origem.groups())
+        precisao_destino, escala_destino = map(int, destino.groups())
+        inteiros_origem = precisao_origem - escala_origem
+        inteiros_destino = precisao_destino - escala_destino
+        return (
+            escala_destino >= escala_origem
+            and inteiros_destino >= inteiros_origem
+        )
+
+    def _tipos_numericos_tributarios_validaveis_por_valor(self, tipo_origem, tipo_destino):
+        padrao = r"^NUMERIC\((\d+),(\d+)\)$"
+        origem = re.fullmatch(padrao, tipo_origem or "")
+        destino = re.fullmatch(padrao, tipo_destino or "")
+        if not origem or not destino:
+            return None
+
+        precisao_origem, escala_origem = map(int, origem.groups())
+        precisao_destino, escala_destino = map(int, destino.groups())
+        if escala_destino < escala_origem:
+            return None
+
+        inteiros_origem = precisao_origem - escala_origem
+        inteiros_destino = precisao_destino - escala_destino
+        if inteiros_destino >= inteiros_origem:
+            return None
+
+        inteiro_maximo = "9" * inteiros_destino
+        fracao_maxima = "9" * escala_destino
+        limite = Decimal(f"{inteiro_maximo}.{fracao_maxima}")
+        return limite
+
+    def _validar_valores_numericos_tributarios(self, con_origem, campos):
+        """Verifica os valores elegiveis antes de permitir precision menor no destino."""
+        where = (
+            "EXISTS (SELECT 1 FROM TB_PRODUTO p "
+            "WHERE p.PRD_EMPRESA = t.PRDT_EMPRESA "
+            "AND p.PRD_ID = t.PRDT_PRODUTO "
+            f"AND {self._montar_predicado_produto_elegivel('p')})"
+        )
+        cur = con_origem.cursor()
+        for nome, limite in campos:
+            cur.execute(
+                f"SELECT FIRST 1 t.PRDT_EMPRESA, t.PRDT_PRODUTO, t.{nome} "
+                "FROM TB_PRODUTO_TRIBUTO t "
+                f"WHERE t.{nome} IS NOT NULL AND {where} "
+                f"AND (t.{nome} > ? OR t.{nome} < ?)",
+                [limite, -limite],
+            )
+            linha = cur.fetchone()
+            if linha is not None:
+                empresa, produto, valor = linha
+                raise RuntimeError(
+                    "Copia tributaria bloqueada. Valor nao representavel no destino: "
+                    f"empresa={empresa}; produto={produto}; campo={nome}; valor={valor}; "
+                    f"limite=+/-{limite}."
+                )
+
+            self._escrever_log(
+                "[OK] TB_PRODUTO_TRIBUTO: valores elegiveis compativeis para "
+                f"{nome} (limite destino=+/-{limite})."
+            )
+
+    def _validar_compatibilidade_tributaria(self, con_origem, con_destino):
+        """Impede perda silenciosa de campos fiscais na copia de tributos."""
+        origem = self._obter_campos_por_nome(con_origem, "TB_PRODUTO_TRIBUTO")
+        destino = self._obter_campos_por_nome(con_destino, "TB_PRODUTO_TRIBUTO")
+
+        if not origem:
+            raise RuntimeError("TB_PRODUTO_TRIBUTO nao existe ou nao possui campos na origem.")
+        if not destino:
+            raise RuntimeError("TB_PRODUTO_TRIBUTO nao existe ou nao possui campos no destino.")
+
+        chaves = ("PRDT_EMPRESA", "PRDT_PRODUTO")
+        faltantes_origem = [campo for campo in chaves if campo not in origem]
+        faltantes_destino = [campo for campo in chaves if campo not in destino]
+        if faltantes_origem or faltantes_destino:
+            raise RuntimeError(
+                "Estrutura tributaria incompativel. Chave obrigatoria ausente: "
+                f"origem={faltantes_origem or 'OK'}; destino={faltantes_destino or 'OK'}."
+            )
+
+        somente_origem = sorted(set(origem) - set(destino))
+        if somente_origem:
+            raise RuntimeError(
+                "Copia tributaria bloqueada para evitar perda de dados. Campos fiscais "
+                "existentes somente na origem: " + ", ".join(somente_origem)
+            )
+
+        obrigatorios_sem_origem = sorted(
+            nome for nome, campo in destino.items()
+            if campo["obrigatorio"] and nome not in origem
+        )
+        if obrigatorios_sem_origem:
+            raise RuntimeError(
+                "Copia tributaria bloqueada. Campos obrigatorios do destino sem valor "
+                "correspondente na origem: " + ", ".join(obrigatorios_sem_origem)
+            )
+
+        aliquotas_compativeis = {
+            "PRDT_CONFINS_ALIQ_ENT",
+            "PRDT_CONFINS_ALIQ_SAI",
+            "PRDT_PIS_ALIQ_ENT",
+            "PRDT_PIS_ALIQ_SAI",
+        }
+        tipos_incompativeis = []
+        validar_por_valor = []
+        for nome in sorted(set(origem) & set(destino)):
+            tipo_origem = origem[nome]["tipo"]
+            tipo_destino = destino[nome]["tipo"]
+            if tipo_origem == tipo_destino:
+                continue
+            if (
+                nome in aliquotas_compativeis
+                and self._tipos_numericos_tributarios_compativeis(
+                    tipo_origem, tipo_destino
+                )
+            ):
+                self._escrever_log(
+                    "[AVISO] TB_PRODUTO_TRIBUTO: compatibilidade numerica segura "
+                    f"para {nome} ({tipo_origem} -> {tipo_destino})."
+                )
+                continue
+            limite = None
+            if nome in aliquotas_compativeis:
+                limite = self._tipos_numericos_tributarios_validaveis_por_valor(
+                    tipo_origem, tipo_destino
+                )
+            if limite is not None:
+                validar_por_valor.append((nome, limite))
+                continue
+            tipos_incompativeis.append(
+                f"{nome} (origem={tipo_origem}; destino={tipo_destino})"
+            )
+        if tipos_incompativeis:
+            raise RuntimeError(
+                "Copia tributaria bloqueada. Tipos divergentes entre origem e destino: "
+                + ", ".join(tipos_incompativeis)
+            )
+
+        if validar_por_valor:
+            self._validar_valores_numericos_tributarios(
+                con_origem, validar_por_valor
+            )
+
+        amparo = "PRDT_AMPARO_LEGAL_IMENDES"
+        if amparo in origem and amparo in destino:
+            if origem[amparo]["tipo"] != "BLOB" or destino[amparo]["tipo"] != "BLOB":
+                raise RuntimeError(
+                    f"Copia tributaria bloqueada. {amparo} deve ser BLOB nos dois bancos."
+                )
+
+        somente_destino = sorted(set(destino) - set(origem))
+        if somente_destino:
+            self._escrever_log(
+                "[AVISO] TB_PRODUTO_TRIBUTO: campos somente no destino (nao alterados): "
+                + ", ".join(somente_destino)
+            )
+
+    def _validar_dependencias_tributarias(self, con_origem, con_destino):
+        """Valida grupos tributarios sem criar cadastros ou contornar FKs."""
+        campos_origem = self._obter_campos_por_nome(con_origem, "TB_PRODUTO_TRIBUTO")
+        if "PRDT_GRUPO_TRIB" not in campos_origem:
+            return
+
+        where = (
+            "EXISTS (SELECT 1 FROM TB_PRODUTO p "
+            "WHERE p.PRD_EMPRESA = t.PRDT_EMPRESA "
+            "AND p.PRD_ID = t.PRDT_PRODUTO "
+            f"AND {self._montar_predicado_produto_elegivel('p')})"
+        )
+        cur_origem = con_origem.cursor()
+        cur_origem.execute(
+            "SELECT DISTINCT t.PRDT_GRUPO_TRIB FROM TB_PRODUTO_TRIBUTO t "
+            f"WHERE t.PRDT_GRUPO_TRIB IS NOT NULL AND {where}"
+        )
+        grupos = [linha[0] for linha in cur_origem.fetchall()]
+
+        if "PRDT_REGRA_TRIBUTARIA" in campos_origem:
+            cur_origem.execute(
+                "SELECT COUNT(*) FROM TB_PRODUTO_TRIBUTO t "
+                f"WHERE t.PRDT_REGRA_TRIBUTARIA IS NOT NULL AND {where}"
+            )
+            regras_preenchidas = int(cur_origem.fetchone()[0] or 0)
+            if regras_preenchidas:
+                self._escrever_log(
+                    "[AVISO] TB_PRODUTO_TRIBUTO: "
+                    f"{regras_preenchidas} registro(s) com PRDT_REGRA_TRIBUTARIA preenchido; "
+                    "nao ha FK declarada conhecida e TB_REGRA_TRIBUTARIA nao sera migrada automaticamente."
+                )
+
+        if not grupos:
+            return
+
+        if not self._obter_campos_por_nome(con_origem, "TB_NCM_GRUPO_TRIB"):
+            raise RuntimeError(
+                "Ha PRDT_GRUPO_TRIB preenchido, mas TB_NCM_GRUPO_TRIB nao esta disponivel "
+                "na origem para validar a dependencia."
+            )
+        if not self._obter_campos_por_nome(con_destino, "TB_NCM_GRUPO_TRIB"):
+            raise RuntimeError(
+                "Ha PRDT_GRUPO_TRIB preenchido, mas TB_NCM_GRUPO_TRIB nao existe no destino. "
+                "A tributacao nao sera copiada sem essa dependencia."
+            )
+
+        cur_destino = con_destino.cursor()
+        ausentes = []
+        for grupo in grupos:
+            cur_destino.execute(
+                "SELECT FIRST 1 1 FROM TB_NCM_GRUPO_TRIB WHERE NCMG_ID = ?",
+                [grupo],
+            )
+            if cur_destino.fetchone() is None:
+                ausentes.append(grupo)
+
+        if ausentes:
+            exemplo = ", ".join(str(valor) for valor in ausentes[:10])
+            raise RuntimeError(
+                "Dependencia tributaria nao resolvida: "
+                f"{len(ausentes)} grupo(s) de NCM ausente(s) no destino ({exemplo}). "
+                "Nenhum registro tributario foi copiado."
+            )
+
+    def _validar_compatibilidade_tabela_produto(self, con_origem, con_destino, tabela, chaves):
+        """Evita perda silenciosa em tabelas-filhas selecionadas por produto."""
+        origem = self._obter_campos_por_nome(con_origem, tabela)
+        destino = self._obter_campos_por_nome(con_destino, tabela)
+        if not origem:
+            raise RuntimeError(f"{tabela} nao existe ou nao possui campos na origem.")
+        if not destino:
+            raise RuntimeError(f"{tabela} nao existe ou nao possui campos no destino.")
+
+        faltantes = [campo for campo in chaves if campo not in origem or campo not in destino]
+        if faltantes:
+            raise RuntimeError(
+                f"{tabela}: chave obrigatoria ausente na origem ou destino: "
+                + ", ".join(faltantes)
+            )
+
+        somente_origem = sorted(set(origem) - set(destino))
+        if somente_origem:
+            raise RuntimeError(
+                f"{tabela}: copia bloqueada para evitar perda de dados; campos somente na origem: "
+                + ", ".join(somente_origem)
+            )
+
+        obrigatorios_sem_origem = sorted(
+            nome for nome, campo in destino.items()
+            if campo["obrigatorio"] and nome not in origem
+        )
+        if obrigatorios_sem_origem:
+            raise RuntimeError(
+                f"{tabela}: campos obrigatorios somente no destino: "
+                + ", ".join(obrigatorios_sem_origem)
+            )
+
+        divergentes = sorted(
+            nome for nome in set(origem) & set(destino)
+            if origem[nome]["tipo"] != destino[nome]["tipo"]
+        )
+        if divergentes:
+            raise RuntimeError(
+                f"{tabela}: tipos divergentes entre origem e destino: "
+                + ", ".join(divergentes)
+            )
+
+    def _validar_vinculos_xml_importado(self, con_origem, con_destino):
+        """Confere os pais no destino antes de copiar vinculos de XML."""
+        where = (
+            "(x.PXI_PRODUTO IS NULL OR EXISTS (SELECT 1 FROM TB_PRODUTO p "
+            "WHERE p.PRD_EMPRESA = x.PXI_EMPRESA "
+            "AND p.PRD_ID = x.PXI_PRODUTO "
+            f"AND {self._montar_predicado_produto_elegivel('p')}))"
+        )
+        cur_origem = con_origem.cursor()
+        cur_origem.execute(
+            "SELECT DISTINCT x.PXI_EMPRESA, x.PXI_PRODUTO "
+            "FROM TB_PROD_XML_IMPORTADO x "
+            f"WHERE {where}"
+        )
+        vinculos = cur_origem.fetchall()
+
+        cur_destino = con_destino.cursor()
+        ausentes = []
+        for empresa, produto in vinculos:
+            if produto is None:
+                cur_destino.execute(
+                    "SELECT FIRST 1 1 FROM TB_EMPRESA WHERE EMP_ID = ?",
+                    [empresa],
+                )
+                descricao = f"empresa={empresa}; produto=NULL"
+            else:
+                cur_destino.execute(
+                    "SELECT FIRST 1 1 FROM TB_PRODUTO "
+                    "WHERE PRD_EMPRESA = ? AND PRD_ID = ?",
+                    [empresa, produto],
+                )
+                descricao = f"empresa={empresa}; produto={produto}"
+            if cur_destino.fetchone() is None:
+                ausentes.append(descricao)
+
+        if ausentes:
+            exemplos = " | ".join(ausentes[:10])
+            raise RuntimeError(
+                "TB_PROD_XML_IMPORTADO: vinculo nao encontrado no destino; "
+                f"total={len(ausentes)}; exemplos={exemplos}. "
+                "Nenhum vinculo XML foi copiado."
+            )
 
 
     def _migrar_tabela(self, con_origem, con_destino, tabela):
@@ -1625,6 +2345,25 @@ class MainWindow(tk.Tk):
                 f"Use apenas a análise por enquanto. A migração será liberada no próximo patch."
             )
 
+        if tabela == "TB_PRODUTO_TRIBUTO":
+            self._validar_compatibilidade_tributaria(con_origem, con_destino)
+            self._validar_dependencias_tributarias(con_origem, con_destino)
+        elif tabela == "TB_PRODUTO_NUTRICIONAL":
+            self._validar_compatibilidade_tabela_produto(
+                con_origem,
+                con_destino,
+                tabela,
+                ("PRDN_EMPRESA", "PRDN_PRODUTO"),
+            )
+        elif tabela == "TB_PROD_XML_IMPORTADO":
+            self._validar_compatibilidade_tabela_produto(
+                con_origem,
+                con_destino,
+                tabela,
+                ("PXI_EMPRESA", "PXI_EMITENTE", "PXI_COD_PROD_EMIT"),
+            )
+            self._validar_vinculos_xml_importado(con_origem, con_destino)
+
         colunas_destino = [
             campo["nome"]
             for campo in self.firebird_service.obter_campos_tabela(con_destino, tabela)
@@ -1635,7 +2374,7 @@ class MainWindow(tk.Tk):
 
         campo_chave_upsert = self._obter_chave_upsert_tabela(tabela)
 
-        if self.var_limpar_destino.get() and not campo_chave_upsert:
+        if self._limpar_destino_ativo() and not campo_chave_upsert:
             self._limpar_tabela_destino(con_destino, tabela)
             self._escrever_log(f"Destino limpo: {tabela}")
 
@@ -1660,11 +2399,7 @@ class MainWindow(tk.Tk):
 
         total_registros_tabela = len(registros)
 
-        if self.pb_execucao is not None:
-            self.pb_execucao.configure(
-                maximum=max(total_registros_tabela, 1),
-                value=0,
-            )
+        self._atualizar_progresso(maximum=total_registros_tabela, value=0)
 
         lidos = 0
         inseridos = 0
@@ -1673,13 +2408,11 @@ class MainWindow(tk.Tk):
         for registro in registros:
             lidos += 1
 
-            if self.lbl_progresso_execucao is not None:
-                self.lbl_progresso_execucao.configure(
-                    text=f"{tabela}: registro {lidos}/{total_registros_tabela}"
-                )
-
-            if self.pb_execucao is not None:
-                self.pb_execucao.configure(value=lidos)
+            percentual = (lidos * 100 / total_registros_tabela) if total_registros_tabela else 0
+            self._atualizar_status_execucao(
+                f"{tabela}: registro {lidos}/{total_registros_tabela} ({percentual:.1f}%)"
+            )
+            self._atualizar_progresso(value=lidos)
 
             if lidos == 1 or lidos % 50 == 0 or lidos == total_registros_tabela:
                 self.update_idletasks()            

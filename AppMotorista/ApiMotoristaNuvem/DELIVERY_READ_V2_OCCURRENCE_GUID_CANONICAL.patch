@@ -1,0 +1,36 @@
+--- a/app/service.py
++++ b/app/service.py
+@@ -3,6 +3,7 @@
+ import secrets
+ from copy import deepcopy
+ from datetime import datetime, timedelta, timezone
++from uuid import UUID
+ 
+ from flask import current_app
+ from sqlalchemy import and_, delete, select, text, update
+@@ -40,6 +41,13 @@
+     return _aware(value).isoformat(timespec="seconds") if value else None
+ 
+ 
++def _canonical_uuid(value):
++    try:
++        return str(UUID(str(value)))
++    except (TypeError, ValueError):
++        return None
++
++
+ def _advisory_lock(connection, tenant_id, manifesto_guid):
+     if connection.dialect.name != "postgresql":
+         return
+@@ -824,9 +832,10 @@
+             raise ApiError(403, "CARGA_NAO_AUTORIZADA", "Carga nao autorizada para delivery_read")
+         stop = next((value for value in detail["paradas"] if value["parada"] == stop_id), None)
+         occurrence_guid = payload.get("occurrence_guid")
++        canonical_occurrence_guid = _canonical_uuid(occurrence_guid)
+         occurrence = next(
+             (value for candidate_stop in detail["paradas"] for value in candidate_stop["ocorrencias"]
+-             if occurrence_guid and value.get("guid") == occurrence_guid),
++             if canonical_occurrence_guid and _canonical_uuid(value.get("guid")) == canonical_occurrence_guid),
+             None,
+         )
+         # Existing operations were resolved above. New V1 operations never deliver.

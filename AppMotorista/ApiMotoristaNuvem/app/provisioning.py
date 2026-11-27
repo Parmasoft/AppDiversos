@@ -8,7 +8,7 @@ from sqlalchemy import select, update
 from .database import get_engine
 from .security import token_digest
 from .sql import dialect_insert
-from .tables import agent_credential, mobile_session, tenant
+from .tables import agent_credential, agent_credential_company_access, mobile_session, tenant
 
 
 def _as_datetime(value):
@@ -37,7 +37,7 @@ def provision_tenant(external_id, name, tracking_activated_at=None):
 
 def provision_agent(tenant_id, agent_guid, raw_token):
     with get_engine().begin() as connection:
-        connection.execute(
+        result = connection.execute(
             agent_credential.insert().values(
                 tenant_id=tenant_id,
                 agent_guid=agent_guid,
@@ -46,6 +46,22 @@ def provision_agent(tenant_id, agent_guid, raw_token):
                 created_at=datetime.now(timezone.utc),
             )
         )
+        return result.inserted_primary_key[0]
+
+
+def provision_agent_company_access(agent_credential_id, company_id, active=True):
+    """Test/provisioning helper; production authorization is provisioned by SQL."""
+    with get_engine().begin() as connection:
+        statement = dialect_insert(connection, agent_credential_company_access).values(
+            agent_credential_id=agent_credential_id,
+            company_id=company_id,
+            active=active,
+        )
+        statement = statement.on_conflict_do_update(
+            index_elements=["agent_credential_id", "company_id"],
+            set_={"active": statement.excluded.active},
+        )
+        connection.execute(statement)
 
 
 def provision_mobile_session(

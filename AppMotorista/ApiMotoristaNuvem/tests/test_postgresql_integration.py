@@ -12,7 +12,12 @@ from sqlalchemy.exc import IntegrityError
 
 from app import create_app
 from app.database import dispose_database, get_engine
-from app.provisioning import provision_agent, provision_mobile_session, provision_tenant
+from app.provisioning import (
+    provision_agent,
+    provision_agent_company_access,
+    provision_mobile_session,
+    provision_tenant,
+)
 from app.tables import (
     load_projection,
     manifest_projection,
@@ -25,7 +30,7 @@ from app.tables import (
     occurrence_projection,
 )
 
-from .helpers import clone, rehash, snapshot
+from .helpers import clone, occurrence_guid, rehash, snapshot
 
 
 INSTANCE_A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
@@ -63,8 +68,10 @@ class PostgreSQLIntegrationTest(unittest.TestCase):
             tenant_b = provision_tenant(
                 "OUTRA", "Outra empresa", "2026-09-03T00:00:00+00:00"
             )
-            provision_agent(tenant_a, "AGENT-A", "agent-token-a")
-            provision_agent(tenant_b, "AGENT-B", "agent-token-b")
+            agent_a = provision_agent(tenant_a, "AGENT-A", "agent-token-a")
+            agent_b = provision_agent(tenant_b, "AGENT-B", "agent-token-b")
+            provision_agent_company_access(agent_a, 10)
+            provision_agent_company_access(agent_b, 10)
             expiry = datetime.now(timezone.utc) + timedelta(hours=1)
             provision_mobile_session(tenant_a, "MOT-A", "mobile-token-a", expiry, "mobile-refresh-a")
             provision_mobile_session(tenant_b, "MOT-B", "mobile-token-b", expiry, "mobile-refresh-b")
@@ -424,6 +431,7 @@ class PostgreSQLIntegrationTest(unittest.TestCase):
         path = "/api/v1/motorista/viagens/MAN-A/paradas/31/pedidos/1001/leituras"
         payload = {
             "operacao_guid": "11111111-1111-4111-8111-111111111111",
+            "occurrence_guid": occurrence_guid("A"),
             "codigo": "CONTROLADO",
             "data_hora_aparelho": "2026-09-07T12:00:00-03:00",
             "fuso_minutos": -180,
@@ -456,6 +464,92 @@ class PostgreSQLIntegrationTest(unittest.TestCase):
                 self.client.post(path, json=rollback_payload, headers={"Authorization": f"Bearer {refreshed.get_json()['access_token']}"})
         with self.app.app_context(), get_engine().connect() as connection:
             self.assertEqual(1, connection.execute(select(func.count()).select_from(delivery_read_operation)).scalar_one())
+
+    def test_delivery_return_claim_ack_applied_rejected_and_terminal_replay(self):
+        lease = self.acquire()
+        self.assertEqual(201, self.publish(snapshot(), lease).status_code)
+        path = "/api/v1/motorista/viagens/MAN-A/paradas/31/pedidos/1001/leituras"
+        headers = {"Authorization": "Bearer mobile-token-a"}
+        operations = (
+            "11111111-1111-4111-8111-111111111111",
+            "22222222-2222-4222-8222-222222222222",
+        )
+        for operation_guid in operations:
+            response = self.client.post(path, json={
+                "operacao_guid": operation_guid,
+                "occurrence_guid": occurrence_guid("A"),
+                "codigo": "CONTROLADO",
+                "data_hora_aparelho": "2026-09-07T12:00:00-03:00",
+                "fuso_minutos": -180,
+            }, headers=headers)
+            self.assertEqual(200, response.status_code, response.get_json())
+
+        claimed = self.client.post(
+            "/api/v1/agente/retornos/claim",
+            json={"agent_instance_guid": INSTANCE_A}, headers=self.auth(),
+        )
+        self.assertEqual(200, claimed.status_code, claimed.get_json())
+        claim_body = claimed.get_json()
+        self.assertIsNotNone(claim_body["claim_expires_at"])
+        payloads = {item["operation_guid"]: item for item in claim_body["operacoes"]}
+        self.assertEqual(set(operations), set(payloads))
+        for operation_guid in operations:
+            self.assertEqual(10, payloads[operation_guid]["empresa"])
+            self.assertEqual(occurrence_guid("A"), payloads[operation_guid]["expected_occurrence_guid"])
+
+        with self.app.app_context(), get_engine().connect() as connection:
+            rows = connection.execute(select(delivery_read_operation)).mappings().all()
+        claimed_rows = {row["operation_guid"]: row for row in rows}
+        for operation_guid in operations:
+            row = claimed_rows[operation_guid]
+            self.assertEqual("CLAIMED", row["return_state"])
+            self.assertEqual(INSTANCE_A, row["claimed_instance_guid"])
+            self.assertIsNotNone(row["claimed_by_agent_id"])
+            self.assertIsNotNone(row["claim_expires_at"])
+            self.assertEqual(1, row["return_attempt_count"])
+
+        applied_ack = {
+            "operation_guid": operations[0], "resultado": "ACEITA",
+            "codigo_resposta": "ENTREGA_REGISTRADA", "mensagem": "aplicada",
+            "ocorrencia_guid": payloads[operations[0]]["expected_occurrence_guid"],
+            "replay": False,
+        }
+        applied = self.client.post(
+            "/api/v1/agente/retornos/ack", json=applied_ack,
+            headers={**self.auth(), "X-Agent-Instance-Guid": INSTANCE_A},
+        )
+        self.assertEqual(200, applied.status_code, applied.get_json())
+        self.assertEqual({"resultado": "APPLIED", "replay": False}, applied.get_json())
+
+        rejected_ack = {
+            "operation_guid": operations[1], "resultado": "RECUSADA",
+            "codigo_resposta": "OCORRENCIA_INVALIDA", "mensagem": "rejeitada",
+            "ocorrencia_guid": payloads[operations[1]]["expected_occurrence_guid"],
+            "replay": False,
+        }
+        rejected = self.client.post(
+            "/api/v1/agente/retornos/ack", json=rejected_ack,
+            headers={**self.auth(), "X-Agent-Instance-Guid": INSTANCE_A},
+        )
+        self.assertEqual(200, rejected.status_code, rejected.get_json())
+        self.assertEqual({"resultado": "REJECTED", "replay": False}, rejected.get_json())
+
+        replay = self.client.post(
+            "/api/v1/agente/retornos/ack", json=applied_ack,
+            headers={**self.auth(), "X-Agent-Instance-Guid": INSTANCE_A},
+        )
+        self.assertEqual(200, replay.status_code, replay.get_json())
+        self.assertEqual({"resultado": "APPLIED", "replay": True}, replay.get_json())
+
+        with self.app.app_context(), get_engine().connect() as connection:
+            rows = connection.execute(select(delivery_read_operation)).mappings().all()
+        final_rows = {row["operation_guid"]: row for row in rows}
+        self.assertEqual("APPLIED", final_rows[operations[0]]["return_state"])
+        self.assertEqual(applied_ack, final_rows[operations[0]]["return_result_json"])
+        self.assertIsNotNone(final_rows[operations[0]]["returned_at"])
+        self.assertEqual("REJECTED", final_rows[operations[1]]["return_state"])
+        self.assertEqual(rejected_ack, final_rows[operations[1]]["return_result_json"])
+        self.assertIsNotNone(final_rows[operations[1]]["returned_at"])
 
 
 if __name__ == "__main__":

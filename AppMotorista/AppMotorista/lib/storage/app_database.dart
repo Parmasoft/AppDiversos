@@ -2,11 +2,15 @@ import 'package:path/path.dart' as path;
 import 'package:sqflite/sqflite.dart';
 
 class AppDatabase {
-  AppDatabase({DatabaseFactory? factory, String? databasePath})
-    : _factory = factory ?? databaseFactory,
-      _databasePath = databasePath;
+  AppDatabase({
+    DatabaseFactory? factory,
+    String? databasePath,
+    String databaseFileName = AppDatabase.databaseFileName,
+  }) : _factory = factory ?? databaseFactory,
+       _databasePath = databasePath,
+       _databaseFileName = databaseFileName;
 
-  static const schemaVersion = 2;
+  static const schemaVersion = 3;
   static const databaseFileName = 'app_motorista.db';
 
   static const localTripTable = 'local_trip';
@@ -14,9 +18,11 @@ class AppDatabase {
   static const localOrderTable = 'local_order';
   static const localOccurrenceTable = 'local_occurrence';
   static const outboxOperationTable = 'outbox_operation';
+  static const tripDownloadTable = 'trip_download';
 
   final DatabaseFactory _factory;
   final String? _databasePath;
+  final String _databaseFileName;
 
   Database? _database;
   Future<Database>? _opening;
@@ -31,7 +37,7 @@ class AppDatabase {
     try {
       final resolvedPath =
           _databasePath ??
-          path.join(await getDatabasesPath(), databaseFileName);
+          path.join(await getDatabasesPath(), _databaseFileName);
       final opened = await _factory.openDatabase(
         resolvedPath,
         options: OpenDatabaseOptions(
@@ -199,6 +205,7 @@ class AppDatabase {
       'CREATE INDEX ix_outbox_manifest '
       'ON $outboxOperationTable (driver_guid, manifest_guid, created_at)',
     );
+    await _createTripDownloadTable(database);
   }
 
   static Future<void> _upgradeSchema(
@@ -211,5 +218,21 @@ class AppDatabase {
         'ALTER TABLE $outboxOperationTable ADD COLUMN occurrence_guid TEXT',
       );
     }
+    if (oldVersion < 3) {
+      await _createTripDownloadTable(database);
+    }
+  }
+
+  static Future<void> _createTripDownloadTable(Database database) {
+    return database.execute('''
+      CREATE TABLE IF NOT EXISTS $tripDownloadTable (
+        driver_guid TEXT NOT NULL,
+        manifest_guid TEXT NOT NULL,
+        state TEXT NOT NULL CHECK (state IN ('pending','failed')),
+        error_message TEXT,
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (driver_guid, manifest_guid)
+      )
+    ''');
   }
 }

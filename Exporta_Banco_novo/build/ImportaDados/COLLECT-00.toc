@@ -3716,10 +3716,10 @@
    'E:\\Jorginho\\Exporta_Banco_novo\\build\\ImportaDados\\base_library.zip',
    'DATA'),
   ('dateutil\\zoneinfo\\dateutil-zoneinfo.tar.gz',
-   'E:\\Jorginho\\ImportaDados\\venv\\Lib\\site-packages\\dateutil\\zoneinfo\\dateutil-zoneinfo.tar.gz',
+   'E:\\Jorginho\\Exporta_Banco_novo\\venv\\Lib\\site-packages\\dateutil\\zoneinfo\\dateutil-zoneinfo.tar.gz',
    'DATA'),
   ('google\\_upb\\_message.pyd',
-   'E:\\Jorginho\\ImportaDados\\venv\\Lib\\site-packages\\google\\_upb\\_message.pyd',
+   'E:\\Jorginho\\Exporta_Banco_novo\\venv\\Lib\\site-packages\\google\\_upb\\_message.pyd',
    'EXTENSION'),
   ('libcrypto-3.dll',
    'C:\\Users\\Jorge '

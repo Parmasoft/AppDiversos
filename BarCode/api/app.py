@@ -3,6 +3,7 @@ import fdb
 import os
 from PIL import Image
 import json
+import hashlib
 import socket
 import traceback
 import re
@@ -15,6 +16,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 LOGO_ZEBRA_PATH = os.path.join(BASE_DIR, "logo_cliente.png")
 CONFIG_IMPRESSAO_PATH = os.path.join(BASE_DIR, "config_impressao.json")
 REGULARIZACAO_ROLO_RE = re.compile(r"^R\d{17}$")
+F22_ROLO_RE = re.compile(r"^F\d{21}$")
 regularizacao_lock = Lock()
 regularizacao_em_andamento = set()
 
@@ -36,8 +38,10 @@ def inteiro_seguro(valor, padrao=0):
 def get_connection():
     return fdb.connect(
         host="localhost",
+        
         #database=r"C:\Parmasoft\Dados\Dados.FDB",        
-        database=r"E:\Dados Clientes\GramDecor\Dados.FDB",        
+        database=r"E:\Dados Clientes\GramDecor\Dados.FDB",  
+        #database=r"E:\Dados Clientes\Tekno Prime\Dados.FDB",          
         user="SYSDBA",
         password="masterkey",
         charset="ISO8859_1"
@@ -249,6 +253,77 @@ def resolver_codigo_rolo(cur, empresa, codigo_lido):
         "produto": inteiro_seguro(row[6], 0),
         "quantidade": decimal_seguro(row[7]),
         "origem": (row[8] or "").strip().upper(),
+    }
+
+
+def resolver_codigo_f22(cur, empresa, codigo_lido):
+    """Resolve F22 pelo PROR_ID, sem alterar nem reutilizar o contrato R legado."""
+    codigo_lido = (codigo_lido or "").strip().upper()
+
+    if not F22_ROLO_RE.fullmatch(codigo_lido):
+        raise ValueError(
+            "Etiqueta F22 inválida. Informe F + PROR_ID(6) + PRODUTO(7) + QUANTIDADE(8)."
+        )
+
+    pror_id = int(codigo_lido[1:7])
+    produto_codigo = int(codigo_lido[7:14])
+    quantidade_codigo = Decimal(codigo_lido[14:22]) / Decimal("10000")
+
+    cur.execute("""
+        SELECT
+            R.PROR_EMPRESA,
+            R.PROR_ID,
+            R.PROR_PRODUTO,
+            R.PROR_QUANTIDADE,
+            R.PROR_UN,
+            R.PROR_STATUS,
+            R.PROR_CODIGO_BARRAS,
+            P.PRD_DESCRICAO
+        FROM TB_PRODUTO_ROLO R
+        JOIN TB_PRODUTO P
+          ON P.PRD_EMPRESA = R.PROR_EMPRESA
+         AND P.PRD_ID = R.PROR_PRODUTO
+        WHERE R.PROR_EMPRESA = ?
+          AND R.PROR_ID = ?
+          AND R.PROR_STATUS = 'A'
+          AND COALESCE(P.PRD_STATUS, 'A') <> 'I'
+    """, (empresa, pror_id))
+
+    row = cur.fetchone()
+    if not row:
+        raise ValueError("Rolo F22 não encontrado, inativo ou pertencente a outra empresa.")
+
+    (
+        empresa_banco,
+        pror_id_banco,
+        produto_banco,
+        quantidade_banco,
+        unidade,
+        status,
+        codigo_canonico,
+        descricao,
+    ) = row
+
+    quantidade_banco = decimal_seguro(quantidade_banco).quantize(
+        Decimal("0.0001"), rounding=ROUND_HALF_UP
+    )
+
+    if int(produto_banco) != produto_codigo:
+        raise ValueError("Produto codificado na etiqueta F22 diverge do rolo físico.")
+
+    if quantidade_banco != quantidade_codigo:
+        raise ValueError("Quantidade codificada na etiqueta F22 diverge do rolo físico.")
+
+    return {
+        "codigo_lido": codigo_lido,
+        "codigo_canonico": (codigo_canonico or "").strip().upper(),
+        "pror_id_atual": inteiro_seguro(pror_id_banco, 0),
+        "produto": inteiro_seguro(produto_banco, 0),
+        "quantidade": quantidade_banco,
+        "unidade": (unidade or "").strip(),
+        "descricao": (descricao or "").strip(),
+        "status": (status or "").strip().upper(),
+        "empresa": inteiro_seguro(empresa_banco, 0),
     }
 
 
@@ -1916,6 +1991,47 @@ def rolos_zpl_preview():
 # Regra:
 # ROLO + produto 8 dígitos + quantidade 6 dígitos
 # ==============================================================
+@app.route("/rolos/consultar-f22", methods=["GET"])
+def consultar_codigo_f22():
+    """Consulta isolada para F22 usada somente pela Separação de Pedidos."""
+    con = None
+
+    try:
+        empresa = int(request.args.get("empresa", 1))
+        codigo = (request.args.get("codigo", "") or "").strip().upper()
+
+        con = get_connection()
+        cur = con.cursor()
+        resolucao = resolver_codigo_f22(cur, empresa, codigo)
+
+        return jsonify({
+            "status": "ok",
+            "codigo_lido": resolucao["codigo_lido"],
+            "pror_id": resolucao["pror_id_atual"],
+            "produto_id": resolucao["produto"],
+            "quantidade": float(resolucao["quantidade"]),
+            "unidade": resolucao["unidade"],
+            "descricao": resolucao["descricao"],
+        })
+    except ValueError as erro:
+        return jsonify({
+            "status": "erro",
+            "mensagem": str(erro),
+        }), 409
+    except Exception as erro:
+        print("\n========== ERRO NA ROTA /rolos/consultar-f22 ==========")
+        print(erro)
+        traceback.print_exc()
+        print("=========================================================\n")
+        return jsonify({"status": "erro", "mensagem": str(erro)}), 500
+    finally:
+        try:
+            if con:
+                con.close()
+        except:
+            pass
+
+
 @app.route("/rolos/consultar-codigo", methods=["GET"])
 def consultar_codigo_rolo():
     con = None
@@ -1923,6 +2039,7 @@ def consultar_codigo_rolo():
     try:
         empresa = int(request.args.get("empresa", 1))
         codigo = (request.args.get("codigo", "") or "").strip().upper()
+        validar_recebimento_pedido_compra = (request.args.get("validar_recebimento_pedido_compra", "N") or "N").strip().upper() == "S"
 
         if not codigo:
             return jsonify({
@@ -1954,6 +2071,24 @@ def consultar_codigo_rolo():
         produto_id_codigo = resolucao["produto"]
         quantidade_codigo = float(resolucao["quantidade"])
         codigo_canonico = resolucao["codigo_canonico"]
+
+        if validar_recebimento_pedido_compra:
+            cur.execute("""
+                SELECT FIRST 1 PCRL_RECEBIMENTO
+                FROM TB_PEDIDO_COMPRA_RECEB_ETIQUETA
+                WHERE PCRL_EMPRESA = ?
+                  AND PCRL_TIPO_ETIQUETA = 'R'
+                  AND PCRL_PROR_ID = ?
+                  AND PCRL_SITUACAO = 'A'
+            """, (empresa, pror_id))
+            if cur.fetchone():
+                return jsonify({
+                    "status": "erro",
+                    "mensagem": "Etiqueta R ja recebida.",
+                    "codigo_lido": codigo,
+                    "codigo_canonico": codigo_canonico,
+                    "pror_id": pror_id,
+                }), 409
 
         sql = """
             SELECT
@@ -3164,14 +3299,24 @@ def salvar_separacao_pedido():
                 codigo = (rolo.get("codigo") or rolo.get("codigo_barras") or "").strip().upper()
                 pror_id = inteiro_seguro(rolo.get("id") or rolo.get("pror_id"), 0)
 
-                if codigo.startswith("R"):
+                if codigo.startswith(("R", "F")):
+                    if codigo.startswith("F"):
+                        if not F22_ROLO_RE.fullmatch(codigo):
+                            return jsonify({
+                                "status": "erro",
+                                "mensagem": "Etiqueta F22 inválida no salvamento."
+                            }), 400
+                        # Em F22 a identidade vem do próprio contrato lido,
+                        # nunca do id auxiliar enviado pelo aplicativo.
+                        pror_id = int(codigo[1:7])
+
                     if pror_id <= 0:
                         return jsonify({
                             "status": "erro",
                             "mensagem": "Existe rolo sem PROR_ID válido."
                         }), 400
 
-                    chave = (empresa, "R", codigo)
+                    chave = (empresa, codigo[0], codigo)
 
                     if chave in rolos_payload:
                         return jsonify({
@@ -3212,7 +3357,10 @@ def salvar_separacao_pedido():
                     continue
 
                 try:
-                    resolucao = resolver_codigo_rolo(cur, empresa, codigo)
+                    if codigo.startswith("F"):
+                        resolucao = resolver_codigo_f22(cur, empresa, codigo)
+                    else:
+                        resolucao = resolver_codigo_rolo(cur, empresa, codigo)
                 except ValueError as erro_resolucao:
                     return jsonify({
                         "status": "erro",
@@ -3221,7 +3369,11 @@ def salvar_separacao_pedido():
                     }), 409
 
                 pror_id = resolucao["pror_id_atual"]
-                codigo = resolucao["codigo_canonico"]
+                codigo = (
+                    resolucao["codigo_lido"]
+                    if codigo.startswith("F")
+                    else resolucao["codigo_canonico"]
+                )
 
                 chave_canonica = (empresa, pror_id)
                 if chave_canonica in rolos_canonicos:
@@ -3238,8 +3390,21 @@ def salvar_separacao_pedido():
                 rolo["codigo_barras"] = codigo
                 rolo["quantidade"] = float(resolucao["quantidade"])
 
-                # Rolo existe e pertence ao produto?
-                cur.execute("""
+                # F22 mantém o código impresso F... no histórico e usa PROR_ID
+                # como identidade soberana; R conserva a checagem pelo código
+                # canônico/alias já existente.
+                if codigo.startswith("F"):
+                    cur.execute("""
+                    SELECT
+                        PROR_PRODUTO,
+                        PROR_QUANTIDADE,
+                        COALESCE(PROR_STATUS, 'A')
+                    FROM TB_PRODUTO_ROLO
+                    WHERE PROR_EMPRESA = ?
+                      AND PROR_ID = ?
+                    """, (empresa, pror_id))
+                else:
+                    cur.execute("""
                     SELECT
                         PROR_PRODUTO,
                         PROR_QUANTIDADE,
@@ -3248,7 +3413,7 @@ def salvar_separacao_pedido():
                     WHERE PROR_EMPRESA = ?
                       AND PROR_ID = ?
                       AND PROR_CODIGO_BARRAS = ?
-                """, (empresa, pror_id, codigo))
+                    """, (empresa, pror_id, codigo))
 
                 row_rolo = cur.fetchone()
 
@@ -3274,6 +3439,24 @@ def salvar_separacao_pedido():
                             f"{produto_rolo}, mas foi enviado no produto {produto_id}."
                         )
                     }), 409
+
+                if codigo.startswith("F"):
+                    cur.execute("""
+                        SELECT COUNT(*)
+                        FROM TB_PEDIDO_VENDA_ITEM
+                        WHERE PEVI_EMPRESA = ?
+                          AND PEVI_PEDIDO_VENDA = ?
+                          AND PEVI_PRODUTO = ?
+                          AND COALESCE(PEVI_STATUS, 'A') <> 'C'
+                    """, (empresa, pedido, produto_id))
+                    if int(cur.fetchone()[0] or 0) == 0:
+                        return jsonify({
+                            "status": "erro",
+                            "mensagem": (
+                                f"Produto {produto_id} da etiqueta F22 não pertence "
+                                f"ao pedido {pedido}."
+                            )
+                        }), 409
 
                 # Rolo já usado em separação aberta/finalizada?
                 cur.execute("""
@@ -3302,6 +3485,21 @@ def salvar_separacao_pedido():
                             f"na separação {separacao_usada}, pedido {pedido_usado}."
                         )
                     }), 409
+
+        # Para qualquer produto com F22, o total separado é reconstruído das
+        # leituras já revalidadas; assim PROR_QUANTIDADE é a fonte oficial.
+        # Produtos sem F22 preservam integralmente o comportamento histórico.
+        for produto in produtos:
+            rolos = produto.get("rolos", [])
+            if any(
+                (rolo.get("codigo") or rolo.get("codigo_barras") or "")
+                .strip().upper().startswith("F")
+                for rolo in rolos
+            ):
+                produto["separado"] = float(sum(
+                    (decimal_seguro(rolo.get("quantidade")) for rolo in rolos),
+                    Decimal("0"),
+                ))
 
         # ------------------------------------------------------
         # 4) Calcula totais no servidor
@@ -5031,6 +5229,360 @@ def finalizar_separacao_transferencia():
             if con:
                 con.close()
         except:
+            pass
+
+
+# ==============================================================
+# PEDIDOS DE COMPRA - CONSULTA SOMENTE DE LEITURA
+# ==============================================================
+def _pedido_compra_recebimento_json(row):
+    return {
+        "empresa": int(row[0]),
+        "pedido_id": int(row[1]),
+        "status": (row[2] or "").strip(),
+        "data_emissao": _formatar_data_transferencia(row[3]),
+        "fornecedor_id": int(row[4] or 0),
+        "fornecedor_nome": (row[5] or "").strip(),
+        "numero_nota": (row[6] or "").strip() or None,
+        "total_itens": int(row[7] or 0),
+        "itens_pendentes": int(row[8] or 0),
+        "quantidade_total": _quantidade_json(row[9]),
+        "quantidade_recebida": _quantidade_json(row[10]),
+        "quantidade_pendente": _quantidade_json(row[11])
+    }
+
+
+# Exemplo: /pedidos-compra/recebimento?empresa=10
+# Lista somente pedidos que ainda possuem item recebivel.
+@app.route("/pedidos-compra/recebimento", methods=["GET"])
+def listar_pedidos_compra_recebimento():
+    con = None
+
+    try:
+        empresa_param = request.args.get("empresa")
+        if not empresa_param:
+            return jsonify({
+                "status": "erro",
+                "mensagem": "Empresa nao informada."
+            }), 400
+
+        empresa = int(empresa_param)
+        if empresa <= 0:
+            raise ValueError
+
+        con = get_connection()
+        cur = con.cursor()
+        cur.execute("""
+            SELECT
+                P.PDC_EMPRESA AS EMPRESA,
+                P.PDC_ID AS PEDIDO_ID,
+                P.PDC_STATUS AS STATUS,
+                P.PDC_DT_EMISSAO AS DATA_EMISSAO,
+                P.PDC_FORNECEDOR AS FORNECEDOR_ID,
+                COALESCE(F.FOR_RSOCIAL_NOME, '') AS FORNECEDOR_NOME,
+                P.PDC_NUMERO_NOTA AS NUMERO_NOTA,
+                COUNT(I.PDCI_SEQUENCIA) AS TOTAL_ITENS,
+                SUM(
+                    CASE
+                        WHEN COALESCE(I.PDCI_STATUS, 'A') <> 'T'
+                         AND COALESCE(I.PDCI_QUANTIDADE, 0)
+                             - COALESCE(I.PDCI_QTDE_RECEBIDA, 0)
+                             - COALESCE(I.PDCI_QTDE_NAO_ATENDIDA, 0) > 0
+                        THEN 1 ELSE 0
+                    END
+                ) AS ITENS_PENDENTES,
+                SUM(COALESCE(I.PDCI_QUANTIDADE, 0)) AS QUANTIDADE_TOTAL,
+                SUM(COALESCE(I.PDCI_QTDE_RECEBIDA, 0)) AS QUANTIDADE_RECEBIDA,
+                SUM(
+                    CASE
+                        WHEN COALESCE(I.PDCI_STATUS, 'A') <> 'T'
+                         AND COALESCE(I.PDCI_QUANTIDADE, 0)
+                             - COALESCE(I.PDCI_QTDE_RECEBIDA, 0)
+                             - COALESCE(I.PDCI_QTDE_NAO_ATENDIDA, 0) > 0
+                        THEN COALESCE(I.PDCI_QUANTIDADE, 0)
+                             - COALESCE(I.PDCI_QTDE_RECEBIDA, 0)
+                             - COALESCE(I.PDCI_QTDE_NAO_ATENDIDA, 0)
+                        ELSE 0
+                    END
+                ) AS QUANTIDADE_PENDENTE
+            FROM TB_PEDIDO_COMPRA P
+            JOIN TB_PEDIDO_COMPRA_ITEM I
+              ON I.PDCI_EMPRESA = P.PDC_EMPRESA
+             AND I.PDCI_PEDIDO_COMPRA = P.PDC_ID
+            LEFT JOIN TB_FORNECEDOR F
+              ON F.FOR_EMPRESA = P.PDC_EMPRESA
+             AND F.FOR_ID = P.PDC_FORNECEDOR
+            WHERE P.PDC_EMPRESA = ?
+              AND P.PDC_STATUS NOT IN ('R', 'C', 'T')
+            GROUP BY
+                P.PDC_EMPRESA,
+                P.PDC_ID,
+                P.PDC_STATUS,
+                P.PDC_DT_EMISSAO,
+                P.PDC_FORNECEDOR,
+                F.FOR_RSOCIAL_NOME,
+                P.PDC_NUMERO_NOTA
+            HAVING SUM(
+                CASE
+                    WHEN COALESCE(I.PDCI_STATUS, 'A') <> 'T'
+                     AND COALESCE(I.PDCI_QUANTIDADE, 0)
+                         - COALESCE(I.PDCI_QTDE_RECEBIDA, 0)
+                         - COALESCE(I.PDCI_QTDE_NAO_ATENDIDA, 0) > 0
+                    THEN 1 ELSE 0
+                END
+            ) > 0
+            ORDER BY P.PDC_DT_EMISSAO, P.PDC_ID
+        """, (empresa,))
+
+        pedidos = [
+            _pedido_compra_recebimento_json(row)
+            for row in cur.fetchall()
+        ]
+
+        return jsonify({
+            "status": "ok",
+            "empresa": empresa,
+            "pedidos": pedidos
+        })
+
+    except (TypeError, ValueError):
+        return jsonify({
+            "status": "erro",
+            "mensagem": "Empresa invalida."
+        }), 400
+    except Exception as e:
+        print("\n===== ERRO NA ROTA /pedidos-compra/recebimento =====")
+        print(e)
+        traceback.print_exc()
+        print("=====================================================\n")
+        return jsonify({"status": "erro", "mensagem": str(e)}), 500
+    finally:
+        try:
+            if con:
+                con.close()
+        except:
+            pass
+
+
+# Exemplo: /pedidos-compra/recebimento/detalhe?empresa=10&pedido_id=273
+# Consulta a capa e todos os itens reais de um pedido de compra.
+@app.route("/pedidos-compra/recebimento/detalhe", methods=["GET"])
+def detalhar_pedido_compra_recebimento():
+    con = None
+
+    try:
+        empresa_param = request.args.get("empresa")
+        pedido_param = request.args.get("pedido_id")
+
+        if not empresa_param or not pedido_param:
+            return jsonify({
+                "status": "erro",
+                "mensagem": "Empresa e pedido_id devem ser informados."
+            }), 400
+
+        empresa = int(empresa_param)
+        pedido_id = int(pedido_param)
+        if empresa <= 0 or pedido_id <= 0:
+            raise ValueError
+
+        con = get_connection()
+        cur = con.cursor()
+        cur.execute("""
+            SELECT
+                P.PDC_EMPRESA,
+                P.PDC_ID,
+                P.PDC_STATUS,
+                P.PDC_DT_EMISSAO,
+                P.PDC_FORNECEDOR,
+                COALESCE(F.FOR_RSOCIAL_NOME, ''),
+                P.PDC_DT_RECEBIMENTO,
+                P.PDC_VALOR_TOTAL,
+                P.PDC_VALOR_RECEBIDO,
+                P.PDC_NUMERO_NOTA
+            FROM TB_PEDIDO_COMPRA P
+            LEFT JOIN TB_FORNECEDOR F
+              ON F.FOR_EMPRESA = P.PDC_EMPRESA
+             AND F.FOR_ID = P.PDC_FORNECEDOR
+            WHERE P.PDC_EMPRESA = ?
+              AND P.PDC_ID = ?
+        """, (empresa, pedido_id))
+
+        capa = cur.fetchone()
+        if not capa:
+            return jsonify({
+                "status": "nao_encontrado",
+                "mensagem": "Pedido de Compra nao encontrado."
+            }), 404
+
+        cur.execute("""
+            SELECT
+                I.PDCI_SEQUENCIA,
+                I.PDCI_PRODUTO,
+                I.PDCI_DESCRICAO,
+                I.PDCI_QUANTIDADE,
+                I.PDCI_QTDE_RECEBIDA,
+                I.PDCI_QTDE_NAO_ATENDIDA,
+                COALESCE(I.PDCI_QUANTIDADE, 0)
+                    - COALESCE(I.PDCI_QTDE_RECEBIDA, 0)
+                    - COALESCE(I.PDCI_QTDE_NAO_ATENDIDA, 0),
+                I.PDCI_STATUS
+            FROM TB_PEDIDO_COMPRA_ITEM I
+            WHERE I.PDCI_EMPRESA = ?
+              AND I.PDCI_PEDIDO_COMPRA = ?
+            ORDER BY I.PDCI_SEQUENCIA
+        """, (empresa, pedido_id))
+
+        itens = []
+        for item in cur.fetchall():
+            itens.append({
+                "sequencia": int(item[0] or 0),
+                "produto": int(item[1] or 0),
+                "descricao": (item[2] or "").strip(),
+                "quantidade": _quantidade_json(item[3]),
+                "quantidade_recebida": _quantidade_json(item[4]),
+                "quantidade_nao_atendida": _quantidade_json(item[5]),
+                "saldo": _quantidade_json(item[6]),
+                "status": (item[7] or "").strip()
+            })
+
+        pedido = {
+            "empresa": int(capa[0]),
+            "pedido_id": int(capa[1]),
+            "status": (capa[2] or "").strip(),
+            "data_emissao": (
+                _formatar_data_transferencia(capa[3]) if capa[3] else None
+            ),
+            "fornecedor_id": int(capa[4] or 0),
+            "fornecedor_nome": (capa[5] or "").strip(),
+            "data_recebimento": (
+                _formatar_data_transferencia(capa[6]) if capa[6] else None
+            ),
+            "valor_total": float(capa[7] or 0),
+            "valor_recebido": float(capa[8] or 0),
+            "numero_nota": (capa[9] or "").strip() or None,
+            "itens": itens
+        }
+
+        return jsonify({"status": "ok", "pedido": pedido})
+
+    except (TypeError, ValueError):
+        return jsonify({
+            "status": "erro",
+            "mensagem": "Empresa ou pedido_id invalido."
+        }), 400
+    except Exception as e:
+        print("\n===== ERRO NA ROTA /pedidos-compra/recebimento/detalhe =====")
+        print(e)
+        traceback.print_exc()
+        print("==============================================================\n")
+        return jsonify({"status": "erro", "mensagem": str(e)}), 500
+    finally:
+        try:
+            if con:
+                con.close()
+        except:
+            pass
+
+
+def _payload_recebimento_compra(empresa, pedido_id, usuario, excedente, leituras):
+    itens = []
+    for leitura in leituras:
+        if not isinstance(leitura, dict):
+            raise ValueError('Leitura inválida.')
+        item = inteiro_seguro(leitura.get('item'), 0)
+        produto = inteiro_seguro(leitura.get('produto'), 0)
+        tipo = (leitura.get('tipo') or '').strip().upper()
+        codigo = (leitura.get('codigo') or '').strip()
+        quantidade = decimal_seguro(leitura.get('quantidade'))
+        if item <= 0 or produto <= 0 or tipo not in ('R', 'C') or not codigo or quantidade <= 0:
+            raise ValueError('Cada leitura exige item, produto, tipo R/C, código e quantidade positiva.')
+        itens.append({
+            'item': item,
+            'produto': produto,
+            'tipo': tipo,
+            'codigo': codigo,
+            'quantidade': format(quantidade, '.4f'),
+        })
+    if not itens:
+        raise ValueError('Informe ao menos uma etiqueta aceita.')
+    itens.sort(key=lambda item: (item['item'], item['produto'], item['tipo'], item['codigo'], item['quantidade']))
+    return json.dumps({
+        'versao': 1,
+        'empresa': empresa,
+        'pedido_id': pedido_id,
+        'usuario': usuario,
+        'excedente_confirmado': bool(excedente),
+        'leituras': itens,
+    }, ensure_ascii=True, separators=(',', ':'))
+
+
+@app.route('/pedidos-compra/recebimento/confirmar', methods=['POST'])
+def confirmar_recebimento_pedido_compra():
+    """Coordena procedures de Compras; não contém regra de recebimento em Python."""
+    con = None
+    try:
+        dados = request.get_json() or {}
+        empresa = inteiro_seguro(dados.get('empresa'), 0)
+        pedido_id = inteiro_seguro(dados.get('pedido_id'), 0)
+        usuario = inteiro_seguro(dados.get('usuario'), 0)
+        operacao_guid = (dados.get('operacao_guid') or '').strip().lower()
+        excedente = bool(dados.get('excedente_confirmado'))
+        leituras = dados.get('leituras')
+        if empresa <= 0 or pedido_id <= 0 or usuario != 1:
+            return jsonify({'status': 'erro', 'mensagem': 'Empresa, pedido e usuário operacional 1 são obrigatórios.'}), 400
+        if not re.fullmatch(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', operacao_guid):
+            return jsonify({'status': 'erro', 'mensagem': 'operacao_guid inválido.'}), 400
+        if not isinstance(leituras, list):
+            return jsonify({'status': 'erro', 'mensagem': 'Leituras inválidas.'}), 400
+        canonico = _payload_recebimento_compra(empresa, pedido_id, usuario, excedente, leituras)
+        payload_hash = hashlib.sha256(canonico.encode('utf-8')).hexdigest().upper()
+
+        con = get_connection()
+        cur = con.cursor()
+        cur.execute('select retorno,mensagem,recebimento,pedido_filho,replay from SP_BC_PC_REC_OPERACAO_INICIAR(?,?,?,?,?,?,?)',
+                    (empresa, pedido_id, usuario, operacao_guid, payload_hash, 'S' if excedente else 'N', 'S'))
+        inicio = cur.fetchone()
+        if not inicio:
+            raise Exception('Procedure de início não retornou resultado.')
+        retorno, mensagem, recebimento, pedido_filho, replay = inicio
+        if (retorno or '').strip().upper() == 'REPLAY':
+            con.rollback()
+            return jsonify({'status': 'ok', 'mensagem': mensagem or 'Recebimento já confirmado.', 'recebimento': int(recebimento or 0), 'pedido_filho': int(pedido_filho or 0), 'replay': True})
+        if (retorno or '').strip().upper() != 'OK':
+            con.rollback()
+            return jsonify({'status': 'erro', 'mensagem': mensagem or 'Operação recusada.'}), 409
+
+        for sequencia, leitura in enumerate(json.loads(canonico)['leituras'], start=1):
+            cur.execute('select retorno,mensagem from SP_BC_PC_REC_OPERACAO_LEITURA(?,?,?,?,?,?,?)',
+                        (operacao_guid, sequencia, leitura['item'], leitura['produto'], leitura['tipo'], leitura['codigo'], Decimal(leitura['quantidade'])))
+            linha = cur.fetchone()
+            if not linha or (linha[0] or '').strip().upper() != 'OK':
+                raise Exception((linha[1] if linha else '') or 'Leitura recusada pela procedure.')
+
+        cur.execute('select retorno,mensagem,recebimento,pedido_filho from SP_BC_PC_REC_OPERACAO_CONFIRMAR(?)', (operacao_guid,))
+        fim = cur.fetchone()
+        if not fim or (fim[0] or '').strip().upper() != 'OK':
+            raise Exception((fim[1] if fim else '') or 'Confirmação recusada pela procedure.')
+        con.commit()
+        return jsonify({'status': 'ok', 'mensagem': fim[1] or 'Recebimento confirmado.', 'recebimento': int(fim[2] or 0), 'pedido_filho': int(fim[3] or 0), 'replay': False})
+    except ValueError as erro:
+        return jsonify({'status': 'erro', 'mensagem': str(erro)}), 400
+    except Exception as erro:
+        try:
+            if con:
+                con.rollback()
+        except Exception:
+            pass
+        print('\n===== ERRO NA ROTA /pedidos-compra/recebimento/confirmar =====')
+        print(erro)
+        traceback.print_exc()
+        print('=================================================================\n')
+        return jsonify({'status': 'erro', 'mensagem': str(erro)}), 409
+    finally:
+        try:
+            if con:
+                con.close()
+        except Exception:
             pass
 
 

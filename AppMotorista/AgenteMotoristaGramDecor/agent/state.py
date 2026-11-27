@@ -10,7 +10,7 @@ from pathlib import Path
 from .canonical import semantic_hash
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 PUBLICATION_FIELDS = {"snapshot_id", "snapshot_revision", "semantic_hash", "gerado_em"}
 FORBIDDEN_SECRET_NAMES = {"authorization", "password", "senha", "secret", "token"}
 
@@ -83,6 +83,27 @@ class AgentState:
                       REFERENCES manifest_sync_state (tenant_key, manifesto_guid)
                       ON DELETE CASCADE
                 );
+                CREATE TABLE IF NOT EXISTS delivery_return_inbox (
+                    operation_guid TEXT PRIMARY KEY,
+                    payload_json TEXT NOT NULL,
+                    state TEXT NOT NULL CHECK (state IN ('RECEIVED','APPLIED','ACKED')),
+                    firebird_result_json TEXT,
+                    received_at TEXT NOT NULL,
+                    applied_at TEXT,
+                    acked_at TEXT,
+                    last_error TEXT
+                );
+                CREATE TABLE IF NOT EXISTS company_scope_activation (
+                    company_id INTEGER PRIMARY KEY,
+                    activated_at TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS company_scope_baseline_manifest (
+                    company_id INTEGER NOT NULL,
+                    manifesto_guid TEXT NOT NULL,
+                    manifesto_version INTEGER NOT NULL,
+                    recorded_at TEXT NOT NULL,
+                    PRIMARY KEY (company_id, manifesto_guid, manifesto_version)
+                );
                 """
             )
             connection.execute("BEGIN IMMEDIATE")
@@ -95,6 +116,11 @@ class AgentState:
                            (singleton_id, schema_version, agent_instance_guid, created_at)
                        VALUES (1, ?, ?, ?)""",
                     (SCHEMA_VERSION, str(uuid.uuid4()), utc_now_iso()),
+                )
+            elif row["schema_version"] == 1:
+                connection.execute(
+                    "UPDATE agent_installation SET schema_version = ? WHERE singleton_id = 1",
+                    (SCHEMA_VERSION,),
                 )
             elif row["schema_version"] != SCHEMA_VERSION:
                 raise RuntimeError(
@@ -116,6 +142,106 @@ class AgentState:
             return connection.execute(
                 "SELECT agent_instance_guid FROM agent_installation WHERE singleton_id = 1"
             ).fetchone()["agent_instance_guid"]
+
+    def activate_company_scopes(self, company_ids):
+        """Returns company scopes first activated by this installation.
+
+        Existing released manifests are baseline-only at first activation, so a
+        company-wide scope cannot bulk-publish a historical backlog.
+        """
+        new_companies = set()
+        with closing(self._connect()) as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            for company_id in sorted(set(company_ids)):
+                existing = connection.execute(
+                    "SELECT 1 FROM company_scope_activation WHERE company_id = ?",
+                    (company_id,),
+                ).fetchone()
+                if existing is None:
+                    connection.execute(
+                        "INSERT INTO company_scope_activation(company_id, activated_at) VALUES (?, ?)",
+                        (company_id, utc_now_iso()),
+                    )
+                    new_companies.add(company_id)
+            connection.commit()
+        return new_companies
+
+    def record_company_scope_baseline(self, company_id, manifesto_guid, manifesto_version):
+        with closing(self._connect()) as connection:
+            connection.execute(
+                """INSERT OR IGNORE INTO company_scope_baseline_manifest
+                   (company_id, manifesto_guid, manifesto_version, recorded_at)
+                   VALUES (?, ?, ?, ?)""",
+                (company_id, manifesto_guid, manifesto_version, utc_now_iso()),
+            )
+            connection.commit()
+
+    def is_company_scope_baselined(self, company_id, manifesto_guid, manifesto_version):
+        with closing(self._connect()) as connection:
+            return connection.execute(
+                """SELECT 1 FROM company_scope_baseline_manifest
+                     WHERE company_id = ? AND manifesto_guid = ? AND manifesto_version = ?""",
+                (company_id, manifesto_guid, manifesto_version),
+            ).fetchone() is not None
+
+    def discard_pending(self, pending, reason):
+        """Drops an unsent technical snapshot after authoritative ineligibility."""
+        with closing(self._connect()) as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            connection.execute(
+                """UPDATE manifest_sync_state SET updated_at = ?
+                     WHERE tenant_key = ? AND manifesto_guid = ?""",
+                (utc_now_iso(), pending["tenant_key"], pending["manifesto_guid"]),
+            )
+            connection.execute(
+                """DELETE FROM pending_snapshot
+                     WHERE tenant_key = ? AND manifesto_guid = ? AND snapshot_id = ?""",
+                (pending["tenant_key"], pending["manifesto_guid"], pending["snapshot_id"]),
+            )
+            connection.commit()
+
+    def receive_delivery_return(self, payload):
+        literal = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        with closing(self._connect()) as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            connection.execute(
+                """INSERT INTO delivery_return_inbox(operation_guid, payload_json, state, received_at)
+                   VALUES (?, ?, 'RECEIVED', ?)
+                   ON CONFLICT(operation_guid) DO NOTHING""",
+                (payload["operation_guid"], literal, utc_now_iso()),
+            )
+            connection.commit()
+
+    def pending_delivery_returns(self):
+        with closing(self._connect()) as connection:
+            return [dict(row) for row in connection.execute(
+                "SELECT * FROM delivery_return_inbox WHERE state <> 'ACKED' ORDER BY received_at"
+            ).fetchall()]
+
+    def mark_delivery_applied(self, operation_guid, result):
+        with closing(self._connect()) as connection:
+            connection.execute(
+                """UPDATE delivery_return_inbox SET state='APPLIED', firebird_result_json=?,
+                   applied_at=?, last_error=NULL WHERE operation_guid=?""",
+                (json.dumps(result, ensure_ascii=False, sort_keys=True), utc_now_iso(), operation_guid),
+            )
+            connection.commit()
+
+    def mark_delivery_acked(self, operation_guid):
+        with closing(self._connect()) as connection:
+            connection.execute(
+                "UPDATE delivery_return_inbox SET state='ACKED', acked_at=? WHERE operation_guid=?",
+                (utc_now_iso(), operation_guid),
+            )
+            connection.commit()
+
+    def record_delivery_error(self, operation_guid, error):
+        with closing(self._connect()) as connection:
+            connection.execute(
+                "UPDATE delivery_return_inbox SET last_error=? WHERE operation_guid=?",
+                (str(error)[:1000], operation_guid),
+            )
+            connection.commit()
 
     def sync_lease(self, lease):
         now = utc_now_iso()

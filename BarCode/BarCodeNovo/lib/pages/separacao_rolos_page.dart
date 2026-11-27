@@ -763,6 +763,55 @@ class _SeparacaoRolosPageState extends State<SeparacaoRolosPage> {
     );
   }
 
+  Future<RoloSeparado?> _consultarEtiquetaF22Api(String codigo) async {
+    await _carregarConfiguracao();
+
+    final url = Uri.parse(
+      "$baseUrl/rolos/consultar-f22"
+      "?empresa=$empresaId&codigo=${Uri.encodeComponent(codigo)}",
+    );
+    final resp = await http.get(url).timeout(const Duration(seconds: 10));
+
+    dynamic data;
+    try {
+      data = jsonDecode(utf8.decode(resp.bodyBytes));
+    } catch (_) {
+      data = null;
+    }
+
+    if (resp.statusCode != 200 ||
+        data is! Map<String, dynamic> ||
+        data['status'] != 'ok') {
+      final msg = data is Map<String, dynamic>
+          ? (data['mensagem']?.toString() ?? 'Erro ao consultar etiqueta F22.')
+          : 'Erro ao consultar etiqueta F22.';
+      throw Exception(msg);
+    }
+
+    return RoloSeparado(
+      codigo: data['codigo_lido']?.toString() ?? codigo,
+      id: (data['pror_id'] as num?)?.toInt() ??
+          int.tryParse(data['pror_id']?.toString() ?? '0') ??
+          0,
+      produto: (data['produto_id'] as num?)?.toInt() ??
+          int.tryParse(data['produto_id']?.toString() ?? '0') ??
+          0,
+      descricaoProduto: data['descricao']?.toString() ?? '',
+      quantidade: (data['quantidade'] as num?)?.toDouble() ??
+          double.tryParse(data['quantidade']?.toString() ?? '0') ??
+          0.0,
+      unidade: data['unidade']?.toString() ?? '',
+    );
+  }
+
+  bool _prorIdJaUtilizado(int prorId) {
+    if (prorId <= 0) return false;
+    if (rolosProdutoAtual.any((rolo) => rolo.id == prorId)) return true;
+    return produtosSeparados.any(
+      (produto) => produto.rolos.any((rolo) => rolo.id == prorId),
+    );
+  }
+
   RoloSeparado? _montarLeituraEtiquetaPedidoC(String codigo) {
     final codigoLimpo = codigo.trim().toUpperCase();
 
@@ -895,6 +944,32 @@ class _SeparacaoRolosPageState extends State<SeparacaoRolosPage> {
 
         // Para C, NÃO bloqueia código repetido.
         // Pode existir mais de uma etiqueta igual para caixas/volumes iguais.
+      } else if (codigo.startsWith('F')) {
+        if (!RegExp(r'^F\d{21}$').hasMatch(codigo)) {
+          _mostrarMensagem(
+            'Etiqueta F22 inválida: $codigo (${codigo.length} caracteres)',
+            erro: true,
+          );
+          _codigoController.clear();
+          return;
+        }
+
+        leitura = await _consultarEtiquetaF22Api(codigo);
+
+        if (leitura == null || leitura.id <= 0) {
+          _mostrarMensagem('Rolo F22 não encontrado.', erro: true);
+          _codigoController.clear();
+          return;
+        }
+
+        if (_prorIdJaUtilizado(leitura.id)) {
+          _mostrarMensagem(
+            'Este rolo já foi lido nesta separação.',
+            erro: true,
+          );
+          _codigoController.clear();
+          return;
+        }
       } else {
         _mostrarMensagem(
           'Etiqueta inválida para separação: $codigo',
@@ -967,7 +1042,9 @@ class _SeparacaoRolosPageState extends State<SeparacaoRolosPage> {
   Future<void> _lerEtiquetaCamera() async {
     final String? codigo = await Navigator.push<String>(
       context,
-      MaterialPageRoute(builder: (_) => const ScannerPage()),
+      MaterialPageRoute(
+        builder: (_) => const ScannerPage(aceitarF22Pedidos: true),
+      ),
     );
 
     if (codigo == null || codigo.trim().isEmpty) {

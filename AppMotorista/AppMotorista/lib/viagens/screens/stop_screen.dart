@@ -6,6 +6,7 @@ import '../../core/utils/display_format.dart';
 import '../../core/widgets/completion_dialog.dart';
 import '../models/trip_detail.dart';
 import '../services/trips_service.dart';
+import '../services/trip_state_controller.dart';
 import '../utils/delivery_progress.dart';
 import 'order_screen.dart';
 
@@ -17,6 +18,7 @@ class StopScreen extends StatefulWidget {
     required this.stop,
     required this.tripsService,
     this.syncEvents,
+    this.tripStateController,
     this.readOnly = false,
     super.key,
   });
@@ -25,6 +27,7 @@ class StopScreen extends StatefulWidget {
   final TripStop stop;
   final DeliveryGateway tripsService;
   final Listenable? syncEvents;
+  final TripStateController? tripStateController;
   final bool readOnly;
 
   @override
@@ -42,28 +45,51 @@ class _StopScreenState extends State<StopScreen> {
     _stop = widget.stop;
     _refreshPendingSyncState();
     widget.syncEvents?.addListener(_handleSyncEvent);
+    widget.tripStateController?.addListener(_applyLocalState);
   }
 
   @override
   void didUpdateWidget(covariant StopScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.syncEvents == widget.syncEvents) return;
-    oldWidget.syncEvents?.removeListener(_handleSyncEvent);
-    widget.syncEvents?.addListener(_handleSyncEvent);
+    if (oldWidget.syncEvents != widget.syncEvents) {
+      oldWidget.syncEvents?.removeListener(_handleSyncEvent);
+      widget.syncEvents?.addListener(_handleSyncEvent);
+    }
+    if (oldWidget.tripStateController != widget.tripStateController) {
+      oldWidget.tripStateController?.removeListener(_applyLocalState);
+      widget.tripStateController?.addListener(_applyLocalState);
+    }
   }
 
   @override
   void dispose() {
     widget.syncEvents?.removeListener(_handleSyncEvent);
+    widget.tripStateController?.removeListener(_applyLocalState);
     super.dispose();
   }
 
   void _handleSyncEvent() {
+    if (widget.tripStateController != null) return;
     unawaited(_reloadAfterSync());
+  }
+
+  void _applyLocalState() {
+    if (!mounted) return;
+    final state = widget.tripStateController?.activeSnapshotFor(
+      widget.manifestGuid,
+    );
+    if (state == null) return;
+    final stops = state.trip.stops.where((item) => item.id == _stop.id);
+    if (stops.isEmpty) return;
+    setState(() {
+      _stop = stops.first;
+      _ordersAwaitingSync = state.pendingOrderIdsByStop[_stop.id] ?? const {};
+    });
   }
 
   Future<void> _reloadAfterSync() async {
     if (!mounted) return;
+    _applyLocalState();
     try {
       final trip = await widget.tripsService.get(widget.manifestGuid);
       final refreshed = trip.stops.where((item) => item.id == _stop.id);
@@ -101,7 +127,8 @@ class _StopScreenState extends State<StopScreen> {
       );
     }
 
-    if (result != OrderScreenResult.stopCompleted) {
+    if (result != OrderScreenResult.stopCompleted &&
+        widget.tripStateController == null) {
       setState(() => _refreshing = true);
       try {
         final trip = await widget.tripsService.get(widget.manifestGuid);

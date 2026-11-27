@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://motorista.parmasoft.local/contracts/v1/tracking-event.schema.json",
+  "title": "Evento de acompanhamento confirmado pelo Firebird",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contrato_versao", "tipo", "versao_evento", "ocorrido_em", "fonte_autoritativa", "carga_guid", "manifesto_guid"],
+  "properties": {
+    "contrato_versao": {"const": 1},
+    "tipo": {"enum": ["SAIU_PARA_ENTREGA", "PEDIDO_ENTREGUE"]},
+    "versao_evento": {"type": "integer", "minimum": 1},
+    "ocorrido_em": {"type": "string", "format": "date-time"},
+    "fonte_autoritativa": {"const": "FIREBIRD"},
+    "operacao_guid": {"type": ["string", "null"]},
+    "carga_guid": {"type": "string"},
+    "manifesto_guid": {"type": "string"},
+    "parada_guid": {"type": ["string", "null"]},
+    "pedido_guid": {"type": ["string", "null"]},
+    "cliente": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "integer"}, "nome": {"type": "string"},
+        "email_notificacao": {"type": ["string", "null"]}, "aceita_email": {"type": "boolean"}
+      }
+    }
+  }
+}
+

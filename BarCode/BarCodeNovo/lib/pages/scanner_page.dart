@@ -5,8 +5,13 @@ import '../models/leitura_etiqueta_separacao.dart';
 
 class ScannerPage extends StatefulWidget {
   final bool aceitarQualquerCodigo;
+  final bool aceitarF22Pedidos;
 
-  const ScannerPage({super.key, this.aceitarQualquerCodigo = false});
+  const ScannerPage({
+    super.key,
+    this.aceitarQualquerCodigo = false,
+    this.aceitarF22Pedidos = false,
+  });
 
   @override
   State<ScannerPage> createState() => _ScannerPageState();
@@ -42,6 +47,11 @@ class _ScannerPageState extends State<ScannerPage> {
   bool _isValidCode(String code) {
     if (widget.aceitarQualquerCodigo) {
       return code.trim().isNotEmpty;
+    }
+
+    if (widget.aceitarF22Pedidos &&
+        RegExp(r'^F\d{21}$').hasMatch(code.trim().toUpperCase())) {
+      return true;
     }
 
     return LeituraEtiquetaSeparacao.identificar(code) != null;

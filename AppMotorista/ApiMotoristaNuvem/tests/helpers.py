@@ -1,5 +1,5 @@
 from copy import deepcopy
-from uuid import uuid4
+from uuid import NAMESPACE_URL, uuid4, uuid5
 
 from app.canonical import semantic_hash
 
@@ -44,7 +44,7 @@ def snapshot(snapshot_id=None, suffix="A", revision=1):
                 ],
                 "ocorrencias": [
                     {
-                        "ocorrencia": 61, "guid": f"OCO-{suffix}", "leitura_origem": 1,
+                        "ocorrencia": 61, "guid": occurrence_guid(suffix), "leitura_origem": 1,
                         "cliente": 51, "pedido": 1001, "item_pedido": 1, "produto": 77,
                         "tipo": "C", "codigo": "CONTROLADO", "rolo_id": None,
                         "quantidade": "1.0000", "status": "P", "versao_registro": 1
@@ -61,6 +61,10 @@ def snapshot(snapshot_id=None, suffix="A", revision=1):
 def rehash(body):
     body["semantic_hash"] = semantic_hash(body)
     return body
+
+
+def occurrence_guid(suffix):
+    return str(uuid5(NAMESPACE_URL, f"app-motorista-occurrence-{suffix}"))
 
 
 def clone(value):

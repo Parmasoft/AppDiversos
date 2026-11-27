@@ -5,15 +5,18 @@ import sqlite3
 import tempfile
 import unittest
 from contextlib import closing
+from datetime import datetime
 from pathlib import Path
 from unittest.mock import patch
 
 import fdb
 
 from agent.canonical import CanonicalizationError, canonical_bytes, semantic_hash
-from agent.config import Config
+from agent.config import Config, _scopes
 from agent.publisher import CloudClient, SnapshotSynchronizer, payload_from_literal
 from agent.read_source import FirebirdSnapshotSource, snapshot_read_only_tpb
+from agent.return_source import FirebirdDeliveryReturnSource
+from agent.return_sync import DeliveryReturnSynchronizer
 from agent.state import AgentState
 
 
@@ -175,6 +178,43 @@ class AgentTest(unittest.TestCase):
         self.assertEqual("SEM_ALTERACAO", second[0]["resultado"])
         self.assertEqual(1, len(client.publications))
 
+    def test_company_scope_discovers_existing_and_new_released_manifests(self):
+        details = {"MAN-A": DETAIL}
+        source = FakeSource(details=details)
+        client = FakeClient()
+        synchronizer = SnapshotSynchronizer(source, client, self.state, ((10, None),))
+
+        first = synchronizer.run_once()
+        self.assertEqual("ACEITA", first[0]["resultado"])
+        self.assertEqual(1, len(client.publications))
+
+        second = synchronizer.run_once()
+        self.assertEqual("SEM_ALTERACAO", second[0]["resultado"])
+        self.assertEqual(1, len(client.publications))
+
+        detail_b = json.loads(json.dumps(DETAIL))
+        detail_b["manifesto"]["guid"] = "MAN-B"
+        detail_b["manifesto"]["id"] = 13
+        detail_b["carga"]["id"] = 901
+        details["MAN-B"] = detail_b
+        third = synchronizer.run_once()
+        self.assertEqual("SEM_ALTERACAO", third[0]["resultado"])
+        self.assertEqual("ACEITA", third[1]["resultado"])
+        self.assertEqual(2, len(client.publications))
+        self.assertEqual("MAN-B", payload_from_literal(client.publications[1])["manifesto"]["guid"])
+
+    def test_pending_snapshot_is_discarded_when_manifest_is_no_longer_eligible(self):
+        lease = FakeClient().acquire_lease("MAN-A", self.state.installation_guid())
+        self.state.sync_lease(lease)
+        self.state.create_pending("GRAMDECOR", "MAN-A", DETAIL, 0, 1)
+        client = FakeClient()
+        result = SnapshotSynchronizer(
+            FakeSource(details={}), client, self.state, ((10, 900),)
+        ).run_once()
+        self.assertEqual("PENDENTE_DESCARTADO_INELEGIVEL", result[0]["resultado"])
+        self.assertEqual([], client.publications)
+        self.assertEqual([], self.state.list_pending())
+
     def test_local_publication_creation_rolls_back_as_one_unit(self):
         installation_guid = self.state.installation_guid()
         lease_a = FakeClient().acquire_lease("MAN-A", installation_guid)
@@ -216,8 +256,8 @@ class AgentTest(unittest.TestCase):
         restarted_state = AgentState(self.state_path)
         restarted_state.initialize()
         succeeding = FakeClient()
-        empty_source = FakeSource(details={})
-        SnapshotSynchronizer(empty_source, succeeding, restarted_state, ((10, 900),)).run_once()
+        still_eligible_source = FakeSource()
+        SnapshotSynchronizer(still_eligible_source, succeeding, restarted_state, ((10, 900),)).run_once()
         self.assertEqual(pending_before["payload_json_literal"], succeeding.publications[0])
         self.assertEqual([], restarted_state.list_pending())
 
@@ -230,7 +270,7 @@ class AgentTest(unittest.TestCase):
         reacquired = FakeClient()
         reacquired.fencing = 2
         SnapshotSynchronizer(
-            FakeSource(details={}), reacquired, self.state, ((10, 900),)
+            FakeSource(), reacquired, self.state, ((10, 900),)
         ).run_once()
 
         self.assertEqual([pending["payload_json_literal"]], reacquired.publications)
@@ -253,7 +293,11 @@ class AgentTest(unittest.TestCase):
                 )
             }
         self.assertEqual(
-            {"agent_installation", "manifest_sync_state", "pending_snapshot"}, names
+            {
+                "agent_installation", "manifest_sync_state", "pending_snapshot",
+                "delivery_return_inbox", "company_scope_activation",
+                "company_scope_baseline_manifest",
+            }, names
         )
         response = {
             "current_revision": 1,
@@ -324,6 +368,134 @@ class AgentTest(unittest.TestCase):
         with patch.dict(os.environ, environment, clear=True):
             with self.assertRaisesRegex(RuntimeError, "exige HTTPS"):
                 Config.from_environment()
+
+    def test_allowed_scopes_support_company_and_company_load(self):
+        self.assertEqual(((10, 652),), _scopes("10:652"))
+        self.assertEqual(((10, None),), _scopes("10"))
+        with self.assertRaises(ValueError):
+            _scopes("10:")
+        with self.assertRaises(ValueError):
+            _scopes("10:652:73")
+
+    def test_company_scope_query_omits_load_predicate(self):
+        connection = FakeConnection()
+        config = type(
+            "ConfigStub",
+            (),
+            {
+                "firebird_host": "localhost",
+                "firebird_port": 3050,
+                "firebird_database": "controlado.fdb",
+                "firebird_user": "readonly",
+                "firebird_password": "secret",
+                "firebird_charset": "WIN1252",
+            },
+        )()
+        source = FirebirdSnapshotSource(config, connect=lambda **_kwargs: connection)
+        self.assertEqual([], source.list_released_manifest_guids(((10, None),)))
+        statement, parameters = connection.cursor_value.statements[0]
+        self.assertIn("M.CARGM_EMPRESA = ?", statement)
+        self.assertNotIn("M.CARGM_CARGA = ?", statement)
+        self.assertIn("M.CARGM_DH_LIBERACAO IS NOT NULL", statement)
+        self.assertIn("D.MOTAPP_ATIVO = 'S'", statement)
+        self.assertEqual((10,), parameters)
+
+        load_connection = FakeConnection()
+        load_source = FirebirdSnapshotSource(config, connect=lambda **_kwargs: load_connection)
+        self.assertEqual([], load_source.list_released_manifest_guids(((10, 652),)))
+        statement, parameters = load_connection.cursor_value.statements[0]
+        self.assertIn("M.CARGM_CARGA = ?", statement)
+        self.assertEqual((10, 652), parameters)
+
+    def test_snapshot_client_name_uses_reason_social_for_null_empty_or_blank_alias(self):
+        source_text = Path(__file__).resolve().parent.parent.joinpath(
+            "agent", "read_source.py"
+        ).read_text(encoding="utf-8")
+        expression = "COALESCE(NULLIF(TRIM(CL.CLI_FANTASIA_APELIDO), ''), CL.CLI_RSOCIAL_NOME)"
+        self.assertIn(expression, source_text)
+        connection = sqlite3.connect(":memory:")
+        for alias, expected in (
+            ("Loja Exemplo", "Loja Exemplo"),
+            (None, "Razao Social"),
+            ("", "Razao Social"),
+            ("   ", "Razao Social"),
+        ):
+            with self.subTest(alias=alias):
+                actual = connection.execute(
+                    "SELECT COALESCE(NULLIF(TRIM(?), ''), ?)",
+                    (alias, "Razao Social"),
+                ).fetchone()[0]
+                self.assertEqual(expected, actual)
+        connection.close()
+
+    def test_delivery_return_source_uses_the_fifteen_parameter_contract(self):
+        class ReturnCursor:
+            def __init__(self):
+                self.statement = None
+                self.parameters = None
+
+            def execute(self, statement, parameters):
+                self.statement = statement
+                self.parameters = parameters
+
+            def fetchone(self):
+                return ("ACEITA", "ENTREGA_REGISTRADA", "ok", "OP", "OCC", "C", 1001, 0, 0, 0)
+
+        class ReturnConnection:
+            def __init__(self):
+                self.cursor_value = ReturnCursor()
+                self.committed = False
+                self.closed = False
+
+            def cursor(self):
+                return self.cursor_value
+
+            def commit(self):
+                self.committed = True
+
+            def rollback(self):
+                pass
+
+            def close(self):
+                self.closed = True
+
+        connection = ReturnConnection()
+        config = type("ConfigStub", (), {
+            "firebird_host": "localhost", "firebird_port": 3050,
+            "firebird_database": "controlado.fdb", "firebird_user": "user",
+            "firebird_password": "secret", "firebird_charset": "WIN1252",
+        })()
+        payload = {
+            "empresa": 10, "manifest_guid": "MAN-A", "stop_id": 31, "order_id": 1001,
+            "expected_occurrence_guid": "OCC", "operation_guid": "OP",
+            "contrato_versao": 1, "payload_hash": "a" * 64, "codigo": "CONTROLADO",
+            "data_hora_aparelho": "2026-09-07T12:00:00-03:00", "fuso_minutos": -180,
+            "latitude": None, "longitude": None, "precisao": None, "dispositivo": None,
+        }
+        result = FirebirdDeliveryReturnSource(config, connect=lambda **_kwargs: connection).apply(payload)
+        self.assertEqual(15, connection.cursor_value.statement.count("?"))
+        self.assertEqual(
+            (10, "MAN-A", 31, 1001, "OCC", "OP", 1, "a" * 64, "CONTROLADO",
+             datetime.fromisoformat("2026-09-07T12:00:00-03:00"), -180, None, None, None, None),
+            connection.cursor_value.parameters,
+        )
+        self.assertEqual("ACEITA", result["resultado"])
+        self.assertTrue(connection.committed)
+        self.assertTrue(connection.closed)
+
+    def test_delivery_return_synchronizer_forwards_optional_operation_guid(self):
+        class ClaimOnlyClient:
+            def __init__(self):
+                self.arguments = None
+
+            def claim_delivery_returns(self, instance_guid, operation_guid=None):
+                self.arguments = (instance_guid, operation_guid)
+                return {"operacoes": []}
+
+        client = ClaimOnlyClient()
+        operation_guid = "e5c2b0b3-7ae4-4eb4-99e2-eeac5e7bf544"
+        DeliveryReturnSynchronizer(None, client, self.state, operation_guid).run_once()
+        self.assertEqual((self.state.installation_guid(), operation_guid), client.arguments)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://motorista.parmasoft.local/contracts/v1/snapshot.schema.json",
+  "title": "Snapshot operacional do App Motorista",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contrato_versao", "snapshot_id", "snapshot_revision", "semantic_hash", "gerado_em", "manifesto", "carga", "motorista", "origem", "rota", "paradas", "quantidade_ocorrencias"],
+  "properties": {
+    "contrato_versao": {"const": 1},
+    "snapshot_id": {"type": "string", "format": "uuid"},
+    "snapshot_revision": {"type": "integer", "minimum": 1},
+    "semantic_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "gerado_em": {"type": "string", "format": "date-time"},
+    "manifesto": {"$ref": "#/$defs/manifesto"},
+    "carga": {"$ref": "#/$defs/carga"},
+    "motorista": {"$ref": "#/$defs/motorista"},
+    "origem": {"$ref": "#/$defs/origem"},
+    "rota": {"type": "array"},
+    "paradas": {"type": "array", "items": {"$ref": "#/$defs/parada"}},
+    "quantidade_ocorrencias": {"type": "integer", "minimum": 0}
+  },
+  "$defs": {
+    "manifesto": {
+      "type": "object", "additionalProperties": true,
+      "required": ["id", "guid", "versao", "status"],
+      "properties": {
+        "id": {"type": "integer"}, "guid": {"type": "string"}, "versao": {"type": "integer"},
+        "status": {"type": "string"}, "conferencia": {"type": ["string", "null"]},
+        "gerado_em": {"type": ["string", "null"]}, "liberado_em": {"type": ["string", "null"]}
+      }
+    },
+    "carga": {
+      "type": "object", "additionalProperties": true,
+      "required": ["id", "descricao"],
+      "properties": {
+        "id": {"type": "integer"}, "descricao": {"type": ["string", "null"]},
+        "saida_data": {"type": ["string", "null"]}, "saida_hora": {"type": ["string", "null"]},
+        "placa": {"type": ["string", "null"]}
+      }
+    },
+    "motorista": {
+      "type": "object", "additionalProperties": true,
+      "required": ["guid", "nome"],
+      "properties": {"guid": {"type": "string"}, "nome": {"type": "string"}}
+    },
+    "origem": {
+      "type": "object", "additionalProperties": true, "required": ["empresa", "nome_fantasia"],
+      "properties": {"empresa": {"type": "integer"}, "nome_fantasia": {"type": "string"}}
+    },
+    "cliente": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "nome"],
+      "properties": {
+        "id": {"type": "integer"}, "nome": {"type": "string"},
+        "email_notificacao": {"type": ["string", "null"]}, "aceita_email": {"type": "boolean", "default": false}
+      }
+    },
+    "ocorrencia": {
+      "type": "object", "additionalProperties": true,
+      "required": ["ocorrencia", "guid", "pedido", "produto", "tipo", "status", "versao_registro"],
+      "properties": {
+        "ocorrencia": {"type": "integer"}, "guid": {"type": "string"}, "pedido": {"type": "integer"},
+        "produto": {"type": "integer"}, "tipo": {"type": "string"}, "status": {"type": "string"},
+        "versao_registro": {"type": "integer"}
+      }
+    },
+    "pedido": {
+      "type": "object", "additionalProperties": true,
+      "required": ["pedido", "status"],
+      "properties": {
+        "pedido": {"type": "integer"}, "status": {"type": "string"}
+      }
+    },
+    "parada": {
+      "type": "object", "additionalProperties": true,
+      "required": ["parada", "guid", "ordem", "status", "cliente", "pedidos", "ocorrencias"],
+      "properties": {
+        "parada": {"type": "integer"}, "guid": {"type": "string"},
+        "ordem": {"type": "object"}, "status": {"type": "string"},
+        "cliente": {"$ref": "#/$defs/cliente"}, "endereco": {"type": "object"},
+        "pedidos": {"type": "array", "items": {"$ref": "#/$defs/pedido"}},
+        "ocorrencias": {"type": "array", "items": {"$ref": "#/$defs/ocorrencia"}}
+      }
+    }
+  }
+}

@@ -123,6 +123,7 @@ class DeliveryLocalStore {
 
       final payloadJson = jsonEncode(<String, Object>{
         'operacao_guid': operationGuid,
+        'occurrence_guid': occurrenceGuid,
         'codigo': normalizedCode,
         'data_hora_aparelho': deviceDateTime.toIso8601String(),
         'fuso_minutos': timezoneOffsetMinutes,
@@ -130,7 +131,7 @@ class DeliveryLocalStore {
       final operation = OutboxOperation(
         operationGuid: operationGuid,
         operationType: 'delivery_read',
-        payloadVersion: 1,
+        payloadVersion: 2,
         driverGuid: driverGuid,
         manifestGuid: manifestGuid,
         occurrenceGuid: occurrenceGuid,

@@ -126,7 +126,7 @@ void main() {
     await legacy.close();
 
     final database = await appDatabase.database;
-    expect(await database.getVersion(), 2);
+    expect(await database.getVersion(), AppDatabase.schemaVersion);
     final columns = await database.rawQuery(
       'PRAGMA table_info(${AppDatabase.outboxOperationTable})',
     );
@@ -135,5 +135,9 @@ void main() {
     expect(operations, hasLength(1));
     expect(operations.single['operation_guid'], 'OP-LEGADA');
     expect(operations.single['occurrence_guid'], isNull);
+    expect(
+      await database.query(AppDatabase.tripDownloadTable),
+      isEmpty,
+    );
   });
 }

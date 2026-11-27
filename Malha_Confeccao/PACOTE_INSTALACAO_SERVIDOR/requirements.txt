@@ -1,0 +1,4 @@
+# fdb e puro Python; 2.0.4 foi a versao validada com Python 3.11 de 32 bits.
+# O cliente Firebird (fbclient.dll) nao vem pelo pip e deve ter a mesma arquitetura
+# do Python: 32 bits no AMPLIATOSERVER.
+fdb==2.0.4

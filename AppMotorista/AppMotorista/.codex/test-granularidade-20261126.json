@@ -1,0 +1,369 @@
+{"protocolVersion":"0.1.1","runnerVersion":null,"pid":18448,"type":"start","time":0}
+{"suite":{"id":0,"platform":"vm","path":"E:/Jorginho/AppMotorista/AppMotorista/test/app_initialization_widget_test.dart"},"type":"suite","time":0}
+{"test":{"id":1,"name":"loading E:/Jorginho/AppMotorista/AppMotorista/test/app_initialization_widget_test.dart","suiteID":0,"groupIDs":[],"metadata":{"skip":false,"skipReason":null},"line":null,"column":null,"url":null},"type":"testStart","time":1}
+{"suite":{"id":2,"platform":"vm","path":"E:/Jorginho/AppMotorista/AppMotorista/test/auth/homologation_config_test.dart"},"type":"suite","time":6}
+{"test":{"id":3,"name":"loading E:/Jorginho/AppMotorista/AppMotorista/test/auth/homologation_config_test.dart","suiteID":2,"groupIDs":[],"metadata":{"skip":false,"skipReason":null},"line":null,"column":null,"url":null},"type":"testStart","time":6}
+{"suite":{"id":4,"platform":"vm","path":"E:/Jorginho/AppMotorista/AppMotorista/test/auth/login_widget_test.dart"},"type":"suite","time":7}
+{"test":{"id":5,"name":"loading E:/Jorginho/AppMotorista/AppMotorista/test/auth/login_widget_test.dart","suiteID":4,"groupIDs":[],"metadata":{"skip":false,"skipReason":null},"line":null,"column":null,"url":null},"type":"testStart","time":7}
+{"suite":{"id":6,"platform":"vm","path":"E:/Jorginho/AppMotorista/AppMotorista/test/auth/mobile_bootstrap_test.dart"},"type":"suite","time":8}
+{"test":{"id":7,"name":"loading E:/Jorginho/AppMotorista/AppMotorista/test/auth/mobile_bootstrap_test.dart","suiteID":6,"groupIDs":[],"metadata":{"skip":false,"skipReason":null},"line":null,"column":null,"url":null},"type":"testStart","time":8}
+{"count":26,"time":10,"type":"allSuites"}
+{"testID":1,"result":"success","skipped":false,"hidden":true,"type":"testDone","time":3989}
+{"group":{"id":8,"suiteID":0,"parentID":null,"name":"","metadata":{"skip":false,"skipReason":null},"testCount":1,"line":null,"column":null,"url":null},"type":"group","time":3994}
+{"test":{"id":9,"name":"restaura uma vez e apresenta login quando não há sessão armazenada","suiteID":0,"groupIDs":[8],"metadata":{"skip":false,"skipReason":null},"line":174,"column":5,"url":"package:flutter_test/src/widget_tester.dart","root_line":25,"root_column":3,"root_url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/app_initialization_widget_test.dart"},"type":"testStart","time":3995}
+{"testID":3,"result":"success","skipped":false,"hidden":true,"type":"testDone","time":4257}
+{"group":{"id":10,"suiteID":2,"parentID":null,"name":"","metadata":{"skip":false,"skipReason":null},"testCount":5,"line":null,"column":null,"url":null},"type":"group","time":4258}
+{"test":{"id":11,"name":"homologacao somente leitura seleciona chave exclusiva","suiteID":2,"groupIDs":[10],"metadata":{"skip":false,"skipReason":null},"line":20,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/auth/homologation_config_test.dart"},"type":"testStart","time":4258}
+{"testID":11,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":4301}
+{"test":{"id":12,"name":"homologacao com operacoes liberadas reutiliza a chave exclusiva","suiteID":2,"groupIDs":[10],"metadata":{"skip":false,"skipReason":null},"line":32,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/auth/homologation_config_test.dart"},"type":"testStart","time":4302}
+{"testID":12,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":4311}
+{"test":{"id":13,"name":"modo normal conserva chave legada","suiteID":2,"groupIDs":[10],"metadata":{"skip":false,"skipReason":null},"line":44,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/auth/homologation_config_test.dart"},"type":"testStart","time":4311}
+{"testID":13,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":4319}
+{"test":{"id":14,"name":"sessao de homologacao nao le, apaga ou sobrescreve a legada","suiteID":2,"groupIDs":[10],"metadata":{"skip":false,"skipReason":null},"line":55,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/auth/homologation_config_test.dart"},"type":"testStart","time":4320}
+{"testID":14,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":4343}
+{"test":{"id":15,"name":"URL de homologacao e contrato de lista sao enviados a Nuvem","suiteID":2,"groupIDs":[10],"metadata":{"skip":false,"skipReason":null},"line":82,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/auth/homologation_config_test.dart"},"type":"testStart","time":4344}
+{"testID":15,"messageType":"print","message":"GET /api/v1/motorista/viagens (22 ms)","type":"print","time":4381}
+{"testID":15,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":4381}
+{"suite":{"id":16,"platform":"vm","path":"E:/Jorginho/AppMotorista/AppMotorista/test/auth/session_controller_test.dart"},"type":"suite","time":4414}
+{"test":{"id":17,"name":"loading E:/Jorginho/AppMotorista/AppMotorista/test/auth/session_controller_test.dart","suiteID":16,"groupIDs":[],"metadata":{"skip":false,"skipReason":null},"line":null,"column":null,"url":null},"type":"testStart","time":4414}
+{"testID":5,"result":"success","skipped":false,"hidden":true,"type":"testDone","time":4684}
+{"group":{"id":18,"suiteID":4,"parentID":null,"name":"","metadata":{"skip":false,"skipReason":null},"testCount":2,"line":null,"column":null,"url":null},"type":"group","time":4684}
+{"test":{"id":19,"name":"login mostra somente credenciais e ação principal","suiteID":4,"groupIDs":[18],"metadata":{"skip":false,"skipReason":null},"line":174,"column":5,"url":"package:flutter_test/src/widget_tester.dart","root_line":16,"root_column":3,"root_url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/auth/login_widget_test.dart"},"type":"testStart","time":4684}
+{"testID":9,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":5208}
+{"suite":{"id":20,"platform":"vm","path":"E:/Jorginho/AppMotorista/AppMotorista/test/core/admin_configuration_test.dart"},"type":"suite","time":5237}
+{"test":{"id":21,"name":"loading E:/Jorginho/AppMotorista/AppMotorista/test/core/admin_configuration_test.dart","suiteID":20,"groupIDs":[],"metadata":{"skip":false,"skipReason":null},"line":null,"column":null,"url":null},"type":"testStart","time":5237}
+{"testID":19,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":5833}
+{"test":{"id":22,"name":"menu administrativo exige senha antes de abrir configurações","suiteID":4,"groupIDs":[18],"metadata":{"skip":false,"skipReason":null},"line":174,"column":5,"url":"package:flutter_test/src/widget_tester.dart","root_line":49,"root_column":3,"root_url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/auth/login_widget_test.dart"},"type":"testStart","time":5834}
+{"testID":22,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":6483}
+{"suite":{"id":23,"platform":"vm","path":"E:/Jorginho/AppMotorista/AppMotorista/test/network/auth_repository_test.dart"},"type":"suite","time":6514}
+{"test":{"id":24,"name":"loading E:/Jorginho/AppMotorista/AppMotorista/test/network/auth_repository_test.dart","suiteID":23,"groupIDs":[],"metadata":{"skip":false,"skipReason":null},"line":null,"column":null,"url":null},"type":"testStart","time":6514}
+{"testID":7,"result":"success","skipped":false,"hidden":true,"type":"testDone","time":6664}
+{"group":{"id":25,"suiteID":6,"parentID":null,"name":"","metadata":{"skip":false,"skipReason":null},"testCount":2,"line":null,"column":null,"url":null},"type":"group","time":6664}
+{"test":{"id":26,"name":"bootstrap QR preserva bearer e cria sessao do motorista informado","suiteID":6,"groupIDs":[25],"metadata":{"skip":false,"skipReason":null},"line":7,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/auth/mobile_bootstrap_test.dart"},"type":"testStart","time":6664}
+{"testID":26,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":6698}
+{"test":{"id":27,"name":"bootstrap QR expirado e rejeitado","suiteID":6,"groupIDs":[25],"metadata":{"skip":false,"skipReason":null},"line":23,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/auth/mobile_bootstrap_test.dart"},"type":"testStart","time":6698}
+{"testID":27,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":6705}
+{"suite":{"id":28,"platform":"vm","path":"E:/Jorginho/AppMotorista/AppMotorista/test/storage/app_database_test.dart"},"type":"suite","time":6725}
+{"test":{"id":29,"name":"loading E:/Jorginho/AppMotorista/AppMotorista/test/storage/app_database_test.dart","suiteID":28,"groupIDs":[],"metadata":{"skip":false,"skipReason":null},"line":null,"column":null,"url":null},"type":"testStart","time":6725}
+{"testID":17,"result":"success","skipped":false,"hidden":true,"type":"testDone","time":7505}
+{"group":{"id":30,"suiteID":16,"parentID":null,"name":"","metadata":{"skip":false,"skipReason":null},"testCount":10,"line":null,"column":null,"url":null},"type":"group","time":7505}
+{"group":{"id":31,"suiteID":16,"parentID":30,"name":"SessionController","metadata":{"skip":false,"skipReason":null},"testCount":10,"line":10,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/auth/session_controller_test.dart"},"type":"group","time":7505}
+{"test":{"id":32,"name":"SessionController login salva e autentica a sessão","suiteID":16,"groupIDs":[30,31],"metadata":{"skip":false,"skipReason":null},"line":11,"column":5,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/auth/session_controller_test.dart"},"type":"testStart","time":7506}
+{"testID":32,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":7533}
+{"test":{"id":33,"name":"SessionController restaura sessão ainda válida sem renovar","suiteID":16,"groupIDs":[30,31],"metadata":{"skip":false,"skipReason":null},"line":27,"column":5,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/auth/session_controller_test.dart"},"type":"testStart","time":7533}
+{"testID":33,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":7538}
+{"test":{"id":34,"name":"SessionController falha no armazenamento sai do bootstrap e informa o login","suiteID":16,"groupIDs":[30,31],"metadata":{"skip":false,"skipReason":null},"line":42,"column":5,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/auth/session_controller_test.dart"},"type":"testStart","time":7538}
+{"testID":34,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":7544}
+{"test":{"id":35,"name":"SessionController renova sessão expirada durante a restauração","suiteID":16,"groupIDs":[30,31],"metadata":{"skip":false,"skipReason":null},"line":54,"column":5,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/auth/session_controller_test.dart"},"type":"testStart","time":7545}
+{"testID":35,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":7550}
+{"test":{"id":36,"name":"SessionController indisponibilidade ao restaurar não apaga a sessão local","suiteID":16,"groupIDs":[30,31],"metadata":{"skip":false,"skipReason":null},"line":76,"column":5,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/auth/session_controller_test.dart"},"type":"testStart","time":7550}
+{"testID":36,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":7554}
+{"test":{"id":37,"name":"SessionController 401 ao renovar continua encerrando a sessão","suiteID":16,"groupIDs":[30,31],"metadata":{"skip":false,"skipReason":null},"line":96,"column":7,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/auth/session_controller_test.dart"},"type":"testStart","time":7554}
+{"testID":37,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":7559}
+{"test":{"id":38,"name":"SessionController 403 ao renovar continua encerrando a sessão","suiteID":16,"groupIDs":[30,31],"metadata":{"skip":false,"skipReason":null},"line":96,"column":7,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/auth/session_controller_test.dart"},"type":"testStart","time":7559}
+{"testID":38,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":7564}
+{"test":{"id":39,"name":"SessionController falha de rede no refresh após 401 preserva a sessão","suiteID":16,"groupIDs":[30,31],"metadata":{"skip":false,"skipReason":null},"line":119,"column":5,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/auth/session_controller_test.dart"},"type":"testStart","time":7564}
+{"testID":39,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":7572}
+{"test":{"id":40,"name":"SessionController 401 renova uma vez e repete a requisição","suiteID":16,"groupIDs":[30,31],"metadata":{"skip":false,"skipReason":null},"line":149,"column":5,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/auth/session_controller_test.dart"},"type":"testStart","time":7572}
+{"testID":40,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":7576}
+{"test":{"id":41,"name":"SessionController segundo 401 encerra a sessão sem loop de refresh","suiteID":16,"groupIDs":[30,31],"metadata":{"skip":false,"skipReason":null},"line":174,"column":5,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/auth/session_controller_test.dart"},"type":"testStart","time":7576}
+{"testID":41,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":7580}
+{"suite":{"id":42,"platform":"vm","path":"E:/Jorginho/AppMotorista/AppMotorista/test/storage/fallback_session_storage_test.dart"},"type":"suite","time":7599}
+{"test":{"id":43,"name":"loading E:/Jorginho/AppMotorista/AppMotorista/test/storage/fallback_session_storage_test.dart","suiteID":42,"groupIDs":[],"metadata":{"skip":false,"skipReason":null},"line":null,"column":null,"url":null},"type":"testStart","time":7600}
+{"testID":21,"result":"success","skipped":false,"hidden":true,"type":"testDone","time":10835}
+{"group":{"id":44,"suiteID":20,"parentID":null,"name":"","metadata":{"skip":false,"skipReason":null},"testCount":5,"line":null,"column":null,"url":null},"type":"group","time":10835}
+{"test":{"id":45,"name":"endpoint HTTPS normaliza e rejeita HTTP em homologação","suiteID":20,"groupIDs":[44],"metadata":{"skip":false,"skipReason":null},"line":14,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/core/admin_configuration_test.dart"},"type":"testStart","time":10835}
+{"testID":45,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":10863}
+{"test":{"id":46,"name":"endpoint salvo permanece disponível na próxima abertura","suiteID":20,"groupIDs":[44],"metadata":{"skip":false,"skipReason":null},"line":28,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/core/admin_configuration_test.dart"},"type":"testStart","time":10863}
+{"testID":46,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":10872}
+{"test":{"id":47,"name":"troca de servidor usa escopos distintos para sessão e cache local","suiteID":20,"groupIDs":[44],"metadata":{"skip":false,"skipReason":null},"line":35,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/core/admin_configuration_test.dart"},"type":"testStart","time":10873}
+{"testID":47,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":10877}
+{"test":{"id":48,"name":"senha administrativa provisória pode ser substituída sem recompilar","suiteID":20,"groupIDs":[44],"metadata":{"skip":false,"skipReason":null},"line":50,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/core/admin_configuration_test.dart"},"type":"testStart","time":10878}
+{"testID":48,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":10882}
+{"test":{"id":49,"name":"health usa endpoint público sem autenticação","suiteID":20,"groupIDs":[44],"metadata":{"skip":false,"skipReason":null},"line":67,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/core/admin_configuration_test.dart"},"type":"testStart","time":10882}
+{"testID":49,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":10896}
+{"suite":{"id":50,"platform":"vm","path":"E:/Jorginho/AppMotorista/AppMotorista/test/sync/outbox_local_store_test.dart"},"type":"suite","time":10915}
+{"test":{"id":51,"name":"loading E:/Jorginho/AppMotorista/AppMotorista/test/sync/outbox_local_store_test.dart","suiteID":50,"groupIDs":[],"metadata":{"skip":false,"skipReason":null},"line":null,"column":null,"url":null},"type":"testStart","time":10915}
+{"testID":24,"result":"success","skipped":false,"hidden":true,"type":"testDone","time":14166}
+{"group":{"id":52,"suiteID":23,"parentID":null,"name":"","metadata":{"skip":false,"skipReason":null},"testCount":1,"line":null,"column":null,"url":null},"type":"group","time":14166}
+{"test":{"id":53,"name":"login usa o contrato oficial e interpreta a sessão","suiteID":23,"groupIDs":[52],"metadata":{"skip":false,"skipReason":null},"line":9,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/network/auth_repository_test.dart"},"type":"testStart","time":14166}
+{"testID":53,"messageType":"print","message":"POST /api/v1/motorista/sessoes (1 ms)","type":"print","time":14205}
+{"testID":53,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":14233}
+{"suite":{"id":54,"platform":"vm","path":"E:/Jorginho/AppMotorista/AppMotorista/test/sync/outbox_sync_controller_test.dart"},"type":"suite","time":14265}
+{"test":{"id":55,"name":"loading E:/Jorginho/AppMotorista/AppMotorista/test/sync/outbox_sync_controller_test.dart","suiteID":54,"groupIDs":[],"metadata":{"skip":false,"skipReason":null},"line":null,"column":null,"url":null},"type":"testStart","time":14265}
+{"testID":29,"result":"success","skipped":false,"hidden":true,"type":"testDone","time":14450}
+{"group":{"id":56,"suiteID":28,"parentID":null,"name":"","metadata":{"skip":false,"skipReason":null},"testCount":2,"line":null,"column":null,"url":null},"type":"group","time":14451}
+{"test":{"id":57,"name":"schema SQLite v2 é criado e reabre com chaves estrangeiras","suiteID":28,"groupIDs":[56],"metadata":{"skip":false,"skipReason":null},"line":33,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/storage/app_database_test.dart"},"type":"testStart","time":14451}
+{"testID":43,"result":"success","skipped":false,"hidden":true,"type":"testDone","time":14653}
+{"group":{"id":58,"suiteID":42,"parentID":null,"name":"","metadata":{"skip":false,"skipReason":null},"testCount":2,"line":null,"column":null,"url":null},"type":"group","time":14653}
+{"test":{"id":59,"name":"recupera a sessão antiga apenas quando a chave atual está vazia","suiteID":42,"groupIDs":[58],"metadata":{"skip":false,"skipReason":null},"line":7,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/storage/fallback_session_storage_test.dart"},"type":"testStart","time":14653}
+{"testID":59,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":14677}
+{"test":{"id":60,"name":"logout explícito apaga a sessão isolada e a chave anterior","suiteID":42,"groupIDs":[58],"metadata":{"skip":false,"skipReason":null},"line":19,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/storage/fallback_session_storage_test.dart"},"type":"testStart","time":14678}
+{"testID":60,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":14683}
+{"suite":{"id":61,"platform":"vm","path":"E:/Jorginho/AppMotorista/AppMotorista/test/viagens/delivery_local_store_test.dart"},"type":"suite","time":14702}
+{"test":{"id":62,"name":"loading E:/Jorginho/AppMotorista/AppMotorista/test/viagens/delivery_local_store_test.dart","suiteID":61,"groupIDs":[],"metadata":{"skip":false,"skipReason":null},"line":null,"column":null,"url":null},"type":"testStart","time":14702}
+{"testID":57,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":14817}
+{"test":{"id":63,"name":"migração v1 para v2 preserva outbox e adiciona occurrence_guid","suiteID":28,"groupIDs":[56],"metadata":{"skip":false,"skipReason":null},"line":77,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/storage/app_database_test.dart"},"type":"testStart","time":14817}
+{"testID":63,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":15321}
+{"suite":{"id":64,"platform":"vm","path":"E:/Jorginho/AppMotorista/AppMotorista/test/viagens/delivery_navigation_widget_test.dart"},"type":"suite","time":15340}
+{"test":{"id":65,"name":"loading E:/Jorginho/AppMotorista/AppMotorista/test/viagens/delivery_navigation_widget_test.dart","suiteID":64,"groupIDs":[],"metadata":{"skip":false,"skipReason":null},"line":null,"column":null,"url":null},"type":"testStart","time":15340}
+{"testID":51,"result":"success","skipped":false,"hidden":true,"type":"testDone","time":16275}
+{"group":{"id":66,"suiteID":50,"parentID":null,"name":"","metadata":{"skip":false,"skipReason":null},"testCount":4,"line":null,"column":null,"url":null},"type":"group","time":16276}
+{"test":{"id":67,"name":"outbox preserva UUID e payload depois de fechar e reabrir","suiteID":50,"groupIDs":[66],"metadata":{"skip":false,"skipReason":null},"line":37,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/sync/outbox_local_store_test.dart"},"type":"testStart","time":16276}
+{"testID":67,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":16724}
+{"test":{"id":68,"name":"UUID é único e uma segunda inserção não duplica operação","suiteID":50,"groupIDs":[66],"metadata":{"skip":false,"skipReason":null},"line":56,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/sync/outbox_local_store_test.dart"},"type":"testStart","time":16725}
+{"testID":68,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":16965}
+{"test":{"id":69,"name":"sending interrompido volta a pending sem trocar UUID","suiteID":50,"groupIDs":[66],"metadata":{"skip":false,"skipReason":null},"line":73,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/sync/outbox_local_store_test.dart"},"type":"testStart","time":16966}
+{"testID":69,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":17044}
+{"test":{"id":70,"name":"retry e estados terminais ficam persistidos explicitamente","suiteID":50,"groupIDs":[66],"metadata":{"skip":false,"skipReason":null},"line":99,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/sync/outbox_local_store_test.dart"},"type":"testStart","time":17045}
+{"testID":70,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":17194}
+{"suite":{"id":71,"platform":"vm","path":"E:/Jorginho/AppMotorista/AppMotorista/test/viagens/delivery_progress_test.dart"},"type":"suite","time":17217}
+{"test":{"id":72,"name":"loading E:/Jorginho/AppMotorista/AppMotorista/test/viagens/delivery_progress_test.dart","suiteID":71,"groupIDs":[],"metadata":{"skip":false,"skipReason":null},"line":null,"column":null,"url":null},"type":"testStart","time":17217}
+{"testID":55,"result":"success","skipped":false,"hidden":true,"type":"testDone","time":17583}
+{"group":{"id":73,"suiteID":54,"parentID":null,"name":"","metadata":{"skip":false,"skipReason":null},"testCount":9,"line":null,"column":null,"url":null},"type":"group","time":17584}
+{"test":{"id":74,"name":"processa em ordem usando os mesmos UUIDs e payloads persistidos","suiteID":54,"groupIDs":[73],"metadata":{"skip":false,"skipReason":null},"line":81,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/sync/outbox_sync_controller_test.dart"},"type":"testStart","time":17584}
+{"testID":62,"result":"success","skipped":false,"hidden":true,"type":"testDone","time":17876}
+{"group":{"id":75,"suiteID":61,"parentID":null,"name":"","metadata":{"skip":false,"skipReason":null},"testCount":8,"line":null,"column":null,"url":null},"type":"group","time":17876}
+{"test":{"id":76,"name":"C repetida consome uma ocorrência por vez e bloqueia excesso","suiteID":61,"groupIDs":[75],"metadata":{"skip":false,"skipReason":null},"line":42,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/delivery_local_store_test.dart"},"type":"testStart","time":17877}
+{"testID":76,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":20713}
+{"test":{"id":77,"name":"R preserva ROLO_ID, persiste uma vez e bloqueia releitura","suiteID":61,"groupIDs":[75],"metadata":{"skip":false,"skipReason":null},"line":75,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/delivery_local_store_test.dart"},"type":"testStart","time":20714}
+{"testID":77,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":20814}
+{"test":{"id":78,"name":"censuras de escopo e código não alteram snapshot nem outbox","suiteID":61,"groupIDs":[75],"metadata":{"skip":false,"skipReason":null},"line":100,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/delivery_local_store_test.dart"},"type":"testStart","time":20815}
+{"testID":78,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":20912}
+{"test":{"id":79,"name":"seis de dez leituras e UUIDs sobrevivem e as quatro finais concluem","suiteID":61,"groupIDs":[75],"metadata":{"skip":false,"skipReason":null},"line":138,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/delivery_local_store_test.dart"},"type":"testStart","time":20912}
+{"testID":74,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":20952}
+{"test":{"id":80,"name":"resposta perdida agenda backoff e replay reutiliza o mesmo UUID","suiteID":54,"groupIDs":[73],"metadata":{"skip":false,"skipReason":null},"line":134,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/sync/outbox_sync_controller_test.dart"},"type":"testStart","time":20952}
+{"testID":80,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":21150}
+{"test":{"id":81,"name":"falha temporária da cabeça não permite ultrapassagem da fila","suiteID":54,"groupIDs":[73],"metadata":{"skip":false,"skipReason":null},"line":183,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/sync/outbox_sync_controller_test.dart"},"type":"testStart","time":21152}
+{"testID":81,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":21261}
+{"test":{"id":82,"name":"reabre banco, recupera sending e confirma sem trocar UUID","suiteID":54,"groupIDs":[73],"metadata":{"skip":false,"skipReason":null},"line":214,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/sync/outbox_sync_controller_test.dart"},"type":"testStart","time":21262}
+{"testID":82,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":21355}
+{"test":{"id":83,"name":"recusa e conflito são terminais e reconciliam a mutação local","suiteID":54,"groupIDs":[73],"metadata":{"skip":false,"skipReason":null},"line":249,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/sync/outbox_sync_controller_test.dart"},"type":"testStart","time":21356}
+{"testID":79,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":21448}
+{"test":{"id":84,"name":"falha ao inserir outbox reverte a ocorrência atualizada","suiteID":61,"groupIDs":[75],"metadata":{"skip":false,"skipReason":null},"line":227,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/delivery_local_store_test.dart"},"type":"testStart","time":21449}
+{"testID":83,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":21476}
+{"test":{"id":85,"name":"aceite com ocorrência divergente vira conflito e não SYNCED","suiteID":54,"groupIDs":[73],"metadata":{"skip":false,"skipReason":null},"line":293,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/sync/outbox_sync_controller_test.dart"},"type":"testStart","time":21477}
+{"testID":84,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":21522}
+{"test":{"id":86,"name":"falha ao atualizar ocorrência impede criação da outbox","suiteID":61,"groupIDs":[75],"metadata":{"skip":false,"skipReason":null},"line":249,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/delivery_local_store_test.dart"},"type":"testStart","time":21523}
+{"testID":85,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":21561}
+{"test":{"id":87,"name":"duas solicitações concorrentes compartilham um único envio","suiteID":54,"groupIDs":[73],"metadata":{"skip":false,"skipReason":null},"line":316,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/sync/outbox_sync_controller_test.dart"},"type":"testStart","time":21561}
+{"testID":65,"result":"success","skipped":false,"hidden":true,"type":"testDone","time":21568}
+{"group":{"id":88,"suiteID":64,"parentID":null,"name":"","metadata":{"skip":false,"skipReason":null},"testCount":3,"line":null,"column":null,"url":null},"type":"group","time":21569}
+{"test":{"id":89,"name":"pedido concluído e parada pendente retorna para Parada","suiteID":64,"groupIDs":[88],"metadata":{"skip":false,"skipReason":null},"line":174,"column":5,"url":"package:flutter_test/src/widget_tester.dart","root_line":12,"root_column":3,"root_url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/delivery_navigation_widget_test.dart"},"type":"testStart","time":21569}
+{"testID":86,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":21587}
+{"test":{"id":90,"name":"operação sending existente não gera nova operação na releitura","suiteID":61,"groupIDs":[75],"metadata":{"skip":false,"skipReason":null},"line":270,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/delivery_local_store_test.dart"},"type":"testStart","time":21587}
+{"testID":87,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":21656}
+{"test":{"id":91,"name":"nova pendência acorda o processador já iniciado","suiteID":54,"groupIDs":[73],"metadata":{"skip":false,"skipReason":null},"line":344,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/sync/outbox_sync_controller_test.dart"},"type":"testStart","time":21656}
+{"testID":90,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":21665}
+{"test":{"id":92,"name":"Parada com dois Pedidos conclui somente depois do segundo","suiteID":61,"groupIDs":[75],"metadata":{"skip":false,"skipReason":null},"line":291,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/delivery_local_store_test.dart"},"type":"testStart","time":21665}
+{"testID":91,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":21826}
+{"test":{"id":93,"name":"backoff cresce exponencialmente com jitter limitado ao teto","suiteID":54,"groupIDs":[73],"metadata":{"skip":false,"skipReason":null},"line":374,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/sync/outbox_sync_controller_test.dart"},"type":"testStart","time":21826}
+{"testID":92,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":21835}
+{"testID":72,"result":"success","skipped":false,"hidden":true,"type":"testDone","time":21843}
+{"group":{"id":94,"suiteID":71,"parentID":null,"name":"","metadata":{"skip":false,"skipReason":null},"testCount":4,"line":null,"column":null,"url":null},"type":"group","time":21843}
+{"test":{"id":95,"name":"pedidos pendentes ficam antes dos concluídos com ordem estável","suiteID":71,"groupIDs":[94],"metadata":{"skip":false,"skipReason":null},"line":6,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/delivery_progress_test.dart"},"type":"testStart","time":21843}
+{"suite":{"id":96,"platform":"vm","path":"E:/Jorginho/AppMotorista/AppMotorista/test/viagens/delivery_repository_test.dart"},"type":"suite","time":21868}
+{"test":{"id":97,"name":"loading E:/Jorginho/AppMotorista/AppMotorista/test/viagens/delivery_repository_test.dart","suiteID":96,"groupIDs":[],"metadata":{"skip":false,"skipReason":null},"line":null,"column":null,"url":null},"type":"testStart","time":21869}
+{"testID":93,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":21878}
+{"testID":95,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":21881}
+{"test":{"id":98,"name":"paradas pendentes ficam antes das concluídas com ordem estável","suiteID":71,"groupIDs":[94],"metadata":{"skip":false,"skipReason":null},"line":17,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/delivery_progress_test.dart"},"type":"testStart","time":21883}
+{"testID":98,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":21888}
+{"test":{"id":99,"name":"ocorrências pendentes ficam antes das entregues com ordem estável","suiteID":71,"groupIDs":[94],"metadata":{"skip":false,"skipReason":null},"line":28,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/delivery_progress_test.dart"},"type":"testStart","time":21889}
+{"testID":99,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":21895}
+{"test":{"id":100,"name":"viagem só conclui com estados oficiais de paradas e pedidos","suiteID":71,"groupIDs":[94],"metadata":{"skip":false,"skipReason":null},"line":80,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/delivery_progress_test.dart"},"type":"testStart","time":21896}
+{"suite":{"id":101,"platform":"vm","path":"E:/Jorginho/AppMotorista/AppMotorista/test/viagens/delivery_scanner_controller_test.dart"},"type":"suite","time":21908}
+{"test":{"id":102,"name":"loading E:/Jorginho/AppMotorista/AppMotorista/test/viagens/delivery_scanner_controller_test.dart","suiteID":101,"groupIDs":[],"metadata":{"skip":false,"skipReason":null},"line":null,"column":null,"url":null},"type":"testStart","time":21908}
+{"testID":100,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":21912}
+{"suite":{"id":103,"platform":"vm","path":"E:/Jorginho/AppMotorista/AppMotorista/test/viagens/hardware_barcode_buffer_test.dart"},"type":"suite","time":21935}
+{"test":{"id":104,"name":"loading E:/Jorginho/AppMotorista/AppMotorista/test/viagens/hardware_barcode_buffer_test.dart","suiteID":103,"groupIDs":[],"metadata":{"skip":false,"skipReason":null},"line":null,"column":null,"url":null},"type":"testStart","time":21936}
+{"testID":97,"result":"success","skipped":false,"hidden":true,"type":"testDone","time":22922}
+{"group":{"id":105,"suiteID":96,"parentID":null,"name":"","metadata":{"skip":false,"skipReason":null},"testCount":3,"line":null,"column":null,"url":null},"type":"group","time":22922}
+{"test":{"id":106,"name":"envia leitura ao endpoint oficial com os campos do contrato","suiteID":96,"groupIDs":[105],"metadata":{"skip":false,"skipReason":null},"line":12,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/delivery_repository_test.dart"},"type":"testStart","time":22922}
+{"testID":106,"messageType":"print","message":"POST /api/v1/motorista/viagens/MANIFESTO/paradas/7/pedidos/123/leituras (1 ms)","type":"print","time":22971}
+{"testID":106,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":22972}
+{"test":{"id":107,"name":"interpreta conflito HTTP 409 como resposta funcional","suiteID":96,"groupIDs":[105],"metadata":{"skip":false,"skipReason":null},"line":64,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/delivery_repository_test.dart"},"type":"testStart","time":22972}
+{"testID":107,"messageType":"print","message":"POST /api/v1/motorista/viagens/MANIFESTO/paradas/7/pedidos/123/leituras (1 ms)","type":"print","time":22980}
+{"testID":107,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":22981}
+{"test":{"id":108,"name":"reenvia literalmente o payload JSON persistido na outbox","suiteID":96,"groupIDs":[105],"metadata":{"skip":false,"skipReason":null},"line":95,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/delivery_repository_test.dart"},"type":"testStart","time":22982}
+{"testID":108,"messageType":"print","message":"POST /api/v1/motorista/viagens/MANIFESTO/paradas/7/pedidos/123/leituras (0 ms)","type":"print","time":22987}
+{"testID":108,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":22988}
+{"suite":{"id":109,"platform":"vm","path":"E:/Jorginho/AppMotorista/AppMotorista/test/viagens/offline_navigation_widget_test.dart"},"type":"suite","time":23010}
+{"test":{"id":110,"name":"loading E:/Jorginho/AppMotorista/AppMotorista/test/viagens/offline_navigation_widget_test.dart","suiteID":109,"groupIDs":[],"metadata":{"skip":false,"skipReason":null},"line":null,"column":null,"url":null},"type":"testStart","time":23011}
+{"testID":89,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":23136}
+{"test":{"id":111,"name":"pedido e parada concluídos retornam diretamente para Viagem","suiteID":64,"groupIDs":[88],"metadata":{"skip":false,"skipReason":null},"line":174,"column":5,"url":"package:flutter_test/src/widget_tester.dart","root_line":77,"root_column":3,"root_url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/delivery_navigation_widget_test.dart"},"type":"testStart","time":23136}
+{"testID":111,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":23514}
+{"test":{"id":112,"name":"pendência fica azul somente na Parada concluída que a contém","suiteID":64,"groupIDs":[88],"metadata":{"skip":false,"skipReason":null},"line":174,"column":5,"url":"package:flutter_test/src/widget_tester.dart","root_line":160,"root_column":3,"root_url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/delivery_navigation_widget_test.dart"},"type":"testStart","time":23514}
+{"testID":112,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":23616}
+{"suite":{"id":113,"platform":"vm","path":"E:/Jorginho/AppMotorista/AppMotorista/test/viagens/order_scanner_widget_test.dart"},"type":"suite","time":24225}
+{"test":{"id":114,"name":"loading E:/Jorginho/AppMotorista/AppMotorista/test/viagens/order_scanner_widget_test.dart","suiteID":113,"groupIDs":[],"metadata":{"skip":false,"skipReason":null},"line":null,"column":null,"url":null},"type":"testStart","time":24226}
+{"testID":102,"result":"success","skipped":false,"hidden":true,"type":"testDone","time":25811}
+{"group":{"id":115,"suiteID":101,"parentID":null,"name":"","metadata":{"skip":false,"skipReason":null},"testCount":9,"line":null,"column":null,"url":null},"type":"group","time":25812}
+{"test":{"id":116,"name":"1. leitura C aceita produz feedback de sucesso","suiteID":101,"groupIDs":[115],"metadata":{"skip":false,"skipReason":null},"line":10,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/delivery_scanner_controller_test.dart"},"type":"testStart","time":25812}
+{"testID":116,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":25841}
+{"test":{"id":117,"name":"2. ocorrência aceita passa de P para E","suiteID":101,"groupIDs":[115],"metadata":{"skip":false,"skipReason":null},"line":21,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/delivery_scanner_controller_test.dart"},"type":"testStart","time":25841}
+{"testID":117,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":25844}
+{"test":{"id":118,"name":"3. contadores são atualizados pela ocorrência aceita","suiteID":101,"groupIDs":[115],"metadata":{"skip":false,"skipReason":null},"line":31,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/delivery_scanner_controller_test.dart"},"type":"testStart","time":25844}
+{"testID":118,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":25848}
+{"test":{"id":119,"name":"4. códigos C repetidos consomem ocorrências independentes","suiteID":101,"groupIDs":[115],"metadata":{"skip":false,"skipReason":null},"line":45,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/delivery_scanner_controller_test.dart"},"type":"testStart","time":25848}
+{"testID":119,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":25854}
+{"test":{"id":120,"name":"5. leitura R altera somente a ocorrência/ROLO_ID devolvida","suiteID":101,"groupIDs":[115],"metadata":{"skip":false,"skipReason":null},"line":66,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/delivery_scanner_controller_test.dart"},"type":"testStart","time":25854}
+{"testID":120,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":25858}
+{"test":{"id":121,"name":"6. leitura recusada não altera estado local","suiteID":101,"groupIDs":[115],"metadata":{"skip":false,"skipReason":null},"line":86,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/delivery_scanner_controller_test.dart"},"type":"testStart","time":25859}
+{"testID":121,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":25862}
+{"test":{"id":122,"name":"7. bloqueia duplicidade enquanto envia e durante o debounce","suiteID":101,"groupIDs":[115],"metadata":{"skip":false,"skipReason":null},"line":106,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/delivery_scanner_controller_test.dart"},"type":"testStart","time":25862}
+{"testID":122,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":25867}
+{"test":{"id":123,"name":"8. replay idempotente mantém sucesso sem entrega duplicada","suiteID":101,"groupIDs":[115],"metadata":{"skip":false,"skipReason":null},"line":122,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/delivery_scanner_controller_test.dart"},"type":"testStart","time":25867}
+{"testID":123,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":25871}
+{"test":{"id":124,"name":"9. última ocorrência conclui pedido e parada","suiteID":101,"groupIDs":[115],"metadata":{"skip":false,"skipReason":null},"line":134,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/delivery_scanner_controller_test.dart"},"type":"testStart","time":25871}
+{"testID":124,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":25874}
+{"suite":{"id":125,"platform":"vm","path":"E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trips_offline_delivery_service_test.dart"},"type":"suite","time":25893}
+{"test":{"id":126,"name":"loading E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trips_offline_delivery_service_test.dart","suiteID":125,"groupIDs":[],"metadata":{"skip":false,"skipReason":null},"line":null,"column":null,"url":null},"type":"testStart","time":25893}
+{"testID":104,"result":"success","skipped":false,"hidden":true,"type":"testDone","time":26906}
+{"group":{"id":127,"suiteID":103,"parentID":null,"name":"","metadata":{"skip":false,"skipReason":null},"testCount":3,"line":null,"column":null,"url":null},"type":"group","time":26906}
+{"test":{"id":128,"name":"leitor HID acumula caracteres e envia somente no ENTER","suiteID":103,"groupIDs":[127],"metadata":{"skip":false,"skipReason":null},"line":6,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/hardware_barcode_buffer_test.dart"},"type":"testStart","time":26906}
+{"testID":128,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":26930}
+{"test":{"id":129,"name":"ENTER vazio não cria leitura e backspace corrige o buffer","suiteID":103,"groupIDs":[127],"metadata":{"skip":false,"skipReason":null},"line":18,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/hardware_barcode_buffer_test.dart"},"type":"testStart","time":26930}
+{"testID":129,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":26935}
+{"test":{"id":130,"name":"key up não duplica caracteres enviados pelo HID","suiteID":103,"groupIDs":[127],"metadata":{"skip":false,"skipReason":null},"line":29,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/hardware_barcode_buffer_test.dart"},"type":"testStart","time":26935}
+{"testID":130,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":26938}
+{"suite":{"id":131,"platform":"vm","path":"E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trips_offline_service_test.dart"},"type":"suite","time":26957}
+{"test":{"id":132,"name":"loading E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trips_offline_service_test.dart","suiteID":131,"groupIDs":[],"metadata":{"skip":false,"skipReason":null},"line":null,"column":null,"url":null},"type":"testStart","time":26957}
+{"testID":110,"result":"success","skipped":false,"hidden":true,"type":"testDone","time":27866}
+{"group":{"id":133,"suiteID":109,"parentID":null,"name":"","metadata":{"skip":false,"skipReason":null},"testCount":1,"line":null,"column":null,"url":null},"type":"group","time":27866}
+{"test":{"id":134,"name":"dados salvos permitem navegar até ocorrências sem comunicação remota","suiteID":109,"groupIDs":[133],"metadata":{"skip":false,"skipReason":null},"line":174,"column":5,"url":"package:flutter_test/src/widget_tester.dart","root_line":13,"root_column":3,"root_url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/offline_navigation_widget_test.dart"},"type":"testStart","time":27866}
+{"testID":114,"result":"success","skipped":false,"hidden":true,"type":"testDone","time":29019}
+{"group":{"id":135,"suiteID":113,"parentID":null,"name":"","metadata":{"skip":false,"skipReason":null},"testCount":3,"line":null,"column":null,"url":null},"type":"group","time":29019}
+{"test":{"id":136,"name":"operação normal não possui TextField nem abre teclado virtual","suiteID":113,"groupIDs":[135],"metadata":{"skip":false,"skipReason":null},"line":174,"column":5,"url":"package:flutter_test/src/widget_tester.dart","root_line":11,"root_column":3,"root_url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/order_scanner_widget_test.dart"},"type":"testStart","time":29020}
+{"testID":134,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":29529}
+{"suite":{"id":137,"platform":"vm","path":"E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trip_completion_navigation_widget_test.dart"},"type":"suite","time":29567}
+{"test":{"id":138,"name":"loading E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trip_completion_navigation_widget_test.dart","suiteID":137,"groupIDs":[],"metadata":{"skip":false,"skipReason":null},"line":null,"column":null,"url":null},"type":"testStart","time":29567}
+{"testID":126,"result":"success","skipped":false,"hidden":true,"type":"testDone","time":29965}
+{"group":{"id":139,"suiteID":125,"parentID":null,"name":"","metadata":{"skip":false,"skipReason":null},"testCount":6,"line":null,"column":null,"url":null},"type":"group","time":29965}
+{"test":{"id":140,"name":"online envia e confirma exatamente o UUID persistido","suiteID":125,"groupIDs":[139],"metadata":{"skip":false,"skipReason":null},"line":60,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trips_offline_delivery_service_test.dart"},"type":"testStart","time":29965}
+{"testID":136,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":30051}
+{"test":{"id":141,"name":"leitura aceita com pendência permanece no Pedido","suiteID":113,"groupIDs":[135],"metadata":{"skip":false,"skipReason":null},"line":174,"column":5,"url":"package:flutter_test/src/widget_tester.dart","root_line":23,"root_column":3,"root_url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/order_scanner_widget_test.dart"},"type":"testStart","time":30051}
+{"testID":141,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":30276}
+{"test":{"id":142,"name":"câmera devolve o código ao mesmo fluxo de entrega","suiteID":113,"groupIDs":[135],"metadata":{"skip":false,"skipReason":null},"line":174,"column":5,"url":"package:flutter_test/src/widget_tester.dart","root_line":55,"root_column":3,"root_url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/order_scanner_widget_test.dart"},"type":"testStart","time":30277}
+{"testID":142,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":30571}
+{"suite":{"id":143,"platform":"vm","path":"E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trip_local_store_test.dart"},"type":"suite","time":30602}
+{"test":{"id":144,"name":"loading E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trip_local_store_test.dart","suiteID":143,"groupIDs":[],"metadata":{"skip":false,"skipReason":null},"line":null,"column":null,"url":null},"type":"testStart","time":30602}
+{"testID":140,"messageType":"print","message":"POST /api/v1/motorista/viagens/MANIFEST-1/paradas/20/pedidos/200/leituras (1 ms)","type":"print","time":32462}
+{"testID":140,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":32565}
+{"test":{"id":145,"name":"aceite online com UUID divergente vira conflito e não SYNCED","suiteID":125,"groupIDs":[139],"metadata":{"skip":false,"skipReason":null},"line":93,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trips_offline_delivery_service_test.dart"},"type":"testStart","time":32565}
+{"testID":132,"result":"success","skipped":false,"hidden":true,"type":"testDone","time":33072}
+{"group":{"id":146,"suiteID":131,"parentID":null,"name":"","metadata":{"skip":false,"skipReason":null},"testCount":14,"line":null,"column":null,"url":null},"type":"group","time":33073}
+{"test":{"id":147,"name":"listar viagens dispara o download completo para uso offline","suiteID":131,"groupIDs":[146],"metadata":{"skip":false,"skipReason":null},"line":48,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trips_offline_service_test.dart"},"type":"testStart","time":33073}
+{"testID":147,"messageType":"print","message":"GET /api/v1/motorista/viagens (0 ms)","type":"print","time":34312}
+{"testID":147,"messageType":"print","message":"GET /api/v1/motorista/viagens/MANIFEST-1 (0 ms)","type":"print","time":34524}
+{"testID":145,"messageType":"print","message":"POST /api/v1/motorista/viagens/MANIFEST-1/paradas/20/pedidos/200/leituras (0 ms)","type":"print","time":34544}
+{"testID":147,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":34657}
+{"test":{"id":148,"name":"snapshot da API é persistido e continua íntegro após reabrir o banco","suiteID":131,"groupIDs":[146],"metadata":{"skip":false,"skipReason":null},"line":77,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trips_offline_service_test.dart"},"type":"testStart","time":34657}
+{"testID":145,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":34671}
+{"test":{"id":149,"name":"perda de resposta mantém sucesso local e o mesmo UUID pendente","suiteID":125,"groupIDs":[139],"metadata":{"skip":false,"skipReason":null},"line":128,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trips_offline_delivery_service_test.dart"},"type":"testStart","time":34672}
+{"testID":148,"messageType":"print","message":"GET /api/v1/motorista/viagens/MANIFEST-1 (0 ms)","type":"print","time":34816}
+{"testID":148,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":34952}
+{"test":{"id":150,"name":"modo somente leitura consulta API sem alterar outbox ou cache","suiteID":131,"groupIDs":[146],"metadata":{"skip":false,"skipReason":null},"line":120,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trips_offline_service_test.dart"},"type":"testStart","time":34952}
+{"testID":149,"messageType":"print","message":"POST /api/v1/motorista/viagens/MANIFEST-1/paradas/20/pedidos/200/leituras (2 ms)","type":"print","time":35232}
+{"testID":150,"messageType":"print","message":"GET /api/v1/motorista/viagens (0 ms)","type":"print","time":35246}
+{"testID":150,"messageType":"print","message":"GET /api/v1/motorista/viagens/MANIFEST-1 (0 ms)","type":"print","time":35246}
+{"testID":149,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":35261}
+{"test":{"id":151,"name":"API inacessível após abrir snapshot aceita leitura local sem tentar POST","suiteID":125,"groupIDs":[139],"metadata":{"skip":false,"skipReason":null},"line":168,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trips_offline_delivery_service_test.dart"},"type":"testStart","time":35263}
+{"testID":150,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":35288}
+{"test":{"id":152,"name":"falha remota retorna lista e detalhe salvos do motorista","suiteID":131,"groupIDs":[146],"metadata":{"skip":false,"skipReason":null},"line":184,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trips_offline_service_test.dart"},"type":"testStart","time":35288}
+{"testID":152,"messageType":"print","message":"GET /api/v1/motorista/viagens/MANIFEST-1 (0 ms)","type":"print","time":35418}
+{"testID":152,"messageType":"print","message":"GET /api/v1/motorista/viagens (0 ms)","type":"print","time":35440}
+{"testID":152,"messageType":"print","message":"GET /api/v1/motorista/viagens/MANIFEST-1 (0 ms)","type":"print","time":35443}
+{"testID":151,"messageType":"print","message":"GET /api/v1/motorista/viagens/MANIFEST-1 (12 ms)","type":"print","time":35446}
+{"testID":152,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":35451}
+{"test":{"id":153,"name":"falha remota sem snapshot gera mensagem controlada","suiteID":131,"groupIDs":[146],"metadata":{"skip":false,"skipReason":null},"line":211,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trips_offline_service_test.dart"},"type":"testStart","time":35451}
+{"testID":153,"messageType":"print","message":"GET /api/v1/motorista/viagens (0 ms)","type":"print","time":35479}
+{"testID":151,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":35480}
+{"test":{"id":154,"name":"pendência anterior preserva ordem e não transmite a leitura nova","suiteID":125,"groupIDs":[139],"metadata":{"skip":false,"skipReason":null},"line":222,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trips_offline_delivery_service_test.dart"},"type":"testStart","time":35481}
+{"testID":153,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":35492}
+{"test":{"id":155,"name":"falha durante atualização preserva o snapshot anterior","suiteID":131,"groupIDs":[146],"metadata":{"skip":false,"skipReason":null},"line":230,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trips_offline_service_test.dart"},"type":"testStart","time":35492}
+{"testID":155,"messageType":"print","message":"GET /api/v1/motorista/viagens/MANIFEST-1 (0 ms)","type":"print","time":35560}
+{"testID":155,"messageType":"print","message":"GET /api/v1/motorista/viagens/MANIFEST-1 (0 ms)","type":"print","time":35591}
+{"testID":155,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":35614}
+{"test":{"id":156,"name":"motorista B não usa o snapshot salvo pelo motorista A","suiteID":131,"groupIDs":[146],"metadata":{"skip":false,"skipReason":null},"line":258,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trips_offline_service_test.dart"},"type":"testStart","time":35614}
+{"testID":154,"messageType":"print","message":"POST /api/v1/motorista/viagens/MANIFEST-1/paradas/20/pedidos/200/leituras (0 ms)","type":"print","time":35619}
+{"testID":156,"messageType":"print","message":"GET /api/v1/motorista/viagens/MANIFEST-1 (0 ms)","type":"print","time":35685}
+{"testID":154,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":35695}
+{"test":{"id":157,"name":"recusa terminal do servidor reverte a mutação local","suiteID":125,"groupIDs":[139],"metadata":{"skip":false,"skipReason":null},"line":262,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trips_offline_delivery_service_test.dart"},"type":"testStart","time":35696}
+{"testID":156,"messageType":"print","message":"GET /api/v1/motorista/viagens (0 ms)","type":"print","time":35717}
+{"testID":156,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":35723}
+{"test":{"id":158,"name":"403 autenticado não é mascarado pelo snapshot local","suiteID":131,"groupIDs":[146],"metadata":{"skip":false,"skipReason":null},"line":278,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trips_offline_service_test.dart"},"type":"testStart","time":35724}
+{"testID":158,"messageType":"print","message":"GET /api/v1/motorista/viagens/MANIFEST-1 (0 ms)","type":"print","time":35749}
+{"testID":157,"messageType":"print","message":"POST /api/v1/motorista/viagens/MANIFEST-1/paradas/20/pedidos/200/leituras (0 ms)","type":"print","time":35759}
+{"testID":158,"messageType":"print","message":"GET /api/v1/motorista/viagens/MANIFEST-1 (1 ms)","type":"print","time":35773}
+{"testID":158,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":35775}
+{"test":{"id":159,"name":"lista remota preserva o agregado local concluido apos refresh","suiteID":131,"groupIDs":[146],"metadata":{"skip":false,"skipReason":null},"line":306,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trips_offline_service_test.dart"},"type":"testStart","time":35776}
+{"testID":157,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":35781}
+{"suite":{"id":160,"platform":"vm","path":"E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trip_models_test.dart"},"type":"suite","time":35808}
+{"test":{"id":161,"name":"loading E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trip_models_test.dart","suiteID":160,"groupIDs":[],"metadata":{"skip":false,"skipReason":null},"line":null,"column":null,"url":null},"type":"testStart","time":35808}
+{"testID":159,"messageType":"print","message":"GET /api/v1/motorista/viagens (0 ms)","type":"print","time":35818}
+{"testID":159,"messageType":"print","message":"GET /api/v1/motorista/viagens (0 ms)","type":"print","time":35818}
+{"testID":159,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":35823}
+{"test":{"id":162,"name":"lista remota mantem conclusao local aguardando sincronizacao","suiteID":131,"groupIDs":[146],"metadata":{"skip":false,"skipReason":null},"line":334,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trips_offline_service_test.dart"},"type":"testStart","time":35823}
+{"testID":162,"messageType":"print","message":"GET /api/v1/motorista/viagens (0 ms)","type":"print","time":35859}
+{"testID":162,"messageType":"print","message":"GET /api/v1/motorista/viagens (0 ms)","type":"print","time":35884}
+{"testID":162,"messageType":"print","message":"GET /api/v1/motorista/viagens (0 ms)","type":"print","time":35908}
+{"testID":162,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":35916}
+{"test":{"id":163,"name":"lista remota mantem branca a carga parcialmente pendente","suiteID":131,"groupIDs":[146],"metadata":{"skip":false,"skipReason":null},"line":363,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trips_offline_service_test.dart"},"type":"testStart","time":35917}
+{"testID":138,"result":"success","skipped":false,"hidden":true,"type":"testDone","time":35947}
+{"group":{"id":164,"suiteID":137,"parentID":null,"name":"","metadata":{"skip":false,"skipReason":null},"testCount":3,"line":null,"column":null,"url":null},"type":"group","time":35948}
+{"test":{"id":165,"name":"última etiqueta da viagem retorna a Minhas viagens com confirmação","suiteID":137,"groupIDs":[164],"metadata":{"skip":false,"skipReason":null},"line":174,"column":5,"url":"package:flutter_test/src/widget_tester.dart","root_line":14,"root_column":3,"root_url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trip_completion_navigation_widget_test.dart"},"type":"testStart","time":35949}
+{"testID":163,"messageType":"print","message":"GET /api/v1/motorista/viagens (0 ms)","type":"print","time":35956}
+{"testID":163,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":35962}
+{"test":{"id":166,"name":"conflito ou rejeicao nao deixa carga amarela na lista remota","suiteID":131,"groupIDs":[146],"metadata":{"skip":false,"skipReason":null},"line":377,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trips_offline_service_test.dart"},"type":"testStart","time":35963}
+{"testID":166,"messageType":"print","message":"GET /api/v1/motorista/viagens (0 ms)","type":"print","time":36024}
+{"testID":166,"messageType":"print","message":"GET /api/v1/motorista/viagens (0 ms)","type":"print","time":36112}
+{"testID":166,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":36118}
+{"test":{"id":167,"name":"reaplica leituras synced por GUID ao reabrir snapshot remoto defasado","suiteID":131,"groupIDs":[146],"metadata":{"skip":false,"skipReason":null},"line":405,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trips_offline_service_test.dart"},"type":"testStart","time":36119}
+{"testID":167,"messageType":"print","message":"GET /api/v1/motorista/viagens/MANIFEST-1 (0 ms)","type":"print","time":36165}
+{"testID":167,"messageType":"print","message":"GET /api/v1/motorista/viagens/MANIFEST-1 (0 ms)","type":"print","time":36204}
+{"testID":144,"result":"success","skipped":false,"hidden":true,"type":"testDone","time":36213}
+{"group":{"id":168,"suiteID":143,"parentID":null,"name":"","metadata":{"skip":false,"skipReason":null},"testCount":4,"line":null,"column":null,"url":null},"type":"group","time":36213}
+{"test":{"id":169,"name":"snapshot completo sobrevive ao fechamento e preserva C/R","suiteID":143,"groupIDs":[168],"metadata":{"skip":false,"skipReason":null},"line":37,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trip_local_store_test.dart"},"type":"testStart","time":36214}
+{"testID":167,"messageType":"print","message":"GET /api/v1/motorista/viagens/MANIFEST-1 (0 ms)","type":"print","time":36237}
+{"testID":167,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":36265}
+{"test":{"id":170,"name":"pending, sending e retry nao participam da reconciliacao synced","suiteID":131,"groupIDs":[146],"metadata":{"skip":false,"skipReason":null},"line":478,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trips_offline_service_test.dart"},"type":"testStart","time":36266}
+{"testID":170,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":36309}
+{"suite":{"id":171,"platform":"vm","path":"E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trip_sort_test.dart"},"type":"suite","time":36338}
+{"test":{"id":172,"name":"loading E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trip_sort_test.dart","suiteID":171,"groupIDs":[],"metadata":{"skip":false,"skipReason":null},"line":null,"column":null,"url":null},"type":"testStart","time":36338}
+{"testID":169,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":36446}
+{"test":{"id":173,"name":"substituição do snapshot é atômica e não duplica linhas","suiteID":143,"groupIDs":[168],"metadata":{"skip":false,"skipReason":null},"line":70,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trip_local_store_test.dart"},"type":"testStart","time":36446}
+{"testID":173,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":36511}
+{"test":{"id":174,"name":"falha no meio da substituição restaura o snapshot anterior","suiteID":143,"groupIDs":[168],"metadata":{"skip":false,"skipReason":null},"line":114,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trip_local_store_test.dart"},"type":"testStart","time":36511}
+{"testID":174,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":36616}
+{"test":{"id":175,"name":"o mesmo Manifesto fica isolado pelo driver_guid","suiteID":143,"groupIDs":[168],"metadata":{"skip":false,"skipReason":null},"line":138,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trip_local_store_test.dart"},"type":"testStart","time":36617}
+{"testID":175,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":36702}
+{"suite":{"id":176,"platform":"vm","path":"E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trip_state_controller_test.dart"},"type":"suite","time":36733}
+{"test":{"id":177,"name":"loading E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trip_state_controller_test.dart","suiteID":176,"groupIDs":[],"metadata":{"skip":false,"skipReason":null},"line":null,"column":null,"url":null},"type":"testStart","time":36733}
+{"testID":161,"result":"success","skipped":false,"hidden":true,"type":"testDone","time":36866}
+{"group":{"id":178,"suiteID":160,"parentID":null,"name":"","metadata":{"skip":false,"skipReason":null},"testCount":2,"line":null,"column":null,"url":null},"type":"group","time":36867}
+{"test":{"id":179,"name":"interpreta resumo de viagem","suiteID":160,"groupIDs":[178],"metadata":{"skip":false,"skipReason":null},"line":6,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trip_models_test.dart"},"type":"testStart","time":36867}
+{"testID":179,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":36905}
+{"test":{"id":180,"name":"mantém C repetida e preserva ROLO_ID de R","suiteID":160,"groupIDs":[178],"metadata":{"skip":false,"skipReason":null},"line":21,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trip_models_test.dart"},"type":"testStart","time":36906}
+{"testID":180,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":36916}
+{"testID":172,"result":"success","skipped":false,"hidden":true,"type":"testDone","time":37229}
+{"group":{"id":181,"suiteID":171,"parentID":null,"name":"","metadata":{"skip":false,"skipReason":null},"testCount":2,"line":null,"column":null,"url":null},"type":"group","time":37230}
+{"test":{"id":182,"name":"keeps pending trips ahead of completed trips and newest first","suiteID":171,"groupIDs":[181],"metadata":{"skip":false,"skipReason":null},"line":24,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trip_sort_test.dart"},"type":"testStart","time":37230}
+{"testID":182,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":37292}
+{"test":{"id":183,"name":"uses departure date/time and manifest GUID as deterministic fallbacks","suiteID":171,"groupIDs":[181],"metadata":{"skip":false,"skipReason":null},"line":36,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trip_sort_test.dart"},"type":"testStart","time":37293}
+{"testID":183,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":37317}
+{"testID":165,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":38153}
+{"test":{"id":184,"name":"conclusão local mantém sequência Pedido/Carga e informa sincronização","suiteID":137,"groupIDs":[164],"metadata":{"skip":false,"skipReason":null},"line":174,"column":5,"url":"package:flutter_test/src/widget_tester.dart","root_line":85,"root_column":3,"root_url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trip_completion_navigation_widget_test.dart"},"type":"testStart","time":38154}
+{"testID":184,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":38646}
+{"test":{"id":185,"name":"confirmação da outbox atualiza Carga azul para amarelo","suiteID":137,"groupIDs":[164],"metadata":{"skip":false,"skipReason":null},"line":174,"column":5,"url":"package:flutter_test/src/widget_tester.dart","root_line":152,"root_column":3,"root_url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trip_completion_navigation_widget_test.dart"},"type":"testStart","time":38647}
+{"testID":185,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":38727}
+{"testID":177,"result":"success","skipped":false,"hidden":true,"type":"testDone","time":38915}
+{"group":{"id":186,"suiteID":176,"parentID":null,"name":"","metadata":{"skip":false,"skipReason":null},"testCount":4,"line":null,"column":null,"url":null},"type":"group","time":38916}
+{"test":{"id":187,"name":"publica apenas o snapshot do motorista ativo","suiteID":176,"groupIDs":[186],"metadata":{"skip":false,"skipReason":null},"line":9,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trip_state_controller_test.dart"},"type":"testStart","time":38916}
+{"testID":187,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":38939}
+{"test":{"id":188,"name":"ignora leitura antiga que termina depois da mais recente","suiteID":176,"groupIDs":[186],"metadata":{"skip":false,"skipReason":null},"line":38,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trip_state_controller_test.dart"},"type":"testStart","time":38939}
+{"testID":188,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":38944}
+{"test":{"id":189,"name":"mantem pendencia offline granular por parada e pedido","suiteID":176,"groupIDs":[186],"metadata":{"skip":false,"skipReason":null},"line":78,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trip_state_controller_test.dart"},"type":"testStart","time":38944}
+{"testID":189,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":38949}
+{"test":{"id":190,"name":"publica disponibilidade offline apos snapshot SQLite completo","suiteID":176,"groupIDs":[186],"metadata":{"skip":false,"skipReason":null},"line":104,"column":3,"url":"file:///E:/Jorginho/AppMotorista/AppMotorista/test/viagens/trip_state_controller_test.dart"},"type":"testStart","time":38949}
+{"testID":190,"result":"success","skipped":false,"hidden":false,"type":"testDone","time":38952}
+{"success":true,"type":"done","time":38973}

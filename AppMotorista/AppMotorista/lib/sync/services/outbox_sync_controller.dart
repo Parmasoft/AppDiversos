@@ -16,6 +16,9 @@ typedef PersistedOperationSender =
       OutboxOperation operation,
       String accessToken,
     );
+typedef ServerReachabilityProbe = Future<bool> Function();
+typedef ManifestStateCommitted =
+    Future<void> Function(String driverGuid, String manifestGuid);
 
 class OutboxProcessingReport {
   const OutboxProcessingReport({
@@ -50,12 +53,18 @@ class OutboxSyncController extends ChangeNotifier {
     required PersistedOperationSender send,
     OutboxRetryPolicy retryPolicy = const OutboxRetryPolicy(),
     DateTime Function()? now,
+    ServerReachabilityProbe? serverReachabilityProbe,
+    ManifestStateCommitted? onManifestStateCommitted,
+    Duration reachabilityInterval = const Duration(seconds: 10),
   }) : _sessionController = sessionController,
        _outboxLocalStore = outboxLocalStore,
        _deliveryLocalStore = deliveryLocalStore,
        _send = send,
        _retryPolicy = retryPolicy,
-       _now = now ?? DateTime.now;
+       _now = now ?? DateTime.now,
+       _serverReachabilityProbe = serverReachabilityProbe,
+       _onManifestStateCommitted = onManifestStateCommitted,
+       _reachabilityInterval = reachabilityInterval;
 
   final SessionController _sessionController;
   final OutboxLocalStore _outboxLocalStore;
@@ -63,9 +72,13 @@ class OutboxSyncController extends ChangeNotifier {
   final PersistedOperationSender _send;
   final OutboxRetryPolicy _retryPolicy;
   final DateTime Function() _now;
+  final ServerReachabilityProbe? _serverReachabilityProbe;
+  final Duration _reachabilityInterval;
+  final ManifestStateCommitted? _onManifestStateCommitted;
 
   Future<OutboxProcessingReport>? _activeRun;
   Timer? _retryTimer;
+  Timer? _reachabilityTimer;
   bool _started = false;
   bool _disposed = false;
   bool _runAgain = false;
@@ -156,11 +169,27 @@ class OutboxSyncController extends ChangeNotifier {
             responseJson: null,
             error: _safeError(error),
           );
+          await _publishCommitted(operation);
           rejected++;
           continue;
         }
         nextAttemptAt = await _retry(operation, error);
         break;
+      }
+
+      if (result.isAccepted &&
+          !_matchesOperationOccurrence(operation, result)) {
+        await _deliveryLocalStore.finishRejected(
+          operationGuid: operation.operationGuid,
+          state: OutboxSyncState.conflict,
+          responseCode: result.responseCode,
+          responseJson: jsonEncode(result.toJson()),
+          error:
+              'A ocorrência confirmada pelo servidor diverge da operação local.',
+        );
+        await _publishCommitted(operation);
+        conflicts++;
+        continue;
       }
 
       if (result.isAccepted) {
@@ -172,6 +201,7 @@ class OutboxSyncController extends ChangeNotifier {
             responseCode: result.responseCode,
             responseJson: jsonEncode(result.toJson()),
           );
+          await _publishCommitted(operation);
           confirmed++;
           continue;
         } catch (error) {
@@ -191,6 +221,7 @@ class OutboxSyncController extends ChangeNotifier {
           responseJson: jsonEncode(result.toJson()),
           error: result.message,
         );
+        await _publishCommitted(operation);
         if (result.isConflict) {
           conflicts++;
         } else {
@@ -230,6 +261,13 @@ class OutboxSyncController extends ChangeNotifier {
     return nextAttemptAt;
   }
 
+  Future<void> _publishCommitted(OutboxOperation operation) async {
+    await _onManifestStateCommitted?.call(
+      operation.driverGuid,
+      operation.manifestGuid,
+    );
+  }
+
   bool _isTerminalHttpFailure(Object error) {
     if (error is! ApiException) return false;
     final statusCode = error.statusCode;
@@ -261,6 +299,24 @@ class OutboxSyncController extends ChangeNotifier {
       return;
     }
     _trigger();
+    unawaited(_checkReachability());
+  }
+
+  Future<void> _checkReachability() async {
+    if (!_started || _disposed || _activeRun != null) return;
+    final probe = _serverReachabilityProbe;
+    final driverGuid = _driverGuid();
+    if (probe == null || driverGuid == null) return;
+    if (!await _outboxLocalStore.hasPendingForDriver(driverGuid)) return;
+    bool reachable;
+    try {
+      reachable = await probe();
+    } catch (_) {
+      return;
+    }
+    if (!reachable || _driverGuid() != driverGuid || _disposed) return;
+    await _outboxLocalStore.makeRetriesReady(driverGuid);
+    _trigger();
   }
 
   void _trigger() {
@@ -276,10 +332,20 @@ class OutboxSyncController extends ChangeNotifier {
   void _schedule(DateTime? nextAttemptAt) {
     if (!_started || _disposed) return;
     _retryTimer?.cancel();
+    _reachabilityTimer?.cancel();
     _retryTimer = null;
+    _reachabilityTimer = null;
     if (nextAttemptAt == null || _driverGuid() == null) return;
+    _startReachabilityMonitor();
     final delay = nextAttemptAt.difference(_now());
     _retryTimer = Timer(delay.isNegative ? Duration.zero : delay, _trigger);
+  }
+
+  void _startReachabilityMonitor() {
+    if (_serverReachabilityProbe == null || _reachabilityTimer != null) return;
+    _reachabilityTimer = Timer.periodic(_reachabilityInterval, (_) {
+      unawaited(_checkReachability());
+    });
   }
 
   @override
@@ -293,4 +359,15 @@ class OutboxSyncController extends ChangeNotifier {
     }
     super.dispose();
   }
+}
+
+bool _matchesOperationOccurrence(
+  OutboxOperation operation,
+  DeliveryReadResult result,
+) {
+  final localGuid = operation.occurrenceGuid?.trim() ?? '';
+  final serverGuid = result.occurrenceGuid?.trim() ?? '';
+  return localGuid.isNotEmpty &&
+      serverGuid.isNotEmpty &&
+      localGuid.toUpperCase() == serverGuid.toUpperCase();
 }

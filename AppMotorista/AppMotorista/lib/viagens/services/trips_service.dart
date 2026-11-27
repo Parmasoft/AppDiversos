@@ -1,4 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
 
 import '../../auth/services/session_controller.dart';
 import '../../core/errors/api_exception.dart';
@@ -11,6 +14,7 @@ import '../models/trip_detail.dart';
 import '../models/trip_summary.dart';
 import '../repositories/trips_repository.dart';
 import 'delivery_operation_guid.dart';
+import 'trip_state_controller.dart';
 
 abstract interface class DeliveryGateway {
   Future<DeliveryReadResult> registerRead({
@@ -64,7 +68,7 @@ class ReadOnlyTripException implements Exception {
   String toString() => 'O aplicativo esta em modo somente leitura.';
 }
 
-class TripsService
+class TripsService extends ChangeNotifier
     implements
         TripsGateway,
         OfflineDataStatus,
@@ -80,7 +84,9 @@ class TripsService
     String Function()? operationGuid,
     DateTime Function()? now,
     void Function()? outboxChanged,
+    TripStateController? tripStateController,
     bool readOnly = false,
+    bool automaticDownload = true,
   }) : _repository = repository,
        _sessionController = sessionController,
        _localStore = localStore,
@@ -89,7 +95,9 @@ class TripsService
        _operationGuid = operationGuid ?? newDeliveryOperationGuid,
        _now = now ?? DateTime.now,
        _outboxChanged = outboxChanged,
-       _readOnly = readOnly;
+       _tripStateController = tripStateController,
+       _readOnly = readOnly,
+       _automaticDownload = automaticDownload;
 
   final TripsRepository _repository;
   final SessionController _sessionController;
@@ -99,10 +107,14 @@ class TripsService
   final String Function() _operationGuid;
   final DateTime Function() _now;
   final void Function()? _outboxChanged;
+  final TripStateController? _tripStateController;
   final bool _readOnly;
+  final bool _automaticDownload;
   final Set<String> _tripsUsingSavedData = <String>{};
   bool _listUsesSavedData = false;
   final Set<String> _recoveredOutboxDrivers = <String>{};
+  final Set<String> _downloadsInProgress = <String>{};
+  final Set<String> _downloadsAttempted = <String>{};
 
   @override
   bool get listUsesSavedData => _listUsesSavedData;
@@ -123,7 +135,9 @@ class TripsService
     _listUsesSavedData = false;
     try {
       final remote = await _sessionController.authorized(_repository.list);
-      return _mergePendingLocal(remote, driverGuid);
+      final merged = await _mergeLocalVisualState(remote, driverGuid);
+      if (_automaticDownload) _downloadMissingSnapshots(remote, driverGuid);
+      return merged;
     } catch (error) {
       if (!_canUseSavedData(error)) rethrow;
       final saved = await _localStore.listSnapshots(driverGuid: driverGuid);
@@ -163,6 +177,7 @@ class TripsService
         manifestGuid: manifestGuid,
       );
       if (saved != null) {
+        await _publishLocalState(driverGuid, manifestGuid);
         if (_listUsesSavedData) _tripsUsingSavedData.add(manifestGuid);
         return saved;
       }
@@ -206,6 +221,8 @@ class TripsService
       downloadedAt: synchronizedAt,
       lastServerSyncAt: synchronizedAt,
     );
+    notifyListeners();
+    await _publishLocalState(driverGuid, manifestGuid);
     final saved = await _localStore.readSnapshot(
       driverGuid: driverGuid,
       manifestGuid: manifestGuid,
@@ -254,6 +271,8 @@ class TripsService
       );
     }
 
+    await _publishLocalState(driverGuid, manifestGuid);
+
     if (_tripsUsingSavedData.contains(manifestGuid) || hadPendingOperations) {
       _outboxChanged?.call();
       return _localAccepted(local);
@@ -273,6 +292,7 @@ class TripsService
           stopId: stopId,
           orderId: orderId,
           operationGuid: operationGuid,
+          occurrenceGuid: local.occurrenceGuid,
           code: code,
           deviceDateTime: deviceDateTime,
           timezoneOffsetMinutes: timezoneOffsetMinutes,
@@ -297,9 +317,29 @@ class TripsService
         responseJson: null,
         error: _safeError(error),
       );
+      await _publishLocalState(driverGuid, manifestGuid);
       rethrow;
     }
     if (result.isAccepted) {
+      if (!_matchesLocalOccurrenceGuid(local.occurrenceGuid, result)) {
+        const error =
+            'A ocorrência confirmada pelo servidor diverge da operação local.';
+        await _deliveryLocalStore.finishRejected(
+          operationGuid: operationGuid,
+          state: OutboxSyncState.conflict,
+          responseCode: result.responseCode,
+          responseJson: jsonEncode(result.toJson()),
+          error: error,
+        );
+        await _publishLocalState(driverGuid, manifestGuid);
+        return DeliveryReadResult(
+          result: 'CONFLITO',
+          responseCode: 'OCORRENCIA_GUID_DIVERGENTE',
+          message: error,
+          replay: result.replay,
+          occurrenceGuid: result.occurrenceGuid,
+        );
+      }
       await _deliveryLocalStore.finishAccepted(
         operationGuid: operationGuid,
         finishedAt: _now(),
@@ -307,6 +347,7 @@ class TripsService
         responseCode: result.responseCode,
         responseJson: jsonEncode(result.toJson()),
       );
+      await _publishLocalState(driverGuid, manifestGuid);
       return result;
     }
     if (result.result == 'RECUSADA' || result.isConflict) {
@@ -319,6 +360,7 @@ class TripsService
         responseJson: jsonEncode(result.toJson()),
         error: result.message,
       );
+      await _publishLocalState(driverGuid, manifestGuid);
       return result;
     }
     await _outboxLocalStore.returnToPending(
@@ -372,25 +414,144 @@ class TripsService
     );
   }
 
-  Future<List<TripSummary>> _mergePendingLocal(
+  Future<List<TripSummary>> _mergeLocalVisualState(
     List<TripSummary> remote,
     String driverGuid,
   ) async {
     final pendingManifests = await _outboxLocalStore.pendingManifestGuids(
       driverGuid,
     );
-    if (pendingManifests.isEmpty) return remote;
     final local = await _localStore.listSnapshots(driverGuid: driverGuid);
-    final localPending = <String, TripSummary>{
-      for (final trip in local)
-        if (pendingManifests.contains(trip.manifestGuid))
-          trip.manifestGuid: trip,
+    final localByManifest = <String, TripSummary>{
+      for (final trip in local) trip.manifestGuid: trip,
     };
-    final merged = <TripSummary>[
-      for (final trip in remote) localPending.remove(trip.manifestGuid) ?? trip,
-      ...localPending.values,
-    ];
-    return List.unmodifiable(merged);
+    final downloadStates = await _localStore.downloadStates(
+      driverGuid: driverGuid,
+    );
+    return List.unmodifiable([
+      for (final trip in remote)
+        _withLocalVisualState(
+          trip,
+          localByManifest[trip.manifestGuid],
+          pendingManifests.contains(trip.manifestGuid),
+          downloadStates[trip.manifestGuid],
+        ),
+    ]);
+  }
+
+  TripSummary _withLocalVisualState(
+    TripSummary remote,
+    TripSummary? local,
+    bool hasPendingSync,
+    String? downloadState,
+  ) {
+    final offlineAvailability = local != null
+        ? OfflineAvailability.available
+        : downloadState == 'failed'
+        ? OfflineAvailability.failed
+        : OfflineAvailability.pending;
+    if (local == null) {
+      return TripSummary(
+        manifestGuid: remote.manifestGuid,
+        loadId: remote.loadId,
+        description: remote.description,
+        stopCount: remote.stopCount,
+        occurrenceCount: remote.occurrenceCount,
+        departureDate: remote.departureDate,
+        departureTime: remote.departureTime,
+        releasedAt: remote.releasedAt,
+        awaitingSync: hasPendingSync,
+        offlineAvailability: offlineAvailability,
+      );
+    }
+    return TripSummary(
+      manifestGuid: remote.manifestGuid,
+      loadId: remote.loadId,
+      description: remote.description,
+      stopCount: remote.stopCount,
+      occurrenceCount: remote.occurrenceCount,
+      departureDate: remote.departureDate,
+      departureTime: remote.departureTime,
+      releasedAt: remote.releasedAt,
+      locallyCompleted: local.locallyCompleted,
+      awaitingSync: hasPendingSync,
+      offlineAvailability: offlineAvailability,
+    );
+  }
+
+  void _downloadMissingSnapshots(List<TripSummary> trips, String driverGuid) {
+    for (final trip in trips) {
+      final key = '$driverGuid/${trip.manifestGuid}';
+      if (_downloadsInProgress.contains(key) ||
+          _downloadsAttempted.contains(key)) {
+        continue;
+      }
+      _downloadsAttempted.add(key);
+      _downloadsInProgress.add(key);
+      unawaited(_downloadSnapshot(trip, driverGuid, key));
+    }
+  }
+
+  Future<void> _downloadSnapshot(
+    TripSummary trip,
+    String driverGuid,
+    String key,
+  ) async {
+    try {
+      if (await _localStore.hasCompleteSnapshot(
+        driverGuid: driverGuid,
+        manifestGuid: trip.manifestGuid,
+      )) {
+        await _localStore.clearDownloadState(
+          driverGuid: driverGuid,
+          manifestGuid: trip.manifestGuid,
+        );
+        return;
+      }
+      await _localStore.markDownloadPending(
+        driverGuid: driverGuid,
+        manifestGuid: trip.manifestGuid,
+        updatedAt: _now(),
+      );
+      notifyListeners();
+      final detail = await _sessionController.authorized(
+        (accessToken) => _repository.get(trip.manifestGuid, accessToken),
+      );
+      if (detail.manifestGuid != trip.manifestGuid ||
+          detail.manifestGuid.isEmpty) {
+        throw const FormatException('Snapshot de viagem inválido.');
+      }
+      final reconciled = _reconcileSyncedDeliveryReads(
+        detail,
+        await _outboxLocalStore.listSyncedDeliveryReads(
+          driverGuid: driverGuid,
+          manifestGuid: trip.manifestGuid,
+        ),
+      );
+      final syncedAt = _now();
+      await _localStore.replaceSnapshot(
+        driverGuid: driverGuid,
+        trip: reconciled,
+        downloadedAt: syncedAt,
+        lastServerSyncAt: syncedAt,
+      );
+      await _publishLocalState(driverGuid, trip.manifestGuid);
+    } catch (error) {
+      if (!await _localStore.hasCompleteSnapshot(
+        driverGuid: driverGuid,
+        manifestGuid: trip.manifestGuid,
+      )) {
+        await _localStore.markDownloadFailed(
+          driverGuid: driverGuid,
+          manifestGuid: trip.manifestGuid,
+          errorMessage: _safeError(error),
+          updatedAt: _now(),
+        );
+      }
+    } finally {
+      _downloadsInProgress.remove(key);
+      notifyListeners();
+    }
   }
 
   Future<void> _recoverOutbox(String driverGuid) async {
@@ -401,6 +562,16 @@ class TripsService
       _recoveredOutboxDrivers.remove(driverGuid);
       rethrow;
     }
+  }
+
+  Future<void> _publishLocalState(
+    String driverGuid,
+    String manifestGuid,
+  ) async {
+    await _tripStateController?.publish(
+      driverGuid: driverGuid,
+      manifestGuid: manifestGuid,
+    );
   }
 
   TripDetail _reconcileSyncedDeliveryReads(
@@ -447,6 +618,17 @@ class TripsService
     } on FormatException {
       return null;
     }
+  }
+
+  bool _matchesLocalOccurrenceGuid(
+    String localOccurrenceGuid,
+    DeliveryReadResult result,
+  ) {
+    final localGuid = localOccurrenceGuid.trim();
+    final serverGuid = result.occurrenceGuid?.trim() ?? '';
+    return localGuid.isNotEmpty &&
+        serverGuid.isNotEmpty &&
+        localGuid.toUpperCase() == serverGuid.toUpperCase();
   }
 
   TripStop _reconcileStop(TripStop stop, Set<String> confirmedGuids) {

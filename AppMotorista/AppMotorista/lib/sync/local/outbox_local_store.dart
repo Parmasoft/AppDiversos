@@ -28,6 +28,33 @@ class OutboxLocalStore {
     return rows.isEmpty ? null : OutboxOperation.fromMap(rows.single);
   }
 
+  /// Reads the driver's complete local outbox without changing its state.
+  /// Active and problematic operations are returned before synced ones.
+  Future<List<OutboxOperation>> listForDiagnostic({
+    required String driverGuid,
+  }) async {
+    final database = await _appDatabase.database;
+    final rows = await database.query(
+      AppDatabase.outboxOperationTable,
+      where: 'driver_guid = ?',
+      whereArgs: [driverGuid],
+      orderBy: '''
+        CASE state
+          WHEN 'pending' THEN 0
+          WHEN 'sending' THEN 1
+          WHEN 'retry' THEN 2
+          WHEN 'rejected' THEN 3
+          WHEN 'conflict' THEN 4
+          WHEN 'synced' THEN 5
+          ELSE 6
+        END,
+        created_at DESC,
+        operation_guid
+      ''',
+    );
+    return List.unmodifiable(rows.map(OutboxOperation.fromMap));
+  }
+
   Future<List<OutboxOperation>> listSyncedDeliveryReads({
     required String driverGuid,
     required String manifestGuid,
@@ -59,6 +86,35 @@ class OutboxLocalStore {
       orderBy: 'created_at, operation_guid',
     );
     return List.unmodifiable(rows.map(OutboxOperation.fromMap));
+  }
+
+  Future<int> pendingCount() async {
+    final database = await _appDatabase.database;
+    final rows = await database.rawQuery(
+      "SELECT COUNT(*) AS total FROM ${AppDatabase.outboxOperationTable} "
+      "WHERE state IN ('pending','sending','retry')",
+    );
+    return (rows.single['total'] as num).toInt();
+  }
+
+  Future<bool> hasPendingForDriver(String driverGuid) async {
+    final database = await _appDatabase.database;
+    final rows = await database.rawQuery(
+      "SELECT 1 FROM ${AppDatabase.outboxOperationTable} "
+      "WHERE driver_guid = ? AND state IN ('pending','sending','retry') LIMIT 1",
+      [driverGuid],
+    );
+    return rows.isNotEmpty;
+  }
+
+  Future<int> makeRetriesReady(String driverGuid) async {
+    final database = await _appDatabase.database;
+    return database.update(
+      AppDatabase.outboxOperationTable,
+      {'state': OutboxSyncState.pending.name, 'next_attempt_at': null},
+      where: 'driver_guid = ? AND state = ?',
+      whereArgs: [driverGuid, OutboxSyncState.retry.name],
+    );
   }
 
   Future<OutboxOperation?> nextInOrder({required String driverGuid}) async {

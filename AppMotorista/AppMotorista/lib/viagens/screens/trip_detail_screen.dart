@@ -6,6 +6,7 @@ import '../../core/widgets/async_message.dart';
 import '../../core/widgets/offline_cache_banner.dart';
 import '../models/trip_detail.dart';
 import '../services/trips_service.dart';
+import '../services/trip_state_controller.dart';
 import '../utils/delivery_progress.dart';
 import 'stop_screen.dart';
 
@@ -16,6 +17,7 @@ class TripDetailScreen extends StatefulWidget {
     required this.manifestGuid,
     required this.tripsService,
     this.syncEvents,
+    this.tripStateController,
     this.readOnly = false,
     super.key,
   });
@@ -23,6 +25,7 @@ class TripDetailScreen extends StatefulWidget {
   final String manifestGuid;
   final DeliveryGateway tripsService;
   final Listenable? syncEvents;
+  final TripStateController? tripStateController;
   final bool readOnly;
 
   @override
@@ -38,30 +41,60 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
     super.initState();
     _trip = _loadTrip();
     widget.syncEvents?.addListener(_reload);
+    widget.tripStateController?.addListener(_applyLocalState);
   }
 
   @override
   void didUpdateWidget(covariant TripDetailScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.syncEvents == widget.syncEvents) return;
-    oldWidget.syncEvents?.removeListener(_reload);
-    widget.syncEvents?.addListener(_reload);
+    if (oldWidget.syncEvents != widget.syncEvents) {
+      oldWidget.syncEvents?.removeListener(_reload);
+      widget.syncEvents?.addListener(_reload);
+    }
+    if (oldWidget.tripStateController != widget.tripStateController) {
+      oldWidget.tripStateController?.removeListener(_applyLocalState);
+      widget.tripStateController?.addListener(_applyLocalState);
+    }
   }
 
   @override
   void dispose() {
     widget.syncEvents?.removeListener(_reload);
+    widget.tripStateController?.removeListener(_applyLocalState);
     super.dispose();
   }
 
   void _reload() {
+    if (widget.tripStateController != null) return;
     final reloadedTrip = _loadTrip();
     setState(() {
       _trip = reloadedTrip;
     });
   }
 
+  void _applyLocalState() {
+    if (!mounted) return;
+    final state = widget.tripStateController?.activeSnapshotFor(
+      widget.manifestGuid,
+    );
+    if (state == null) return;
+    setState(() {
+      _trip = Future.value(state.trip);
+      _stopsAwaitingSync = state.pendingStopIds;
+    });
+  }
+
   Future<void> _handleStopClosed(StopScreenResult? result) async {
+    _applyLocalState();
+    if (widget.tripStateController != null) {
+      final current = await _trip;
+      if (result == StopScreenResult.completed &&
+          tripIsCompleted(current) &&
+          mounted) {
+        Navigator.of(context).pop(TripDetailResult.completed);
+      }
+      return;
+    }
     final reloadedTrip = _loadTrip();
     setState(() {
       _trip = reloadedTrip;
@@ -118,6 +151,7 @@ class _TripDetailScreenState extends State<TripDetailScreen> {
             trip: snapshot.requireData,
             tripsService: widget.tripsService,
             syncEvents: widget.syncEvents,
+            tripStateController: widget.tripStateController,
             onStopClosed: _handleStopClosed,
             stopsAwaitingSync: _stopsAwaitingSync,
             usesSavedData: switch (widget.tripsService) {
@@ -148,6 +182,7 @@ class _TripBody extends StatelessWidget {
     required this.usesSavedData,
     required this.stopsAwaitingSync,
     required this.syncEvents,
+    required this.tripStateController,
     required this.readOnly,
   });
 
@@ -157,6 +192,7 @@ class _TripBody extends StatelessWidget {
   final bool usesSavedData;
   final Set<int> stopsAwaitingSync;
   final Listenable? syncEvents;
+  final TripStateController? tripStateController;
   final bool readOnly;
 
   @override
@@ -201,6 +237,7 @@ class _TripBody extends StatelessWidget {
             awaitingSync: stopsAwaitingSync.contains(stop.id),
             tripsService: tripsService,
             syncEvents: syncEvents,
+            tripStateController: tripStateController,
             readOnly: readOnly,
             onClosed: onStopClosed,
           ),
@@ -219,6 +256,7 @@ class _StopCard extends StatelessWidget {
     required this.tripsService,
     required this.onClosed,
     required this.syncEvents,
+    required this.tripStateController,
     required this.readOnly,
   });
 
@@ -228,6 +266,7 @@ class _StopCard extends StatelessWidget {
   final DeliveryGateway tripsService;
   final Future<void> Function(StopScreenResult? result) onClosed;
   final Listenable? syncEvents;
+  final TripStateController? tripStateController;
   final bool readOnly;
 
   @override
@@ -302,6 +341,7 @@ class _StopCard extends StatelessWidget {
           stop: stop,
           tripsService: tripsService,
           syncEvents: syncEvents,
+          tripStateController: tripStateController,
           readOnly: readOnly,
         ),
       ),

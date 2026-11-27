@@ -15,7 +15,15 @@ _EVENT_FIELDS = {
     "fonte_autoritativa", "operacao_guid", "carga_guid", "manifesto_guid",
     "parada_guid", "pedido_guid", "cliente",
 }
-_DELIVERY_READ_FIELDS = {"operacao_guid", "codigo", "data_hora_aparelho", "fuso_minutos"}
+_DELIVERY_READ_V1_FIELDS = {"operacao_guid", "codigo", "data_hora_aparelho", "fuso_minutos"}
+_DELIVERY_READ_V2_FIELDS = _DELIVERY_READ_V1_FIELDS | {"occurrence_guid"}
+_MOBILE_LOGIN_FIELDS = {"login", "senha", "dispositivo"}
+_DRIVER_IDENTITY_FIELDS = {
+    "empresa", "motorista_id", "motorista_guid", "nome", "login",
+    "password_verifier", "motorista_ativo", "vinculo_ativo", "transportador",
+}
+_DELIVERY_RETURN_ACK_FIELDS = {"operation_guid", "resultado", "codigo_resposta", "mensagem", "ocorrencia_guid", "replay"}
+_DELIVERY_RETURN_CLAIM_FIELDS = {"agent_instance_guid", "operation_guid"}
 
 
 def _require(mapping, fields, location):
@@ -85,6 +93,28 @@ def validate_lease_acquire(payload):
     return str(value)
 
 
+def validate_delivery_return_claim(payload):
+    _require(payload, {"agent_instance_guid"}, "claim de retorno")
+    unexpected = sorted(set(payload) - _DELIVERY_RETURN_CLAIM_FIELDS)
+    if unexpected:
+        raise ApiError(400, "CONTRATO_INVALIDO", f"claim de retorno contem campos nao permitidos: {', '.join(unexpected)}")
+    instance_guid = validate_agent_instance(payload["agent_instance_guid"])
+    operation_guid = payload.get("operation_guid")
+    if operation_guid is None:
+        return instance_guid, None
+    try:
+        return instance_guid, str(UUID(str(operation_guid)))
+    except (TypeError, ValueError):
+        raise ApiError(400, "CONTRATO_INVALIDO", "operation_guid invalido")
+
+
+def validate_agent_instance(value):
+    try:
+        return str(UUID(str(value)))
+    except (TypeError, ValueError):
+        raise ApiError(400, "CONTRATO_INVALIDO", "agent_instance_guid invalido")
+
+
 def validate_fencing_headers(request):
     instance_guid = request.headers.get("X-Agent-Instance-Guid", "")
     raw_fencing = request.headers.get("X-Snapshot-Fencing-Token", "")
@@ -99,10 +129,11 @@ def validate_fencing_headers(request):
 
 
 def validate_delivery_read(payload):
-    _require(payload, _DELIVERY_READ_FIELDS, "delivery_read")
-    unexpected = sorted(set(payload) - _DELIVERY_READ_FIELDS)
-    if unexpected:
-        raise ApiError(400, "CONTRATO_INVALIDO", f"delivery_read: campos nao permitidos: {', '.join(unexpected)}")
+    if not isinstance(payload, dict):
+        raise ApiError(400, "CONTRATO_INVALIDO", "delivery_read deve ser um objeto")
+    fields = set(payload)
+    if fields != _DELIVERY_READ_V1_FIELDS and fields != _DELIVERY_READ_V2_FIELDS:
+        raise ApiError(400, "CONTRATO_INVALIDO", "delivery_read contem campos invalidos")
     try:
         operation_guid = UUID(str(payload["operacao_guid"]))
         device_time = datetime.fromisoformat(str(payload["data_hora_aparelho"]))
@@ -114,10 +145,94 @@ def validate_delivery_read(payload):
     code = str(payload["codigo"]).strip().upper()
     if not code or len(code) > 200 or not -840 <= timezone_offset <= 840:
         raise ApiError(400, "CONTRATO_INVALIDO", "codigo ou fuso invalido")
-    return {
+    normalized = {
         "operacao_guid": str(operation_guid), "codigo": code,
         "data_hora_aparelho": device_time.isoformat(), "fuso_minutos": timezone_offset,
     }
+    if "occurrence_guid" in payload:
+        try:
+            normalized["occurrence_guid"] = str(UUID(str(payload["occurrence_guid"])))
+        except (TypeError, ValueError):
+            raise ApiError(400, "CONTRATO_INVALIDO", "occurrence_guid invalido")
+    return normalized
+
+
+def validate_delivery_return_ack(payload):
+    _require(payload, _DELIVERY_RETURN_ACK_FIELDS, "delivery_return_ack")
+    if set(payload) != _DELIVERY_RETURN_ACK_FIELDS:
+        raise ApiError(400, "CONTRATO_INVALIDO", "delivery_return_ack contem campos nao permitidos")
+    try:
+        operation_guid = str(UUID(str(payload["operation_guid"])))
+    except (TypeError, ValueError):
+        raise ApiError(400, "CONTRATO_INVALIDO", "operation_guid invalido")
+    if payload["resultado"] not in {"ACEITA", "RECUSADA", "CONFLITO"}:
+        raise ApiError(400, "CONTRATO_INVALIDO", "resultado invalido")
+    if not isinstance(payload["codigo_resposta"], str) or not payload["codigo_resposta"].strip():
+        raise ApiError(400, "CONTRATO_INVALIDO", "codigo_resposta invalido")
+    return {**payload, "operation_guid": operation_guid}
+
+
+def normalize_login(value):
+    normalized = str(value or "").strip().upper()
+    if not normalized or len(normalized) > 80:
+        raise ApiError(400, "CONTRATO_INVALIDO", "login invalido")
+    return normalized
+
+
+def validate_mobile_login(payload):
+    _require(payload, {"login", "senha"}, "login")
+    unexpected = sorted(set(payload) - _MOBILE_LOGIN_FIELDS)
+    if unexpected:
+        raise ApiError(400, "CONTRATO_INVALIDO", f"login: campos nao permitidos: {', '.join(unexpected)}")
+    password = str(payload["senha"] or "")
+    device = str(payload.get("dispositivo") or "").strip()
+    if not password or len(password) > 1024 or len(device) > 100:
+        raise ApiError(400, "CONTRATO_INVALIDO", "credenciais ou dispositivo invalidos")
+    return normalize_login(payload["login"]), password, device or None
+
+
+def validate_driver_identity_sync(payload):
+    _require(payload, {"contrato_versao", "empresas", "identidades"}, "identidades")
+    if set(payload) != {"contrato_versao", "empresas", "identidades"}:
+        raise ApiError(400, "CONTRATO_INVALIDO", "identidades: campos nao permitidos")
+    if payload["contrato_versao"] != 1 or not isinstance(payload["identidades"], list) or not isinstance(payload["empresas"], list):
+        raise ApiError(400, "CONTRATO_INVALIDO", "contrato de identidades invalido")
+    try:
+        companies = {int(value) for value in payload["empresas"]}
+    except (TypeError, ValueError):
+        raise ApiError(400, "CONTRATO_INVALIDO", "empresas invalidas")
+    if not companies or any(value <= 0 for value in companies):
+        raise ApiError(400, "CONTRATO_INVALIDO", "empresas invalidas")
+    result = []
+    for index, item in enumerate(payload["identidades"]):
+        _require(item, _DRIVER_IDENTITY_FIELDS, f"identidades.{index}")
+        if set(item) != _DRIVER_IDENTITY_FIELDS:
+            raise ApiError(400, "CONTRATO_INVALIDO", "identidade contem campos nao permitidos")
+        try:
+            company = int(item["empresa"])
+            driver_id = int(item["motorista_id"])
+        except (TypeError, ValueError):
+            raise ApiError(400, "CONTRATO_INVALIDO", "empresa ou motorista_id invalido")
+        guid = str(item["motorista_guid"] or "").strip()
+        name = str(item["nome"] or "").strip()
+        verifier = str(item["password_verifier"] or "").strip()
+        transporter = item["transportador"]
+        if transporter is not None:
+            try:
+                transporter = int(transporter)
+            except (TypeError, ValueError):
+                raise ApiError(400, "CONTRATO_INVALIDO", "transportador invalido")
+        if company <= 0 or driver_id <= 0 or not guid or len(guid) > 100 or not name or not verifier or len(verifier) > 255:
+            raise ApiError(400, "CONTRATO_INVALIDO", "identidade invalida")
+        result.append({
+            "company_id": company, "driver_app_id": driver_id, "driver_guid": guid,
+            "driver_name": name, "login_normalized": normalize_login(item["login"]),
+            "password_verifier": verifier, "driver_active": bool(item["motorista_ativo"]),
+            "access_active": bool(item["vinculo_ativo"]), "transporter_id": transporter,
+        })
+    if any(item["company_id"] not in companies for item in result):
+        raise ApiError(400, "CONTRATO_INVALIDO", "identidade fora do escopo de empresa")
+    return {"companies": companies, "identities": result}
 
 
 def validate_tracking_event(event):

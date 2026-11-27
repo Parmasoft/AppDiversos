@@ -2,6 +2,7 @@ import 'package:app_motorista/viagens/models/delivery_read_result.dart';
 import 'package:app_motorista/viagens/models/trip_detail.dart';
 import 'package:app_motorista/viagens/screens/stop_screen.dart';
 import 'package:app_motorista/viagens/screens/trip_detail_screen.dart';
+import 'package:app_motorista/viagens/services/trip_state_controller.dart';
 import 'package:app_motorista/viagens/services/trips_service.dart';
 import 'package:app_motorista/viagens/utils/delivery_progress.dart';
 import 'package:flutter/material.dart';
@@ -228,6 +229,112 @@ void main() {
       completedDeliveryColor,
     );
     expect(find.text('Aguardando sincronização'), findsNothing);
+  });
+  testWidgets(
+    'projeção reativa preserva amarelo nas paradas ja sincronizadas',
+    (tester) async {
+      final syncedStop = _stop(
+        id: 1,
+        status: 'E',
+        client: 'CLIENTE SINCRONIZADO',
+        orders: [_order(17744, completed: true)],
+      );
+      final pendingStop = _stop(
+        id: 2,
+        status: 'E',
+        client: 'CLIENTE OFFLINE',
+        orders: [_order(17745, completed: true)],
+      );
+      final trip = _trip([syncedStop, pendingStop]);
+      final controller = TripStateController(
+        scope: 'homologacao',
+        activeDriverGuid: () => 'driver',
+        readSnapshot: ({required driverGuid, required manifestGuid}) async =>
+            trip,
+        pendingStopIds: ({required driverGuid, required manifestGuid}) async =>
+            {2},
+        pendingOrderIds:
+            ({
+              required driverGuid,
+              required manifestGuid,
+              required stopId,
+            }) async => stopId == 2 ? {17745} : const {},
+      );
+      final gateway = _FakeGateway()..getResults.add(trip);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TripDetailScreen(
+            manifestGuid: 'MANIFESTO',
+            tripsService: gateway,
+            tripStateController: controller,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(Card), findsNWidgets(2));
+      await controller.publish(driverGuid: 'driver', manifestGuid: 'MANIFESTO');
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.widget<Card>(find.byKey(const ValueKey('stop-card-1'))).color,
+        completedDeliveryColor,
+      );
+      expect(
+        tester.widget<Card>(find.byKey(const ValueKey('stop-card-2'))).color,
+        pendingSyncDeliveryColor,
+      );
+    },
+  );
+
+  testWidgets('projeção reativa isola pedido pendente na tela Parada', (
+    tester,
+  ) async {
+    final stop = _stop(
+      id: 1,
+      status: 'E',
+      client: 'CLIENTE',
+      orders: [_order(17744, completed: true), _order(17745, completed: true)],
+    );
+    final trip = _trip([stop]);
+    final controller = TripStateController(
+      scope: 'homologacao',
+      activeDriverGuid: () => 'driver',
+      readSnapshot: ({required driverGuid, required manifestGuid}) async =>
+          trip,
+      pendingStopIds: ({required driverGuid, required manifestGuid}) async => {
+        1,
+      },
+      pendingOrderIds:
+          ({
+            required driverGuid,
+            required manifestGuid,
+            required stopId,
+          }) async => {17745},
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: StopScreen(
+          manifestGuid: 'MANIFESTO',
+          stop: stop,
+          tripsService: _FakeGateway(),
+          tripStateController: controller,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await controller.publish(driverGuid: 'driver', manifestGuid: 'MANIFESTO');
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.widget<Card>(find.byKey(const ValueKey('order-card-17744'))).color,
+      completedDeliveryColor,
+    );
+    expect(
+      tester.widget<Card>(find.byKey(const ValueKey('order-card-17745'))).color,
+      pendingSyncDeliveryColor,
+    );
   });
 }
 

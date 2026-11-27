@@ -101,7 +101,7 @@ def get_viagem(motorista_id, manifesto_guid):
         cursor.execute(
             """
             SELECT P.CARGPA_ID, P.CARGPA_GUID, P.CARGPA_CLIENTE,
-                   COALESCE(CL.CLI_FANTASIA_APELIDO, CL.CLI_RSOCIAL_NOME),
+                   COALESCE(NULLIF(TRIM(CL.CLI_FANTASIA_APELIDO), ''), CL.CLI_RSOCIAL_NOME),
                    CL.CLI_RSOCIAL_NOME,
                    P.CARGPA_ORDEM_PLANEJADA, P.CARGPA_ORDEM_SUGERIDA,
                    P.CARGPA_ORDEM_REALIZADA, P.CARGPA_STATUS,

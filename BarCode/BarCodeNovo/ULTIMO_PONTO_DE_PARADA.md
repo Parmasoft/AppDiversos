@@ -1,3 +1,81 @@
+# CHECKPOINT ATUAL - RECEBIMENTO DE COMPRAS / REGRA G E IMPLEMENTACAO EM FONTE (15/09/2026 08:18, America/Sao_Paulo)
+
+- Decisão oficial: a confirmação final do resumo usa `pFinalizarPendencias=True`; havendo saldo, a configuração da empresa deve estar em `G` e gera pedido filho na mesma transação. Sem saldo não há filho. `M` permanece inalterado para os demais chamadores.
+- A observação do filho foi ajustada no motor Delphi para: `Gerado automaticamente pelo saldo nao recebido do Pedido de Compra nº <origem>.`; o vínculo estruturado continua em `TB_PEDIDO_COMPRA_PENDENCIA`.
+- App/API: resumo tornou-se confirmação definitiva, usa `usuario: 1`, `operacao_guid` estável por abertura do resumo, confirmação explícita de excedente, não limpa a conferência em erro/timeout e recarrega o detalhe após sucesso. Endpoint preparado: `POST /pedidos-compra/recebimento/confirmar`.
+- Controle de Versão: fonte `UActScript181PedidoCompraRecebimentoBarCode.pas` foi preparado com `1.1.0.81`, tabelas de operação/leituras e contrato das procedures `SP_BC_PC_REC_OPERACAO_*`. **Não aplicado.** O registro em `UDmControleVersao.pas/.dfm` e DPR não foi gravado: esses fontes ANSI recusaram o patch seguro; não foi usado atalho de recodificação.
+- Validações reais: `python -m py_compile api/app.py` e `flutter analyze` dos três fontes Flutter alterados passaram. Nenhum banco, DML, ActScript, WES ou produção foi acessado/aplicado.
+- Próximo passo: concluir/revisar o actScript181 integral e registrar manualmente `actScript181`/unit no Controle de Versão preservando ANSI; somente então aplicar pelo WES em ambiente autorizado e executar a bateria nova de integração.
+
+---
+
+# CHECKPOINT ATUAL - RECEBIMENTO DE COMPRAS / USUARIO 1 DECIDIDO (15/09/2026 07:43, America/Sao_Paulo)
+
+## Decisao operacional confirmada
+
+- O recebimento de Pedido de Compras seguira o padrao atual de Venda e Requisicao: o App envia `usuario: 1`, a API o repassa e a procedure compartilhada o usa no evento, etiquetas, estoque e auditoria. Nao implementar login, token, sessao ou novo mapeamento nesta etapa.
+- A verificacao dirigida confirmou: Venda usa o literal `1` em `/pedidos/separacao/salvar` e `/pedidos/separacao/aplicar-no-pedido`; Requisicao define `usuarioAtual: 1` no service e o repassa a `SP_INICIA_SEP_TRANSF_REQ`, `SP_SALVA_LEIT_TRANSF_ALIAS` e `SP_FINALIZA_SEP_TRANSF_REQ`.
+- A extracao permanece autorizada, mas deve portar integralmente o motor atual: o Controller combina evento, itens, etiquetas, `UClassProduto` (custo medio/movimento/estoque), `UClassAuditoria` e pendencias M/G. Uma procedure parcial ou gravacao Python nao e aceitavel.
+- O proximo Controle de Versao disponivel e `actScript181 / 1.1.0.81`; os scripts 178-180 de Compras ja existem e o 180 foi aplicado somente na copia local segundo o STATUS historico.
+- Nenhum fonte funcional, banco, ActScript, WES, DML ou producao foi alterado por esta confirmacao de usuario.
+
+---
+
+# CHECKPOINT ATUAL - RECEBIMENTO DE COMPRAS / IDENTIDADE ERP PENDENTE (15/09/2026 07:33, America/Sao_Paulo)
+
+## Diretriz e investigacao confirmada
+
+- Diretriz definitiva recebida: o caminho autorizado e celular -> API BarCode -> procedures Firebird compartilhadas; nao criar ponte ParmaGestor nem duplicar o motor em Python.
+- Chamadores do motor mapeados: `UManPedidoCompraRecebimentoItem` usa o wrapper F7/F3 e o harness 2A.1 chama `ConfirmarRecebimentoPedidoCompraEtiquetas`. A API nao possui chamador de gravacao.
+- Contrato a extrair: empresa, pedido, usuario ERP autenticado, data, etiquetas R/C, confirmacao de excedente, finalizacao de pendencias e `operacao_guid`; retorno deve incluir o evento persistido e o detalhe recarregado.
+- O motor atual contem a operacao completa, com transacao unica: valida pedido/item, cria evento/itens/etiquetas, movimenta estoque por `UClassProduto`, atualiza acumulados/status, audita por `UClassAuditoria` e trata pendencias M/G. Nao existe procedure equivalente pronta.
+- O BarCode nao tem login, token, sessao ou mapeamento ERP: somente `empresa_id` em SharedPreferences; fluxos legados enviam `usuario: 1`. Isso nao atende identidade segura/permissoes para uma gravacao de estoque.
+- Foi atualizado o `AGENTS.md` com a diretriz permanente de usar API e regras compartilhadas sem duplicacao. Nenhum fonte funcional, banco, ActScript, WES, DML ou producao foi alterado.
+
+## Bloqueio funcional objetivo
+
+Antes de criar procedure, actScript, endpoint ou botao definitivo, e indispensavel definir a identidade do operador. Pergunta para o Jorginho: **o S20 fara login individual com usuario/senha ERP, ou cada aparelho tera uma credencial de API cadastrada e mapeada previamente a um unico usuario ERP e empresas permitidas?**
+
+Depois da resposta, preparar a tabela de credenciais/mapeamento e a tabela transacional de operacoes, extrair o motor para procedures compartilhadas, refatorar o Delphi e integrar API/App com o mesmo `operacao_guid`.
+
+---
+
+# CHECKPOINT ATUAL - Pedido de Compras / limite da integracao API (15/09/2026 07:25, America/Sao_Paulo)
+
+## Comparacao dirigida e estado confirmado
+
+- Pedido de Venda: `/pedidos/separacao/salvar` e `/pedidos/separacao/aplicar-no-pedido` executam validacoes e SQL de negocio diretamente em Python; este padrao nao e reutilizavel para Compras, pois criaria outro motor.
+- Requisicao: `/transferencias/requisicoes/assumir` chama `SP_INICIA_SEP_TRANSF_REQ` e `/item-separacao/salvar` chama `SP_SALVA_LEIT_TRANSF_ALIAS`, com uma transacao Flask unica. Python coordena payload, resposta e commit/rollback; as regras definitivas ficam nas procedures.
+- Compras: nao existe procedure equivalente. `ConfirmarRecebimentoPedidoCompraEtiquetas` concentra no Controller Delphi a validacao, evento, itens, etiquetas, estoque por `UClassProduto`, status, auditoria por `UClassAuditoria` e pendencias M/G. A API nao pode chama-lo sem ParmaGestor, que foi explicitamente descartado nesta rodada.
+- O BarCodeNovo tambem so possui empresa em SharedPreferences; nao existe autenticacao nem sessao para derivar usuario ERP seguro. Os endpoints legados recebem usuario do payload e nao suprem este requisito.
+- Nenhum fonte funcional, banco, ActScript, WES, DML ou producao foi alterado nesta rodada.
+
+## Decisao necessaria antes de codificar
+
+Para manter uma unica implementacao central com a API como ponto de comunicacao, e necessario extrair/migrar o motor de Compras para procedures Firebird compartilhadas e refatorar o Delphi para chama-las; a API chamaria as mesmas procedures em uma unica transacao. Isto exige novo actScript para procedures, tabela transacional de `operacao_guid`/hash/evento e uma solucao de autenticacao/mapeamento ERP no backend. Portar o Controller para Python seria duplicacao e nao foi feito.
+
+Pergunta objetiva: **voce autoriza essa extracao do motor homologado para procedures Firebird compartilhadas (incluindo refatoracao do Delphi e novo actScript), ou prefere definir primeiro a autenticacao ERP do BarCode?**
+
+---
+
+# CHECKPOINT ATUAL - Pedido de Compras / integração ERP (15/09/2026 07:13, America/Sao_Paulo)
+
+## Estado confirmado
+
+- Fases Delphi 2A.1 e 2A.2 permanecem homologadas; não foram repetidas.
+- O fluxo visual do S20 até `Resumo da Conferência` foi preservado e não sofreu alteração.
+- Não existe ponte HTTP, IPC, DLL ou COM reutilizável entre `api\app.py` e o Controller Delphi.
+- `ConfirmarRecebimentoPedidoCompraEtiquetas` é o único motor a chamar: ele exige o contexto ativo de `TGlobal` (empresa e usuário), abre `fdtrnsRecebimentoPedidoCompra` e faz o único commit/rollback de evento, itens, etiquetas, estoque, status, auditoria e pendências.
+- Nenhum fonte funcional, banco, ActScript, WES, DML ou produção foi alterado nesta investigação.
+
+## Decisão necessária para implementar
+
+A menor solução segura é um **adaptador local Delphi**, executado no processo autenticado do ParmaGestor da estação Windows: a API Flask apenas encaminha o payload ao adaptador; este obtém empresa/usuário exclusivamente de `TGlobal`, revalida o pedido e chama o motor. Uma nova tabela de operações, criada pelo Controle de Versão, deve guardar `operacao_guid`, hash do payload, usuário/contexto e evento de recebimento na mesma transação. Mesmo GUID+payload retorna o resultado persistido; GUID com payload diferente é conflito. Assim timeout/reenvio não duplica o recebimento; `R` continua protegida pelo motor e `C` permanece repetível.
+
+Falta apenas autorizar esta arquitetura de execução: **o ParmaGestor ficará aberto e autenticado na estação que hospeda o adaptador local para atender as confirmações do S20?** Sem essa decisão, não é seguro escolher identidade ERP nem expor o motor.
+
+---
+
 # Último ponto de parada técnico
 
 Atualizado em: **01/09/2026**  
@@ -1011,3 +1089,130 @@ para reabrir trabalho já homologado.
 - A regra operacional para quantidades superiores será decidida com a
   GramDecor, provavelmente usando múltiplas etiquetas.
 - Estado: **PENDENTE DE DECISÃO OPERACIONAL**.
+
+## 20. CHECKPOINT OFICIAL — PEDIDO DE COMPRA / RECEBIMENTO POR ETIQUETAS (16/09/2026 — America/Sao_Paulo)
+
+### Estado confirmado
+
+- A persistência do recebimento deixou de ser somente em memória. O SQLite mantém rascunho por empresa, pedido e item/produto, leituras `R`/`C`, quantidade, horário e `concluidoLocalmente`.
+- O rascunho é restaurado ao sair/voltar, alternar itens, fechar/reabrir o App e após erro ou timeout de confirmação. Apenas confirmação final com sucesso remove rascunho e `operacao_guid`.
+- Não manter histórico local nem últimos pedidos concluídos: depois de sucesso da API, apagar o rascunho, recarregar a lista operacional e deixar o histórico oficial no ERP.
+- O teste operacional do Pedido `907`, produto `8899 — VELUDO HOLLAND 170GR 10 GREY`, quantidade `2000`, foi aprovado para persistência: duas etiquetas permaneceram após sair e retornar; a terceira completou o item. O resumo mostrou 1 item conferido, 0 pendentes, 3 etiquetas, 2000 lidos e saldo 0. **PERSISTÊNCIA LOCAL VALIDADA OPERACIONALMENTE.**
+
+### Confirmação final, rollback e actScript188
+
+- A tentativa de confirmação do Pedido `907` retornou `SQLCODE -803`, chave `PCR_EMPRESA=10/PCR_ID=1`. Auditoria read-only comprovou rollback integral: pedido permaneceu `A`, sem recebimento, estoque, leituras finais, `COMPRA.RECEB`, pendências M/G, filho ou outro efeito parcial. O ID 1 já pertencia ao Pedido 910.
+- A causa foi `SP_BC_PC_PROXIMO_ID`: na falta da linha em `TB_SEQUENCIAL`, gerava 1. O `actScript188 / 1.1.0.88` foi aplicado pelo operador no banco local de homologação e inicializa por empresa em `MAX(PCR_ID)+1`, `MAX(PDC_ID)+1` ou `MAX(PCP_ID)+1`; com sequencial existente, preserva `WITH LOCK`.
+- A migração SQLite `v1 -> v2` persiste `operacao_guid` por empresa/pedido. O mesmo GUID permanece em reabertura, erro, timeout e retry; o rascunho existente do Pedido 907 é migrado sem perder ou duplicar suas três leituras.
+- Correção de fonte registrada: `recebimento_pedido_compra_resumo_page.dart` substituiu a chamada inexistente `_mensagemErro(e)` por `e.toString().replaceFirst('Exception: ', '')`. `flutter analyze` focal e testes unitários relacionados foram aprovados.
+
+### Próximo passo obrigatório
+
+1. Abrir o Flutter atualizado no S20, sem limpar dados, e comprovar que o rascunho e as três etiquetas do Pedido 907 permanecem.
+2. Abrir o resumo e confirmar a migração/persistência do mesmo `operacao_guid`.
+3. Fazer uma única confirmação final. Em sucesso, auditar ERP, estoque, movimentos, recebimento e remoção do rascunho/lista operacional.
+4. Em erro, não repetir cegamente: preservar rascunho/GUID e auditar antes de nova tentativa.
+---
+
+## Checkpoint de encerramento - Pedido de Compra / Financeiro no F7 (16/09/2026 18:15 -03:00)
+
+### Estado do ERP Delphi
+
+Foi implementado em fonte o retorno do acesso manual ao Financeiro durante o recebimento:
+
+```text
+Movimentacao Pedido de Compra -> F7 Receber -> TFrmManPedidoCompraRecebimento -> Financeiro [F8] -> tela financeira legada -> TFrmManPagamento
+```
+
+O contrato financeiro continua existente e unico: `PAG_ORIGEM='COMPRA'`, `PAG_ID_ORIGEM=PDC_ID`, fornecedor e titulos em `TB_PAGAMENTO`. O teste manual do Pedido `909` confirmou abertura pelo F7, botao Financeiro [F8], F2/Incluir, `TFrmManPagamento`, origem `COMPRA`, codigo de origem `909` e fornecedor `917 - TEXTRADE IMPORTACAO LTDA`.
+
+F4 continua somente visualizacao. Para pedido ja `R`, F7 abre a tela em modo exclusivamente financeiro, sem receber item, para manutencao posterior sem repetir estoque, Barcode ou status. O Pedido `907` continua reservado para esse teste; nao foi alterado.
+
+### Pendencia critica - NAO RESOLVIDA
+
+O cancelamento de inclusao financeira continua com erro e nao deve ser considerado corrigido:
+
+```text
+909 -> F7 -> Financeiro [F8] -> F2 -> ESC -> confirmar SIM
+=> fdqryTB_PEDIDO_COMPRA: Dataset not in edit or insert mode
+```
+
+Na retomada: reproduzir, rastrear todas as chamadas posteriores a `TFrmManPagamento.ShowModal`, comparar CANCELAR x GRAVAR e corrigir sem colocar o pedido em Edit para mascarar a excecao. Cancelar nao pode gravar `TB_PAGAMENTO` nem alterar cabecalho, recebimento, estoque, Barcode, M/G ou status. Somente depois testar gravacao real de titulo.
+
+Nenhum banco, actScript, procedure, API, Flutter, recebimento, estoque, Barcode, M/G ou Pedido de Venda foi alterado por este checkpoint.
+---
+
+## 21. Encerramento - Pedido de Compra 921 / actScript191 (17/09/2026)
+
+### Cancelar Recto validado
+
+No Pedido de Compra 921, o Cancelar Recto do recebimento novo foi homologado por auditoria: o pedido voltou a aberto, acumuladores recebidos ficaram zerados, e os movimentos `COMPRA.RECEB` do PCR 46 foram removidos. O estoque persistido coincidiu com `SP_PRODUTO_ESTOQUE`.
+
+PCR 46, PCRI, operacao GUID `1f51aaaa-3d3c-49eb-bdb0-0212bbd9a51e` e seis leituras permaneceram como historico. Nao houve efeito financeiro indevido nem pendencia/pedido-filho no caso 921.
+
+### Etiquetas R ainda bloqueadas
+
+Os rolos R `12508` a `12513` ficaram historicamente vinculados ao PCR 46 cancelado. Sem o 191 aplicado, eles ainda sao bloqueados para nova coleta pela regra existente de API/procedure/indice. Nenhuma etiqueta deve ser apagada, liberada manualmente ou reutilizada antes da conclusao segura do 191.
+
+### actScript191 - interrompido, nao homologado
+
+O desenho aprovado usa `PCRL_SITUACAO` A/C, indice unico somente para vinculo R ativo e ajuste de `SP_BC_PC_REC_OPERACAO_LEITURA`. O fonte recebeu `COMMIT;` apos o ADD da coluna para Firebird 2.5, e o Build All Delphi Seattle passou.
+
+A ultima execucao do `actScript191 / 1.1.0.91 / CTR_ID=148` falhou novamente apos o registro ter sido reapresentado como `P`; ele retornou a `E`. Como ha commit interno, e obrigatoria auditoria completa do estado atual antes de nova tentativa. Nao reaplicar automaticamente, nao mudar 148 para P, nao restaurar backup e nao criar 192 sem diagnostico e decisao.
+
+Depois da ultima falha, a tela Controle de Versoes nao fechou por ESC, Alt+F4 nem fechamento normal; o processo ParmaGestor foi finalizado pelo Gerenciador de Tarefas. Pendencia de diagnostico: verificar `fdtrnsScript`, `fdtrnsControleVersao`, `ExecutarScriptComCommitsInternos`, tratamento da excecao e `FormClose`, sem atribuir causa antecipadamente.
+
+### Proximo ponto de retomada
+
+Antes de qualquer uso do App para nova coleta do 921: auditar catalogo, dados, indice, procedure, Controle de Versoes e transacoes deixados pela ultima falha do 191. Depois revisar integralmente o 191 para Firebird 2.5 e decidir se ele sera corrigido/refeito ou substituido. `actScript189` permanece congelado e fora da fila; `actScript190` permanece concluido e intocado.
+
+---
+
+## 22. CHECKPOINT — Etiquetas de Confecção F22 e Pedido 19900 (05/10/2026)
+
+O fluxo novo de Confecção usa exclusivamente F22: `F + PROR_ID(6) + PRODUTO(7) + QUANTIDADE(8)`, com quantidade multiplicada por `10000` e faixa codificável até `9.999,9999`. O R18 legado GramDecor permanece intocado e não deve receber compatibilidade F. A identidade soberana é o `PROR_ID`; produto+peso nunca substituem o CPF do rolo.
+
+O App/API atualizados aceitam F22 somente no caminho de separação de pedidos, resolvem e validam estruturalmente pelo `PROR_ID`, produto e quantidade persistidos e mantêm o código F físico no vínculo. A regra comprovada é que o rolo precisa constar da separação aplicada do pedido: existência e produto correto não bastam. C legado continua normal, com `PVSR_PROR_ID=0`.
+
+Teste encerrado no Pedido 19900/empresa 10: rolos F 12976 (`2,1200`) e 12977 (`3,1420`) foram os únicos vinculados, totalizando `5,2620`; o 12975 (`1,6180`) foi recusado no Confere como não separado e permaneceu ativo, sem vínculo ou saída. A etiqueta C do grampo foi aceita em duas leituras de `1 CX`. Pedido faturou com MALHA `5,2620` e GRAMPO `2,0000`; as saídas e o razão de estoque conferiram sem duplicidade.
+
+Pendência isolada e não corrigida: na separação 608, `PVSI_QTDE_SEPARADA`/resumo contém `5,2619`, enquanto os vínculos e a baixa são `5,2620`; cabeçalho/item também preservam a fotografia anterior de `7,1600`/diferença `-1,8980`. A diferença original de `1,8980` era intencional no teste; a diferença de `0,0001` é a única investigação pendente. Começar a próxima sessão reproduzindo o SELECT e rastreando precisão/conversão sem alterar banco.
+
+Documentação detalhada e evidências: `STATUS_ETIQUETAS_CONFECCAO.md`.
+
+---
+
+## 23. CHECKPOINT - Homologacao Pedido 20119 / duas casas operacionais (08/10/2026)
+
+**Aprovado no cenario homologado:** empresa 10, Pedido 20119, Separacao 609 e
+Conferencia 26. A conferencia encerrou em 08/10/2026 08:17:06 com 5/5, 100%,
+Total Pedido 18,5400, Total Coletado 18,5400 e Diferenca 0,0000.
+
+O caminho App/API de separacao preservou os sete F22 (PROR_ID 12978 a 12984)
+por identidade fisica; todos foram conferidos contra o mesmo PROR_ID, produto,
+codigo e quantidade oficial. Nao houve F22 duplicado ou vinculo indevido.
+Etiquetas C foram aceitas quantitativamente, inclusive tres leituras iguais de
+1,0000 CX para o item de 3,0000 CX; isso e valido porque C nao e CPF de rolo.
+
+O ajuste automatico foi validado no produto 1004774: pedido original 6,1500 MT,
+separado propositalmente 6,0000 MT, pedido final ajustado a 6,0000 MT e
+fotografia da Separacao preservando a solicitacao e diferenca de 0,1500 MT.
+Esta diferenca e intencional e nao e defeito.
+
+Decisao operacional: trabalhar normalmente com duas casas decimais. Manter
+NUMERIC(15,4), F22 com quantidade x10000, e formatos F22/C/R18 inalterados;
+nunca arredondar ou truncar silenciosamente valores persistidos. GramDecor/R18
+segue integralmente legado.
+
+Pendencia historica preservada: Pedido 19900 / Separacao 608, 5,2619 no resumo
+versus 5,2620 nos F22, faturamento interno e saida de estoque. A causa continua
+nao identificada; o teste 20119 nao a reproduziu em duas casas, mas nao prova
+correcao em tres/quatro casas. Exigir nova auditoria de precisao antes de
+homologar essa operacao.
+
+Na retomada, preservar o caminho F22/C por PROR_ID e a decisao de duas casas.
+Permanecem todas as pendencias anteriores, especialmente parametrizar a balanca
+por estacao antes da implantacao definitiva. Ver detalhes em
+`STATUS_ETIQUETAS_CONFECCAO.md` e no ParmaGestor em
+`Documentacao/STATUS_ETIQUETAS_CONFECCAO.md`. Esta atualizacao e somente
+documental: nenhum fonte Flutter/Python, banco, API ou configuracao foi alterado.

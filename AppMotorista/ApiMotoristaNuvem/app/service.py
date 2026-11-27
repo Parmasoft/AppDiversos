@@ -6,13 +6,16 @@ from datetime import datetime, timedelta, timezone
 
 from flask import current_app
 from sqlalchemy import and_, delete, select, text, update
+from werkzeug.security import check_password_hash
 
 from .canonical import CanonicalizationError, semantic_hash
 from .database import database_now, get_engine
 from .errors import ApiError
+from .security import token_digest
 from .sql import dialect_insert
 from .tables import (
     agent_credential,
+    agent_credential_company_access,
     delivery_read_operation,
     load_projection,
     manifest_projection,
@@ -23,6 +26,8 @@ from .tables import (
     snapshot_receipt,
     stop_projection,
     mobile_session,
+    mobile_driver_company_access,
+    mobile_driver_identity,
 )
 
 
@@ -55,6 +60,50 @@ def _snapshot_state(connection, tenant_id, manifesto_guid):
             )
         )
     ).mappings().first()
+
+
+def _authorized_company_ids(connection, agent, company_ids):
+    """Return only active company scopes persisted for this credential."""
+    wanted = {int(company_id) for company_id in company_ids}
+    if not wanted:
+        return set()
+    rows = connection.execute(
+        select(agent_credential_company_access.c.company_id).where(and_(
+            agent_credential_company_access.c.agent_credential_id == agent["id"],
+            agent_credential_company_access.c.active.is_(True),
+            agent_credential_company_access.c.company_id.in_(wanted),
+        ))
+    ).scalars()
+    return set(rows)
+
+
+def _require_authorized_companies(connection, agent, company_ids):
+    wanted = {int(company_id) for company_id in company_ids}
+    denied = wanted - _authorized_company_ids(connection, agent, wanted)
+    if denied:
+        raise ApiError(
+            403,
+            "EMPRESA_NAO_AUTORIZADA",
+            "Credencial do agente sem autorizacao para a empresa solicitada",
+        )
+
+
+def _require_agent_company_scope(connection, agent):
+    """Deny technical endpoints for a credential with no active company link."""
+    has_scope = connection.execute(
+        select(agent_credential_company_access.c.company_id)
+        .where(and_(
+            agent_credential_company_access.c.agent_credential_id == agent["id"],
+            agent_credential_company_access.c.active.is_(True),
+        ))
+        .limit(1)
+    ).first()
+    if has_scope is None:
+        raise ApiError(
+            403,
+            "EMPRESA_NAO_AUTORIZADA",
+            "Credencial do agente nao possui empresa autorizada",
+        )
 
 
 def _lease_response(agent, manifesto_guid, lease, state, result):
@@ -211,6 +260,9 @@ def publish_snapshot(agent, payload, agent_instance_guid, fencing_token):
         _advisory_lock(connection, agent["tenant_id"], manifesto_guid)
         _lease, received_at = _validated_lease(
             connection, agent, manifesto_guid, agent_instance_guid, fencing_token
+        )
+        _require_authorized_companies(
+            connection, agent, {payload["origem"]["empresa"]}
         )
         try:
             computed_hash = semantic_hash(payload)
@@ -548,6 +600,21 @@ def _detail(value):
     return json.loads(value) if isinstance(value, str) else dict(value)
 
 
+def _company_allowed(connection, session, company_id):
+    identity_exists = connection.execute(select(mobile_driver_identity.c.driver_guid).where(and_(
+        mobile_driver_identity.c.tenant_id == session["tenant_id"],
+        mobile_driver_identity.c.driver_guid == session["driver_guid"],
+    )).limit(1)).first()
+    if identity_exists is None:  # QR legado provisionado antes da identidade.
+        return True
+    return connection.execute(select(mobile_driver_company_access.c.driver_guid).where(and_(
+        mobile_driver_company_access.c.tenant_id == session["tenant_id"],
+        mobile_driver_company_access.c.driver_guid == session["driver_guid"],
+        mobile_driver_company_access.c.company_id == company_id,
+        mobile_driver_company_access.c.active.is_(True),
+    )).limit(1)).first() is not None
+
+
 def list_trips(session):
     statement = (
         select(manifest_projection.c.detail_json)
@@ -564,6 +631,9 @@ def list_trips(session):
     result = []
     for value in rows:
         detail = _detail(value)
+        with get_engine().connect() as connection:
+            if not _company_allowed(connection, session, detail["origem"]["empresa"]):
+                continue
         result.append(
             {
                 "manifesto_guid": detail["manifesto"]["guid"],
@@ -595,6 +665,9 @@ def get_trip(session, manifesto_guid):
     if value is None:
         raise ApiError(404, "VIAGEM_NAO_ENCONTRADA", "Viagem nao encontrada")
     detail = _detail(value)
+    with get_engine().connect() as connection:
+        if not _company_allowed(connection, session, detail["origem"]["empresa"]):
+            raise ApiError(404, "VIAGEM_NAO_ENCONTRADA", "Viagem nao encontrada")
     for field in (
         "contrato_versao",
         "snapshot_id",
@@ -646,6 +719,113 @@ def renew_mobile_session(payload):
         }
 
 
+def sync_driver_identities(agent, projection):
+    """Replace the Agent's company scopes while preserving no secret in logs."""
+    now = None
+    changed_drivers = set()
+    identities = projection["identities"]
+    companies = projection["companies"]
+    with get_engine().begin() as connection:
+        now = database_now(connection)
+        _require_authorized_companies(connection, agent, companies)
+        for item in identities:
+            existing = connection.execute(select(mobile_driver_identity).where(and_(
+                mobile_driver_identity.c.tenant_id == agent["tenant_id"],
+                mobile_driver_identity.c.driver_guid == item["driver_guid"],
+            ))).mappings().first()
+            changed = existing is not None and any(existing[key] != item[source] for key, source in (
+                ("password_verifier", "password_verifier"), ("active", "driver_active"),
+                ("login_normalized", "login_normalized"),
+            ))
+            if existing is None:
+                connection.execute(mobile_driver_identity.insert().values(
+                    tenant_id=agent["tenant_id"], driver_guid=item["driver_guid"],
+                    driver_app_id=item["driver_app_id"], driver_name=item["driver_name"],
+                    login_normalized=item["login_normalized"], password_verifier=item["password_verifier"],
+                    active=item["driver_active"], updated_at=now,
+                ))
+            else:
+                connection.execute(update(mobile_driver_identity).where(and_(
+                    mobile_driver_identity.c.tenant_id == agent["tenant_id"],
+                    mobile_driver_identity.c.driver_guid == item["driver_guid"],
+                )).values(driver_app_id=item["driver_app_id"], driver_name=item["driver_name"],
+                    login_normalized=item["login_normalized"], password_verifier=item["password_verifier"],
+                    active=item["driver_active"], updated_at=now))
+            if changed or not item["driver_active"]:
+                changed_drivers.add(item["driver_guid"])
+            access = connection.execute(select(mobile_driver_company_access).where(and_(
+                mobile_driver_company_access.c.tenant_id == agent["tenant_id"],
+                mobile_driver_company_access.c.company_id == item["company_id"],
+                mobile_driver_company_access.c.driver_guid == item["driver_guid"],
+            ))).mappings().first()
+            if access is not None and (access["active"] != item["access_active"] or access["transporter_id"] != item["transporter_id"]):
+                changed_drivers.add(item["driver_guid"])
+            statement = dialect_insert(connection, mobile_driver_company_access).values(
+                tenant_id=agent["tenant_id"], company_id=item["company_id"], driver_guid=item["driver_guid"],
+                transporter_id=item["transporter_id"], active=item["access_active"], updated_at=now,
+            )
+            statement = statement.on_conflict_do_update(
+                index_elements=["tenant_id", "company_id", "driver_guid"],
+                set_={"transporter_id": statement.excluded.transporter_id, "active": statement.excluded.active, "updated_at": statement.excluded.updated_at},
+            )
+            connection.execute(statement)
+        if companies:
+            active_keys = {(item["company_id"], item["driver_guid"]) for item in identities}
+            previous = connection.execute(select(mobile_driver_company_access).where(and_(
+                mobile_driver_company_access.c.tenant_id == agent["tenant_id"],
+                mobile_driver_company_access.c.company_id.in_(companies),
+                mobile_driver_company_access.c.active.is_(True),
+            ))).mappings().all()
+            for access in previous:
+                if (access["company_id"], access["driver_guid"]) not in active_keys:
+                    connection.execute(update(mobile_driver_company_access).where(and_(
+                        mobile_driver_company_access.c.tenant_id == agent["tenant_id"],
+                        mobile_driver_company_access.c.company_id == access["company_id"],
+                        mobile_driver_company_access.c.driver_guid == access["driver_guid"],
+                    )).values(active=False, updated_at=now))
+                    changed_drivers.add(access["driver_guid"])
+        if changed_drivers:
+            connection.execute(update(mobile_session).where(and_(
+                mobile_session.c.tenant_id == agent["tenant_id"],
+                mobile_session.c.driver_guid.in_(changed_drivers), mobile_session.c.revoked_at.is_(None),
+            )).values(revoked_at=now))
+    return {"resultado": "IDENTIDADES_SINCRONIZADAS", "quantidade": len(identities)}
+
+
+def login_mobile(login_normalized, password, device=None):
+    with get_engine().begin() as connection:
+        rows = connection.execute(select(mobile_driver_identity).where(and_(
+            mobile_driver_identity.c.login_normalized == login_normalized,
+            mobile_driver_identity.c.active.is_(True),
+        ))).mappings().all()
+        rows = [row for row in rows if connection.execute(select(mobile_driver_company_access.c.driver_guid).where(and_(
+            mobile_driver_company_access.c.tenant_id == row["tenant_id"],
+            mobile_driver_company_access.c.driver_guid == row["driver_guid"],
+            mobile_driver_company_access.c.active.is_(True),
+        )).limit(1)).first()]
+        if len(rows) != 1 or not check_password_hash(rows[0]["password_verifier"] if rows else _dummy_password_hash(), password):
+            raise ApiError(401, "CREDENCIAIS_INVALIDAS", "Usuario ou senha invalidos")
+        identity = rows[0]
+        now = database_now(connection)
+        expires_at = now + timedelta(seconds=current_app.config["MOBILE_SESSION_SECONDS"])
+        access_token, refresh_token = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
+        connection.execute(mobile_session.insert().values(
+            tenant_id=identity["tenant_id"], driver_guid=identity["driver_guid"],
+            token_digest=token_digest(access_token),
+            refresh_token_digest=token_digest(refresh_token),
+            expires_at=expires_at, created_at=now,
+        ))
+        return {"token_type": "Bearer", "access_token": access_token, "refresh_token": refresh_token,
+                "access_expires_at": _iso(min(_aware(expires_at), _aware(now) + timedelta(seconds=current_app.config["MOBILE_ACCESS_TOKEN_SECONDS"]))),
+                "expires_in": current_app.config["MOBILE_ACCESS_TOKEN_SECONDS"],
+                "motorista": {"guid": identity["driver_guid"], "nome": identity["driver_name"]}}
+
+
+def _dummy_password_hash():
+    from werkzeug.security import generate_password_hash
+    return generate_password_hash("credencial-inexistente")
+
+
 def _delivery_response(result, code, message, operation_guid, occurrence=None, pending_order=None, pending_stop=None, replay=False):
     return {
         "resultado": result, "codigo": code, "codigo_resposta": code, "mensagem": message,
@@ -692,22 +872,48 @@ def register_delivery_read(session, manifest_guid, stop_id, order_id, payload):
         if detail["carga"]["id"] in current_app.config["DELIVERY_DENIED_LOAD_IDS"]:
             raise ApiError(403, "CARGA_NAO_AUTORIZADA", "Carga nao autorizada para delivery_read")
         stop = next((value for value in detail["paradas"] if value["parada"] == stop_id), None)
-        candidates = [] if stop is None else [
-            value for value in stop["ocorrencias"]
-            if value["pedido"] == order_id
-            and str(value.get("codigo", "")).strip().upper() == payload["codigo"]
-        ]
-        occurrence = next((value for value in candidates if value["status"] == "P"), None)
-        if stop is None:
-            response = _delivery_response("RECUSADA", "OUTRA_PARADA", "Parada nao pertence a esta viagem", payload["operacao_guid"])
-        elif not candidates:
-            same_stop = any(str(value.get("codigo", "")).strip().upper() == payload["codigo"] for value in stop["ocorrencias"])
-            same_manifest = any(str(value.get("codigo", "")).strip().upper() == payload["codigo"] for candidate in detail["paradas"] for value in candidate["ocorrencias"])
-            code = "OUTRO_PEDIDO" if same_stop else "OUTRA_PARADA" if same_manifest else "CODIGO_NAO_DISPONIVEL"
-            response = _delivery_response("RECUSADA", code, "Codigo nao disponivel para este pedido", payload["operacao_guid"])
+        occurrence_guid = payload.get("occurrence_guid")
+        occurrence = next(
+            (
+                value
+                for candidate_stop in detail["paradas"]
+                for value in candidate_stop["ocorrencias"]
+                if occurrence_guid and value.get("guid") == occurrence_guid
+            ),
+            None,
+        )
+        if occurrence_guid is None:
+            response = _delivery_response(
+                "RECUSADA", "OCORRENCIA_GUID_OBRIGATORIA",
+                "occurrence_guid e obrigatorio para novas operacoes",
+                payload["operacao_guid"],
+            )
         elif occurrence is None:
-            code = "ROLO_JA_RECEPCIONADO" if any(value.get("tipo") == "R" for value in candidates) else "MULTIPLICIDADE_ESGOTADA"
-            response = _delivery_response("RECUSADA", code, "Ocorrencia ja recepcionada", payload["operacao_guid"])
+            response = _delivery_response(
+                "RECUSADA", "OCORRENCIA_NAO_ENCONTRADA",
+                "Ocorrencia nao pertence a esta viagem",
+                payload["operacao_guid"],
+            )
+        elif stop is None:
+            response = _delivery_response("RECUSADA", "OUTRA_PARADA", "Parada nao pertence a esta viagem", payload["operacao_guid"])
+        elif occurrence not in stop["ocorrencias"] or occurrence.get("pedido") != order_id:
+            response = _delivery_response(
+                "RECUSADA", "OCORRENCIA_FORA_DO_ESCOPO",
+                "Ocorrencia nao pertence a esta parada ou pedido",
+                payload["operacao_guid"],
+            )
+        elif str(occurrence.get("codigo", "")).strip().upper() != payload["codigo"]:
+            response = _delivery_response(
+                "RECUSADA", "CODIGO_DIVERGENTE",
+                "Codigo nao corresponde a ocorrencia informada",
+                payload["operacao_guid"],
+            )
+        elif occurrence.get("status") != "P":
+            response = _delivery_response(
+                "RECUSADA", "OCORRENCIA_JA_ENTREGUE",
+                "Ocorrencia ja recepcionada",
+                payload["operacao_guid"], occurrence["guid"],
+            )
         else:
             occurrence["status"] = "E"
             pending_order = sum(1 for value in stop["ocorrencias"] if value["pedido"] == order_id and value["status"] == "P")
@@ -726,5 +932,107 @@ def register_delivery_read(session, manifest_guid, stop_id, order_id, payload):
             tenant_id=session["tenant_id"], operation_guid=payload["operacao_guid"], driver_guid=session["driver_guid"], manifest_guid=manifest_guid,
             stop_id=stop_id, order_id=order_id, request_hash=request_hash, request_json=payload,
             response_json=response, created_at=database_now(connection),
+            return_contract_version=1, return_payload_hash=request_hash,
+            return_state="PENDING" if response["resultado"] == "ACEITA" else "REJECTED",
+            return_attempt_count=0,
         ))
         return response, 200
+
+
+def _return_payload(row):
+    request = row["request_json"]
+    return {
+        "empresa": row["empresa"],
+        "contrato_versao": row["return_contract_version"],
+        "payload_hash": row["return_payload_hash"],
+        "operation_guid": row["operation_guid"],
+        "manifest_guid": row["manifest_guid"],
+        "stop_id": row["stop_id"],
+        "order_id": row["order_id"],
+        "codigo": request["codigo"],
+        "data_hora_aparelho": request["data_hora_aparelho"],
+        "fuso_minutos": request["fuso_minutos"],
+        "expected_occurrence_guid": row["response_json"].get("ocorrencia_guid"),
+    }
+
+
+def claim_delivery_returns(agent, instance_guid, limit=20, operation_guid=None):
+    """Lease pending mobile ledger rows to one technical Agent instance."""
+    claimed = []
+    with get_engine().begin() as connection:
+        _require_agent_company_scope(connection, agent)
+        now = database_now(connection)
+        expires_at = now + timedelta(seconds=current_app.config["DELIVERY_RETURN_CLAIM_SECONDS"])
+        conditions = [
+                delivery_read_operation.c.tenant_id == agent["tenant_id"],
+                delivery_read_operation.c.return_state.in_(("PENDING", "CLAIMED")),
+                (delivery_read_operation.c.return_state == "PENDING") |
+                (delivery_read_operation.c.claim_expires_at < now),
+        ]
+        if operation_guid is not None:
+            conditions.append(delivery_read_operation.c.operation_guid == operation_guid)
+        candidates = connection.execute(
+            select(
+                delivery_read_operation,
+                manifest_projection.c.company_id.label("empresa"),
+            )
+            .join(manifest_projection, and_(
+                manifest_projection.c.tenant_id == delivery_read_operation.c.tenant_id,
+                manifest_projection.c.manifest_guid == delivery_read_operation.c.manifest_guid,
+            ))
+            .join(agent_credential_company_access, and_(
+                agent_credential_company_access.c.agent_credential_id == agent["id"],
+                agent_credential_company_access.c.company_id == manifest_projection.c.company_id,
+                agent_credential_company_access.c.active.is_(True),
+            ))
+            .where(and_(*conditions))
+            .order_by(delivery_read_operation.c.created_at)
+            .limit(1 if operation_guid is not None else limit)
+            .with_for_update(skip_locked=True)
+        ).mappings().all()
+        for row in candidates:
+            connection.execute(update(delivery_read_operation).where(
+                delivery_read_operation.c.id == row["id"]
+            ).values(
+                return_state="CLAIMED", claimed_by_agent_id=agent["id"],
+                claimed_instance_guid=instance_guid, claim_expires_at=expires_at,
+                return_attempt_count=delivery_read_operation.c.return_attempt_count + 1,
+            ))
+            claimed.append(_return_payload(row))
+    return {"operacoes": claimed, "claim_expires_at": _iso(expires_at)}
+
+
+def acknowledge_delivery_return(agent, instance_guid, result):
+    terminal = "APPLIED" if result["resultado"] == "ACEITA" else "REJECTED"
+    with get_engine().begin() as connection:
+        _require_agent_company_scope(connection, agent)
+        row = connection.execute(
+            select(delivery_read_operation)
+            .select_from(
+                delivery_read_operation
+                .join(manifest_projection, and_(
+                    manifest_projection.c.tenant_id == delivery_read_operation.c.tenant_id,
+                    manifest_projection.c.manifest_guid == delivery_read_operation.c.manifest_guid,
+                ))
+                .join(agent_credential_company_access, and_(
+                    agent_credential_company_access.c.agent_credential_id == agent["id"],
+                    agent_credential_company_access.c.company_id == manifest_projection.c.company_id,
+                    agent_credential_company_access.c.active.is_(True),
+                ))
+            )
+            .where(and_(
+                delivery_read_operation.c.tenant_id == agent["tenant_id"],
+                delivery_read_operation.c.operation_guid == result["operation_guid"],
+            ))
+            .with_for_update()
+        ).mappings().first()
+        if row is None:
+            raise ApiError(404, "OPERACAO_NAO_ENCONTRADA", "Operacao de retorno nao encontrada")
+        if row["return_state"] in {"APPLIED", "REJECTED"}:
+            return {"resultado": row["return_state"], "replay": True}
+        if row["claimed_by_agent_id"] != agent["id"] or row["claimed_instance_guid"] != instance_guid:
+            raise ApiError(409, "CLAIM_INVALIDO", "Operacao nao pertence a esta instancia do Agent")
+        connection.execute(update(delivery_read_operation).where(
+            delivery_read_operation.c.id == row["id"]
+        ).values(return_state=terminal, return_result_json=result, returned_at=database_now(connection)))
+    return {"resultado": terminal, "replay": False}

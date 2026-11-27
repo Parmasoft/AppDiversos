@@ -1,0 +1,89 @@
+--- a/app/contracts.py
++++ b/app/contracts.py
+@@ -15,7 +15,8 @@
+     "fonte_autoritativa", "operacao_guid", "carga_guid", "manifesto_guid",
+     "parada_guid", "pedido_guid", "cliente",
+ }
+-_DELIVERY_READ_FIELDS = {"operacao_guid", "codigo", "data_hora_aparelho", "fuso_minutos"}
++_DELIVERY_READ_V1_FIELDS = {"operacao_guid", "codigo", "data_hora_aparelho", "fuso_minutos"}
++_DELIVERY_READ_V2_FIELDS = _DELIVERY_READ_V1_FIELDS | {"occurrence_guid"}
+ _MOBILE_LOGIN_FIELDS = {"login", "senha", "dispositivo"}
+ _DRIVER_IDENTITY_FIELDS = {
+     "empresa", "motorista_id", "motorista_guid", "nome", "login",
+@@ -128,10 +129,11 @@
+ 
+ 
+ def validate_delivery_read(payload):
+-    _require(payload, _DELIVERY_READ_FIELDS, "delivery_read")
+-    unexpected = sorted(set(payload) - _DELIVERY_READ_FIELDS)
+-    if unexpected:
+-        raise ApiError(400, "CONTRATO_INVALIDO", f"delivery_read: campos nao permitidos: {', '.join(unexpected)}")
++    if not isinstance(payload, dict):
++        raise ApiError(400, "CONTRATO_INVALIDO", "delivery_read deve ser um objeto")
++    fields = set(payload)
++    if fields != _DELIVERY_READ_V1_FIELDS and fields != _DELIVERY_READ_V2_FIELDS:
++        raise ApiError(400, "CONTRATO_INVALIDO", "delivery_read contem campos invalidos")
+     try:
+         operation_guid = UUID(str(payload["operacao_guid"]))
+         device_time = datetime.fromisoformat(str(payload["data_hora_aparelho"]))
+@@ -143,10 +145,16 @@
+     code = str(payload["codigo"]).strip().upper()
+     if not code or len(code) > 200 or not -840 <= timezone_offset <= 840:
+         raise ApiError(400, "CONTRATO_INVALIDO", "codigo ou fuso invalido")
+-    return {
++    normalized = {
+         "operacao_guid": str(operation_guid), "codigo": code,
+         "data_hora_aparelho": device_time.isoformat(), "fuso_minutos": timezone_offset,
+     }
++    if "occurrence_guid" in payload:
++        try:
++            normalized["occurrence_guid"] = str(UUID(str(payload["occurrence_guid"])))
++        except (TypeError, ValueError):
++            raise ApiError(400, "CONTRATO_INVALIDO", "occurrence_guid invalido")
++    return normalized
+ 
+ 
+ def validate_delivery_return_ack(payload):
+--- a/app/service.py
++++ b/app/service.py
+@@ -823,22 +823,25 @@
+         if detail["carga"]["id"] in current_app.config["DELIVERY_DENIED_LOAD_IDS"]:
+             raise ApiError(403, "CARGA_NAO_AUTORIZADA", "Carga nao autorizada para delivery_read")
+         stop = next((value for value in detail["paradas"] if value["parada"] == stop_id), None)
+-        candidates = [] if stop is None else [
+-            value for value in stop["ocorrencias"]
+-            if value["pedido"] == order_id
+-            and str(value.get("codigo", "")).strip().upper() == payload["codigo"]
+-        ]
+-        occurrence = next((value for value in candidates if value["status"] == "P"), None)
+-        if stop is None:
+-            response = _delivery_response("RECUSADA", "OUTRA_PARADA", "Parada nao pertence a esta viagem", payload["operacao_guid"])
+-        elif not candidates:
+-            same_stop = any(str(value.get("codigo", "")).strip().upper() == payload["codigo"] for value in stop["ocorrencias"])
+-            same_manifest = any(str(value.get("codigo", "")).strip().upper() == payload["codigo"] for candidate in detail["paradas"] for value in candidate["ocorrencias"])
+-            code = "OUTRO_PEDIDO" if same_stop else "OUTRA_PARADA" if same_manifest else "CODIGO_NAO_DISPONIVEL"
+-            response = _delivery_response("RECUSADA", code, "Codigo nao disponivel para este pedido", payload["operacao_guid"])
++        occurrence_guid = payload.get("occurrence_guid")
++        occurrence = next(
++            (value for candidate_stop in detail["paradas"] for value in candidate_stop["ocorrencias"]
++             if occurrence_guid and value.get("guid") == occurrence_guid),
++            None,
++        )
++        # Existing operations were resolved above. New V1 operations never deliver.
++        if occurrence_guid is None:
++            response = _delivery_response("RECUSADA", "OCORRENCIA_GUID_OBRIGATORIA", "occurrence_guid e obrigatorio para novas operacoes", payload["operacao_guid"])
+         elif occurrence is None:
+-            code = "ROLO_JA_RECEPCIONADO" if any(value.get("tipo") == "R" for value in candidates) else "MULTIPLICIDADE_ESGOTADA"
+-            response = _delivery_response("RECUSADA", code, "Ocorrencia ja recepcionada", payload["operacao_guid"])
++            response = _delivery_response("RECUSADA", "OCORRENCIA_NAO_ENCONTRADA", "Ocorrencia nao pertence a esta viagem", payload["operacao_guid"])
++        elif stop is None:
++            response = _delivery_response("RECUSADA", "OUTRA_PARADA", "Parada nao pertence a esta viagem", payload["operacao_guid"])
++        elif occurrence not in stop["ocorrencias"] or occurrence.get("pedido") != order_id:
++            response = _delivery_response("RECUSADA", "OCORRENCIA_FORA_DO_ESCOPO", "Ocorrencia nao pertence a esta parada ou pedido", payload["operacao_guid"])
++        elif str(occurrence.get("codigo", "")).strip().upper() != payload["codigo"]:
++            response = _delivery_response("RECUSADA", "CODIGO_DIVERGENTE", "Codigo nao corresponde a ocorrencia informada", payload["operacao_guid"])
++        elif occurrence.get("status") != "P":
++            response = _delivery_response("RECUSADA", "OCORRENCIA_JA_ENTREGUE", "Ocorrencia ja recepcionada", payload["operacao_guid"], occurrence["guid"])
+         else:
+             occurrence["status"] = "E"
+             pending_order = sum(1 for value in stop["ocorrencias"] if value["pedido"] == order_id and value["status"] == "P")

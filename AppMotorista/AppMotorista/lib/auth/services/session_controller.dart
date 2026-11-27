@@ -33,6 +33,7 @@ class SessionController extends ChangeNotifier {
   String? get loginError => _loginError;
 
   Future<void> restore() async {
+    _loginError = null;
     try {
       _session = await _storage.read();
       if (_session == null) {
@@ -51,9 +52,15 @@ class SessionController extends ChangeNotifier {
         _state = SessionState.authenticated;
       }
     } catch (_) {
-      await _clearSession();
+      // A falha ao ler o armazenamento seguro não deve manter a interface
+      // presa no bootstrap, nem ser silenciosamente apresentada como logout.
+      _session = null;
+      _state = SessionState.loggedOut;
+      _loginError =
+          'Não foi possível restaurar a sessão local. Entre novamente.';
+    } finally {
+      notifyListeners();
     }
-    notifyListeners();
   }
 
   Future<bool> login(String username, String password) async {

@@ -8,23 +8,31 @@ import '../../core/utils/display_format.dart';
 import '../../core/widgets/async_message.dart';
 import '../../core/widgets/completion_dialog.dart';
 import '../../core/widgets/offline_cache_banner.dart';
+import '../../sync/local/outbox_local_store.dart';
 import '../models/trip_summary.dart';
 import '../services/trips_service.dart';
+import '../services/trip_state_controller.dart';
 import '../utils/delivery_progress.dart';
+import '../utils/trip_sort.dart';
 import 'trip_detail_screen.dart';
+import 'sync_diagnostic_screen.dart';
 
 class TripsScreen extends StatefulWidget {
   const TripsScreen({
     required this.sessionController,
     required this.tripsService,
+    this.outboxLocalStore,
     this.syncEvents,
+    this.tripStateController,
     this.readOnly = false,
     super.key,
   });
 
   final SessionController sessionController;
   final TripsGateway tripsService;
+  final OutboxLocalStore? outboxLocalStore;
   final Listenable? syncEvents;
+  final TripStateController? tripStateController;
   final bool readOnly;
 
   @override
@@ -33,40 +41,117 @@ class TripsScreen extends StatefulWidget {
 
 class _TripsScreenState extends State<TripsScreen> {
   late Future<List<TripSummary>> _trips;
+  List<TripSummary>? _loadedTrips;
   String? _recentlyCompletedManifestGuid;
 
   @override
   void initState() {
     super.initState();
-    _trips = widget.tripsService.list();
+    _trips = _loadTrips();
     widget.syncEvents?.addListener(_handleSyncEvent);
+    _serviceEvents?.addListener(_handleSyncEvent);
+    widget.tripStateController?.addListener(_handleLocalStateChanged);
   }
 
   @override
   void didUpdateWidget(covariant TripsScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.syncEvents == widget.syncEvents) return;
-    oldWidget.syncEvents?.removeListener(_handleSyncEvent);
-    widget.syncEvents?.addListener(_handleSyncEvent);
+    if (oldWidget.syncEvents != widget.syncEvents) {
+      oldWidget.syncEvents?.removeListener(_handleSyncEvent);
+      widget.syncEvents?.addListener(_handleSyncEvent);
+    }
+    if (oldWidget.tripsService != widget.tripsService) {
+      oldWidget.tripsService is Listenable
+          ? (oldWidget.tripsService as Listenable).removeListener(
+              _handleSyncEvent,
+            )
+          : null;
+      _serviceEvents?.addListener(_handleSyncEvent);
+    }
+    if (oldWidget.tripStateController != widget.tripStateController) {
+      oldWidget.tripStateController?.removeListener(_handleLocalStateChanged);
+      widget.tripStateController?.addListener(_handleLocalStateChanged);
+    }
   }
 
   @override
   void dispose() {
     widget.syncEvents?.removeListener(_handleSyncEvent);
+    _serviceEvents?.removeListener(_handleSyncEvent);
+    widget.tripStateController?.removeListener(_handleLocalStateChanged);
     super.dispose();
   }
 
+  Listenable? get _serviceEvents => widget.tripsService is Listenable
+      ? widget.tripsService as Listenable
+      : null;
+
   void _handleSyncEvent() {
     if (!mounted) return;
+    if (widget.tripStateController != null) return;
     unawaited(_reload().catchError((Object _) {}));
   }
 
+  void _handleLocalStateChanged() {
+    final loaded = _loadedTrips;
+    final driverGuid =
+        widget.sessionController.session?.driver.guid.trim() ?? '';
+    if (!mounted || loaded == null || driverGuid.isEmpty) return;
+    var changed = false;
+    final updated = [
+      for (final item in loaded)
+        _updatedSummary(item, driverGuid, () => changed = true),
+    ];
+    if (!changed) return;
+    setState(() {
+      _loadedTrips = updated;
+      _trips = Future.value(updated);
+    });
+  }
+
+  TripSummary _updatedSummary(
+    TripSummary item,
+    String driverGuid,
+    void Function() changed,
+  ) {
+    final state = widget.tripStateController?.snapshotFor(
+      driverGuid: driverGuid,
+      manifestGuid: item.manifestGuid,
+    );
+    if (state == null) return item;
+    final completed = tripIsCompleted(state.trip);
+    if (item.locallyCompleted == completed &&
+        item.awaitingSync == state.awaitingSync) {
+      return item;
+    }
+    changed();
+    return TripSummary(
+      manifestGuid: item.manifestGuid,
+      loadId: item.loadId,
+      description: item.description,
+      stopCount: item.stopCount,
+      occurrenceCount: item.occurrenceCount,
+      departureDate: item.departureDate,
+      departureTime: item.departureTime,
+      releasedAt: item.releasedAt,
+      locallyCompleted: completed,
+      awaitingSync: state.awaitingSync,
+      offlineAvailability: state.offlineAvailability,
+    );
+  }
+
   Future<void> _reload() async {
-    final future = widget.tripsService.list();
+    final future = _loadTrips();
     setState(() {
       _trips = future;
     });
     await future;
+  }
+
+  Future<List<TripSummary>> _loadTrips() async {
+    final trips = await widget.tripsService.list();
+    _loadedTrips = trips;
+    return trips;
   }
 
   Future<void> _openTrip(TripSummary trip) async {
@@ -75,6 +160,7 @@ class _TripsScreenState extends State<TripsScreen> {
         builder: (_) => TripDetailScreen(
           manifestGuid: trip.manifestGuid,
           tripsService: widget.tripsService,
+          tripStateController: widget.tripStateController,
           syncEvents: widget.syncEvents,
           readOnly: widget.readOnly,
         ),
@@ -86,10 +172,12 @@ class _TripsScreenState extends State<TripsScreen> {
       _recentlyCompletedManifestGuid = trip.manifestGuid;
     });
 
-    try {
-      await _reload();
-    } catch (_) {
-      // O FutureBuilder apresenta o erro da recarga oficial da lista.
+    if (widget.tripStateController == null) {
+      try {
+        await _reload();
+      } catch (_) {
+        // O FutureBuilder apresenta o erro da recarga oficial da lista.
+      }
     }
     if (!mounted) return;
 
@@ -112,12 +200,33 @@ class _TripsScreenState extends State<TripsScreen> {
     }
   }
 
+  Future<void> _openSyncDiagnostic() async {
+    final outboxLocalStore = widget.outboxLocalStore;
+    final driverGuid =
+        widget.sessionController.session?.driver.guid.trim() ?? '';
+    if (outboxLocalStore == null || driverGuid.isEmpty) return;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => SyncDiagnosticScreen(
+          outboxLocalStore: outboxLocalStore,
+          driverGuid: driverGuid,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Minhas viagens'),
         actions: [
+          if (widget.outboxLocalStore != null)
+            IconButton(
+              tooltip: 'Diagnóstico de sincronização',
+              onPressed: _openSyncDiagnostic,
+              icon: const Icon(Icons.bug_report_outlined),
+            ),
           IconButton(
             tooltip: 'Sair',
             onPressed: widget.sessionController.logout,
@@ -140,7 +249,7 @@ class _TripsScreenState extends State<TripsScreen> {
               onAction: _reload,
             );
           }
-          final trips = snapshot.data ?? const [];
+          final trips = sortTripsByEffectiveState(snapshot.data ?? const []);
           if (trips.isEmpty) {
             return AsyncMessage(
               icon: Icons.route_outlined,
@@ -245,6 +354,8 @@ class _TripCard extends StatelessWidget {
                   ),
                 ),
               ],
+              const SizedBox(height: 8),
+              _OfflineAvailabilityLabel(status: trip.offlineAvailability),
               const SizedBox(height: 18),
               Wrap(
                 spacing: 18,
@@ -271,6 +382,44 @@ class _TripCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _OfflineAvailabilityLabel extends StatelessWidget {
+  const _OfflineAvailabilityLabel({required this.status});
+
+  final OfflineAvailability status;
+
+  @override
+  Widget build(BuildContext context) {
+    final (icon, label, color) = switch (status) {
+      OfflineAvailability.available => (
+        Icons.offline_pin_outlined,
+        'DisponÃ­vel offline',
+        const Color(0xFF2E7D32),
+      ),
+      OfflineAvailability.pending => (
+        Icons.downloading_outlined,
+        'Aguardando download',
+        const Color(0xFF546E7A),
+      ),
+      OfflineAvailability.failed => (
+        Icons.cloud_off_outlined,
+        'Falha no download',
+        const Color(0xFFB71C1C),
+      ),
+    };
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: 5),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: color),
+        ),
+      ],
     );
   }
 }

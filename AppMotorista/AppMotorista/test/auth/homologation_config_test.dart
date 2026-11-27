@@ -25,7 +25,7 @@ void main() {
       readOnly: true,
     );
 
-    expect(config.sessionStorageKey, homologationKey);
+    expect(config.sessionStorageKey, startsWith('${homologationKey}_'));
     expect(config.enableMobileBootstrap, isTrue);
   });
 
@@ -38,7 +38,7 @@ void main() {
     );
 
     expect(config.enableMobileBootstrap, isTrue);
-    expect(config.sessionStorageKey, homologationKey);
+    expect(config.sessionStorageKey, startsWith('${homologationKey}_'));
   });
 
   test('modo normal conserva chave legada', () {
@@ -48,14 +48,26 @@ void main() {
       requestTimeout: Duration(seconds: 20),
     );
 
-    expect(config.sessionStorageKey, legacyKey);
+    expect(config.sessionStorageKey, startsWith('${legacyKey}_'));
     expect(config.enableMobileBootstrap, isFalse);
   });
 
   test('sessao de homologacao nao le, apaga ou sobrescreve a legada', () async {
-    final legacy = FlutterSecureSessionStorage(sessionKey: legacyKey);
+    const legacyConfig = AppConfig(
+      environment: 'desenvolvimento',
+      baseUri: 'http://10.0.2.2:5055',
+      requestTimeout: Duration(seconds: 20),
+    );
+    const homologationConfig = AppConfig(
+      environment: 'homologacao',
+      baseUri: 'https://motorista.parmatech.com.br',
+      requestTimeout: Duration(seconds: 20),
+    );
+    final legacy = FlutterSecureSessionStorage(
+      sessionKey: legacyConfig.sessionStorageKey,
+    );
     final homologation = FlutterSecureSessionStorage(
-      sessionKey: homologationKey,
+      sessionKey: homologationConfig.sessionStorageKey,
     );
     await legacy.write(_session('legado'));
 
